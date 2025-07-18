@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,16 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
   const bowlingTeam = currentInnings.bowlingTeam;
   const currentBatsmen = matchData.currentBatsmen;
   const currentBowler = matchData.currentBowler;
+
+  // Set default selections
+  useEffect(() => {
+    if (currentBatsmen.length > 0 && !selectedBatsman) {
+      setSelectedBatsman(currentBatsmen[0].playerId);
+    }
+    if (currentBowler && !selectedBowler) {
+      setSelectedBowler(currentBowler.playerId);
+    }
+  }, [currentBatsmen, currentBowler, selectedBatsman, selectedBowler]);
 
   const ballMutation = useMutation({
     mutationFn: async (ballData: any) => {
@@ -105,9 +115,9 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
       runs: runs,
       extraType: extraType || null,
       extraRuns: extraRuns || 0,
-      isWicket: isWicket,
-      wicketType: wicketType || null,
-      commentary: generateCommentary(runs, isWicket, extraType, wicketType)
+      isWicket: wicketType !== 'none' && wicketType !== '' ? true : false,
+      wicketType: wicketType === 'none' || wicketType === '' ? null : wicketType,
+      commentary: generateCommentary(runs, wicketType !== 'none' && wicketType !== '', extraType, wicketType)
     };
 
     ballMutation.mutate(ballData);
@@ -202,11 +212,13 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                       <SelectValue placeholder="Select bowler" />
                     </SelectTrigger>
                     <SelectContent>
-                      {currentBowler && (
-                        <SelectItem value={currentBowler.playerId.toString()}>
-                          {currentBowler.player.name} ({currentBowler.oversBowled}-{currentBowler.runsConceded})
-                        </SelectItem>
-                      )}
+                      {currentInnings.playerStats
+                        .filter(stat => stat.player.teamId === bowlingTeam.id)
+                        .map((bowler) => (
+                          <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
+                            {bowler.player.name} ({bowler.oversBowled ?? 0}-{bowler.runsConceded ?? 0})
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -266,6 +278,42 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
             <TabsContent value="detailed" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <Label>Current Batsman</Label>
+                  <Select value={selectedBatsman?.toString()} onValueChange={(value) => setSelectedBatsman(parseInt(value))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select batsman" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currentBatsmen.map((batsman) => (
+                        <SelectItem key={batsman.id} value={batsman.playerId.toString()}>
+                          {batsman.player.name} ({batsman.runs}*)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label>Current Bowler</Label>
+                  <Select value={selectedBowler?.toString()} onValueChange={(value) => setSelectedBowler(parseInt(value))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select bowler" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currentInnings.playerStats
+                        .filter(stat => stat.player.teamId === bowlingTeam.id)
+                        .map((bowler) => (
+                          <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
+                            {bowler.player.name} ({bowler.oversBowled ?? 0}-{bowler.runsConceded ?? 0})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <Label>Runs</Label>
                   <div className="flex items-center gap-2">
                     <Button
@@ -310,7 +358,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                     <SelectValue placeholder="Select wicket type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Wicket</SelectItem>
+                    <SelectItem value="none">No Wicket</SelectItem>
                     <SelectItem value="bowled">Bowled</SelectItem>
                     <SelectItem value="caught">Caught</SelectItem>
                     <SelectItem value="lbw">LBW</SelectItem>
@@ -332,6 +380,42 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
             </TabsContent>
 
             <TabsContent value="extras" className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Current Batsman</Label>
+                  <Select value={selectedBatsman?.toString()} onValueChange={(value) => setSelectedBatsman(parseInt(value))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select batsman" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currentBatsmen.map((batsman) => (
+                        <SelectItem key={batsman.id} value={batsman.playerId.toString()}>
+                          {batsman.player.name} ({batsman.runs}*)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label>Current Bowler</Label>
+                  <Select value={selectedBowler?.toString()} onValueChange={(value) => setSelectedBowler(parseInt(value))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select bowler" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currentInnings.playerStats
+                        .filter(stat => stat.player.teamId === bowlingTeam.id)
+                        .map((bowler) => (
+                          <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
+                            {bowler.player.name} ({bowler.oversBowled ?? 0}-{bowler.runsConceded ?? 0})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <Label>Extra Type</Label>
                 <div className="grid grid-cols-2 gap-2">
