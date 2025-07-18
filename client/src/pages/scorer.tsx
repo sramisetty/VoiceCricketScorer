@@ -39,6 +39,7 @@ export default function Scorer() {
   const [overCompletedDialogOpen, setOverCompletedDialogOpen] = useState(false);
   const [nextBowlerId, setNextBowlerId] = useState('');
   const [openersDialogOpen, setOpenersDialogOpen] = useState(false);
+  const [lastBowlerChangeOverNumber, setLastBowlerChangeOverNumber] = useState(0);
   const [selectedOpener1, setSelectedOpener1] = useState('');
   const [selectedOpener2, setSelectedOpener2] = useState('');
   const [selectedStriker, setSelectedStriker] = useState('');
@@ -75,12 +76,14 @@ export default function Scorer() {
     if (currentData?.currentInnings) {
       const ballsInCurrentOver = currentData.currentInnings.totalBalls % 6;
       const isOverCompleted = ballsInCurrentOver === 0 && currentData.currentInnings.totalBalls > 0;
+      const currentOverNumber = Math.floor(currentData.currentInnings.totalBalls / 6);
       
-      if (isOverCompleted && !overCompletedDialogOpen) {
+      // Only show dialog if over is completed AND dialog is not already open AND we haven't just changed bowler for this over
+      if (isOverCompleted && !overCompletedDialogOpen && lastBowlerChangeOverNumber !== currentOverNumber) {
         setOverCompletedDialogOpen(true);
       }
     }
-  }, [currentData?.currentInnings.totalBalls, overCompletedDialogOpen]);
+  }, [currentData?.currentInnings.totalBalls, overCompletedDialogOpen, lastBowlerChangeOverNumber]);
 
   // Check if no balls have been bowled and prompt for opener selection
   useEffect(() => {
@@ -217,6 +220,12 @@ export default function Scorer() {
       setSelectedNewBowler('');
       setOverCompletedDialogOpen(false);
       setNextBowlerId('');
+      
+      // Track that we just changed bowler for this over
+      if (currentData?.currentInnings) {
+        const currentOverNumber = Math.floor(currentData.currentInnings.totalBalls / 6);
+        setLastBowlerChangeOverNumber(currentOverNumber);
+      }
       
       // Show success message
       toast({
