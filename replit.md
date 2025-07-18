@@ -29,13 +29,14 @@ Preferred communication style: Simple, everyday language.
 
 ### Voice Recognition System
 - **Speech-to-Text**: Browser Web Speech API for real-time transcription
-- **Advanced Cricket Parser**: Comprehensive NLP parser for cricket-specific phrases and complex commands
-- **Command Categories**: Runs, extras, bowler changes, batsman changes, game flow (timeout, review)
-- **Enhanced Run Commands**: "single", "four", "six", "dot ball", "overthrow four", "misfield two"
-- **Bowler Logic**: "change bowler", "Smith to bowl", "bring on spinner", "fast bowler on"
-- **Game Flow Commands**: "over complete", "timeout", "review", "rotate strike", "retire hurt"
-- **Visual Feedback**: Real-time transcript display and command type indicators
-- **Confidence Scoring**: Commands filtered by confidence levels to ensure accuracy
+- **Runs-Only Parser**: Streamlined parser focused exclusively on run-scoring commands
+- **Enhanced Phonetic Patterns**: Comprehensive phonetic matching for all run types
+- **Supported Commands**: "dot ball", "single", "double", "triple", "four", "six", "boundary", "maximum"
+- **Misinterpretation Handling**: "dark" → "dot", "florence" → "four", "sex" → "six", "trouble" → "double"
+- **Number Recognition**: "one run", "two runs", "three runs", "four runs", "six runs"
+- **Alternative Phrases**: "maximum" → "six", "boundary" → "four", "no run" → "dot ball"
+- **Visual Feedback**: Real-time transcript display and command interpretation
+- **High Confidence Scoring**: Enhanced accuracy with phonetic correction boosting
 - **Noise Handling**: Designed to work with ambient cricket ground sounds
 
 ### Comprehensive Scoring System
@@ -137,3 +138,7 @@ Preferred communication style: Simple, everyday language.
 - **✓ Speech Recognition Optimization**: Enhanced accuracy with multiple alternatives and better final result processing
 - **✓ Voice Recognition Rollback**: Restored standard web speech recognition for reliable voice input
 - **✓ Cricket Parser Enhancement**: Maintained advanced phonetic pattern matching for improved accuracy
+- **✓ Voice Commands Restriction**: Limited voice commands to runs-only for better accuracy and simplicity
+- **✓ Enhanced Phonetic Patterns**: Expanded phonetic matching for dot balls, singles, doubles, triples, fours, and sixes
+- **✓ Improved Voice Recognition**: Better handling of common misinterpretations like "dark" → "dot", "florence" → "four", "sex" → "six"
+- **✓ Comprehensive Documentation**: Created elaborate README.md with complete app explanation, setup instructions, and feature documentation
