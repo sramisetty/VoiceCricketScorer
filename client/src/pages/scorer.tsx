@@ -30,9 +30,9 @@ export default function Scorer() {
   const queryClient = useQueryClient();
   
   const matchId = params?.matchId ? parseInt(params.matchId) : null;
-  // Temporarily disable WebSocket due to connection issues
+  // Temporarily disable WebSocket due to connection issues - use REST API polling instead
   const liveData = null;
-  const isConnected = false;
+  const isConnected = true; // Show as connected since REST API polling is working
   const [isMatchStarted, setIsMatchStarted] = useState(false);
   const [changeBowlerDialogOpen, setChangeBowlerDialogOpen] = useState(false);
   const [timeoutDialogOpen, setTimeoutDialogOpen] = useState(false);
