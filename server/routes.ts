@@ -80,6 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const teams = await storage.getAllTeams();
       res.json(teams);
     } catch (error) {
+      console.error('Error fetching teams:', error);
       res.status(500).json({ error: 'Failed to fetch teams' });
     }
   });
@@ -121,6 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const matches = await storage.getAllMatches();
       res.json(matches);
     } catch (error) {
+      console.error('Error fetching matches:', error);
       res.status(500).json({ error: 'Failed to fetch matches' });
     }
   });
