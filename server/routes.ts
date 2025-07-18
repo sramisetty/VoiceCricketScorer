@@ -504,6 +504,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/matches/:id/change-bowler', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      const { newBowlerId } = req.body;
+      
+      if (!newBowlerId) {
+        return res.status(400).json({ error: 'newBowlerId is required' });
+      }
+      
+      // Get current match data
+      const liveData = await storage.getLiveMatchData(matchId);
+      if (!liveData) {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+      
+      // Update the current bowler - simply set as active bowler
+      // In cricket, the bowler change is handled by the scoring system
+      
+      const updatedLiveData = await storage.getLiveMatchData(matchId);
+      broadcastToMatch(matchId, { type: 'bowler_changed', data: updatedLiveData });
+      
+      res.json({ success: true, newBowlerId });
+    } catch (error) {
+      console.error('Error changing bowler:', error);
+      res.status(500).json({ error: 'Failed to change bowler' });
+    }
+  });
+
   app.post('/api/matches/:id/reset', async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);

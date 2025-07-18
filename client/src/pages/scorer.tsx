@@ -36,6 +36,8 @@ export default function Scorer() {
   const [timeoutDialogOpen, setTimeoutDialogOpen] = useState(false);
   const [selectedNewBowler, setSelectedNewBowler] = useState('');
   const [timeoutDuration, setTimeoutDuration] = useState(5);
+  const [overCompletedDialogOpen, setOverCompletedDialogOpen] = useState(false);
+  const [nextBowlerId, setNextBowlerId] = useState('');
 
   // Fetch initial match data
   const { data: matchData, isLoading, error } = useQuery<LiveMatchData>({
@@ -57,6 +59,18 @@ export default function Scorer() {
       setIsMatchStarted(true);
     }
   }, [currentData]);
+
+  // Check if over is completed and prompt for next bowler
+  useEffect(() => {
+    if (currentData?.currentInnings) {
+      const ballsInCurrentOver = currentData.currentInnings.totalBalls % 6;
+      const isOverCompleted = ballsInCurrentOver === 0 && currentData.currentInnings.totalBalls > 0;
+      
+      if (isOverCompleted && !overCompletedDialogOpen) {
+        setOverCompletedDialogOpen(true);
+      }
+    }
+  }, [currentData?.currentInnings.totalBalls, overCompletedDialogOpen]);
 
   const startMatchMutation = useMutation({
     mutationFn: async () => {
@@ -184,6 +198,8 @@ export default function Scorer() {
       queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
       setChangeBowlerDialogOpen(false);
       setSelectedNewBowler('');
+      setOverCompletedDialogOpen(false);
+      setNextBowlerId('');
     },
     onError: () => {
       toast({
@@ -542,6 +558,49 @@ export default function Scorer() {
           </div>
         </div>
       </div>
+
+      {/* Over Completed Dialog */}
+      <Dialog open={overCompletedDialogOpen} onOpenChange={setOverCompletedDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Over Completed - Select Next Bowler</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              The over has been completed. Please select the bowler for the next over.
+            </p>
+            <div>
+              <Label htmlFor="next-bowler">Next Bowler</Label>
+              <Select value={nextBowlerId} onValueChange={setNextBowlerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select next bowler" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableBowlers
+                    .filter(bowler => bowler.id !== currentData?.currentBowler?.playerId)
+                    .map((bowler) => (
+                      <SelectItem key={bowler.id} value={bowler.id.toString()}>
+                        {bowler.name} ({bowler.role})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setOverCompletedDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => changeBowlerMutation.mutate(nextBowlerId)}
+                disabled={!nextBowlerId || changeBowlerMutation.isPending}
+              >
+                <User className="w-4 h-4 mr-2" />
+                {changeBowlerMutation.isPending ? 'Changing...' : 'Change Bowler'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
