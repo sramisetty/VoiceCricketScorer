@@ -135,7 +135,5 @@ Preferred communication style: Simple, everyday language.
 - **✓ Voice Recognition Enhancement**: Added phonetic pattern matching to handle misinterpretations ("dark" → "dot", "florence" → "four")
 - **✓ Visual Command Feedback**: Improved voice input interface with color-coded interpretation display and confidence indicators
 - **✓ Speech Recognition Optimization**: Enhanced accuracy with multiple alternatives and better final result processing
-- **✓ Enhanced Voice Input System**: Implemented comprehensive voice recognition with advanced phonetic correction patterns
-- **✓ OpenAI Whisper Integration**: Added server-side audio transcription infrastructure (pending API key setup)
-- **✓ Fallback Voice Recognition**: Browser-based speech recognition with enhanced accuracy for cricket commands
-- **✓ Voice Input Improvements**: Online/offline detection, better error handling, and visual feedback system
+- **✓ Voice Recognition Rollback**: Restored standard web speech recognition for reliable voice input
+- **✓ Cricket Parser Enhancement**: Maintained advanced phonetic pattern matching for improved accuracy
