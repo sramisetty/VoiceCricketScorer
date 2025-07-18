@@ -16,14 +16,21 @@ const runPatterns = [
   /triple|three/i,
   /four|boundary/i,
   /six|maximum/i,
-  /dot\s*ball|no\s*run/i
+  /dot\s*ball|no\s*run/i,
+  /(\d+)\s+(runs?)?\s*(and\s+)?(wicket|out)/i, // "2 runs and wicket"
+  /(four|six)\s+(runs?)?\s*(and\s+)?(wicket|out)/i, // "four and wicket"
+  /(boundary|four)\s+through\s+(covers?|point|midwicket|third man|fine leg)/i,
+  /(six|maximum)\s+(over|down|to)\s+(long on|long off|midwicket|square leg)/i
 ];
 
 const extraPatterns = [
   /wide(?:\s*ball)?/i,
   /no\s*ball/i,
   /bye/i,
-  /leg\s*bye/i
+  /leg\s*bye/i,
+  /(wide|no ball)\s+(\d+)\s+runs?/i, // "wide 2 runs"
+  /(bye|leg bye)\s+(\d+)/i, // "bye 4"
+  /penalty\s+(\d+)/i // "penalty 5"
 ];
 
 const wicketPatterns = [

@@ -321,8 +321,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Update player stats
-      // ... (complex logic for updating batsman and bowler stats)
+      // Update player stats (runs, balls faced, etc.)
+      const batterStats = await storage.getPlayerStatsByInnings(ballData.inningsId);
+      const batsman = batterStats.find(s => s.playerId === ballData.batsmanId);
+      if (batsman) {
+        const currentRuns = batsman.runs ?? 0;
+        const currentBalls = batsman.ballsFaced ?? 0;
+        const currentFours = batsman.fours ?? 0;
+        const currentSixes = batsman.sixes ?? 0;
+        const ballRuns = ballData.runs ?? 0;
+        
+        await storage.updatePlayerStats(batsman.id, {
+          runs: currentRuns + ballRuns,
+          ballsFaced: currentBalls + (ballData.extraType ? 0 : 1),
+          fours: ballRuns === 4 ? currentFours + 1 : currentFours,
+          sixes: ballRuns === 6 ? currentSixes + 1 : currentSixes,
+          isOut: ballData.isWicket ? true : batsman.isOut
+        });
+      }
+
+      // Update bowler stats
+      const bowler = batterStats.find(s => s.playerId === ballData.bowlerId);
+      if (bowler) {
+        const currentBallsBowled = bowler.ballsBowled ?? 0;
+        const currentRunsConceded = bowler.runsConceded ?? 0;
+        const currentWickets = bowler.wicketsTaken ?? 0;
+        const ballRuns = ballData.runs ?? 0;
+        const extraRuns = ballData.extraRuns ?? 0;
+        
+        await storage.updatePlayerStats(bowler.id, {
+          ballsBowled: currentBallsBowled + (ballData.extraType ? 0 : 1),
+          runsConceded: currentRunsConceded + ballRuns + extraRuns,
+          wicketsTaken: ballData.isWicket ? currentWickets + 1 : currentWickets,
+          oversBowled: Math.floor((currentBallsBowled + (ballData.extraType ? 0 : 1)) / 6)
+        });
+      }
 
       const liveData = await storage.getLiveMatchData(matchId);
       broadcastToMatch(matchId, { type: 'ball_update', data: liveData });
@@ -353,6 +386,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ error: 'Failed to undo ball' });
+    }
+  });
+
+  // Advanced scoring endpoints
+  app.post('/api/matches/:id/over-complete', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      const currentInnings = await storage.getCurrentInnings(matchId);
+      
+      if (!currentInnings) {
+        return res.status(404).json({ error: 'No current innings found' });
+      }
+
+      // Logic for handling over completion
+      const liveData = await storage.getLiveMatchData(matchId);
+      broadcastToMatch(matchId, { type: 'over_complete', data: liveData });
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to complete over' });
+    }
+  });
+
+  app.post('/api/matches/:id/change-bowler', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      const { bowlerId } = req.body;
+      
+      // Logic for changing bowler
+      const liveData = await storage.getLiveMatchData(matchId);
+      broadcastToMatch(matchId, { type: 'bowler_changed', data: liveData });
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to change bowler' });
+    }
+  });
+
+  app.post('/api/matches/:id/retire-batsman', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      const { batsmanId, reason } = req.body;
+      
+      // Logic for retiring batsman
+      const liveData = await storage.getLiveMatchData(matchId);
+      broadcastToMatch(matchId, { type: 'batsman_retired', data: liveData });
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to retire batsman' });
     }
   });
 

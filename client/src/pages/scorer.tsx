@@ -13,6 +13,8 @@ import { Commentary } from '@/components/commentary';
 import { CurrentOver } from '@/components/current-over';
 import { TeamStats } from '@/components/team-stats';
 import { BowlingFigures } from '@/components/bowling-figures';
+import { AdvancedScorer } from '@/components/advanced-scorer';
+import { MatchStatistics } from '@/components/match-statistics';
 import { apiRequest } from '@/lib/queryClient';
 import { generateCommentary, type ParsedCommand } from '@/lib/cricket-parser';
 import type { LiveMatchData } from '@shared/schema';
@@ -322,12 +324,12 @@ export default function Scorer() {
               currentBowler={currentData.currentBowler?.player.name}
             />
 
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <ManualOverride
-                onCommand={handleCommand}
-                onUndo={() => undoBallMutation.mutate()}
-              />
-            </div>
+            <AdvancedScorer 
+              matchData={currentData}
+              matchId={matchId!}
+            />
+
+            <MatchStatistics matchData={currentData} />
 
             <Commentary balls={currentData.recentBalls} />
           </div>

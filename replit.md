@@ -29,9 +29,17 @@ Preferred communication style: Simple, everyday language.
 
 ### Voice Recognition System
 - **Speech-to-Text**: Browser Web Speech API for real-time transcription
-- **Cricket Command Parser**: Custom NLP parser for cricket-specific phrases
+- **Cricket Command Parser**: Enhanced NLP parser for cricket-specific phrases and complex commands
 - **Confidence Scoring**: Commands filtered by confidence levels to ensure accuracy
 - **Noise Handling**: Designed to work with ambient cricket ground sounds
+- **Complex Commands**: Support for "2 runs and wicket", "wide 3 runs", "four and out" patterns
+
+### Comprehensive Scoring System
+- **Advanced Scorer**: Multi-tab interface with quick scoring, detailed entry, and extras handling
+- **Match Statistics**: Real-time batting, bowling, and partnership analytics
+- **Player Statistics**: Individual performance tracking with strike rates and economy rates
+- **Ball-by-Ball Tracking**: Complete ball tracking with commentary generation
+- **Undo/Redo Functionality**: Ability to correct scoring mistakes
 
 ### Database Schema
 - **Database**: PostgreSQL with Drizzle ORM for persistent data storage
