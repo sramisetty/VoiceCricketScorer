@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -35,15 +35,22 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
   const currentBatsmen = matchData.currentBatsmen;
   const currentBowler = matchData.currentBowler;
 
-  // Set default selections
+  // Set default selections - always select the on-strike batsman
   useEffect(() => {
-    if (currentBatsmen.length > 0 && !selectedBatsman) {
-      setSelectedBatsman(currentBatsmen[0].playerId);
+    if (currentBatsmen.length > 0) {
+      // Find the on-strike batsman and select them by default
+      const onStrikeBatsman = currentBatsmen.find(b => b.isOnStrike);
+      if (onStrikeBatsman) {
+        setSelectedBatsman(onStrikeBatsman.playerId);
+      } else {
+        // Fallback to first batsman if no one is marked as on strike
+        setSelectedBatsman(currentBatsmen[0].playerId);
+      }
     }
     if (currentBowler && !selectedBowler) {
       setSelectedBowler(currentBowler.playerId);
     }
-  }, [currentBatsmen, currentBowler, selectedBatsman, selectedBowler]);
+  }, [currentBatsmen, currentBowler]);
 
   const ballMutation = useMutation({
     mutationFn: async (ballData: any) => {
@@ -74,15 +81,16 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      resetForm();
       toast({
         title: "Ball Undone",
-        description: "The last ball has been removed.",
+        description: "The last ball has been successfully undone.",
       });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to undo ball.",
+        description: "Failed to undo ball. Please try again.",
         variant: "destructive",
       });
     }
@@ -92,14 +100,14 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
     setRuns(0);
     setExtraType('');
     setExtraRuns(0);
-    setWicketType('');
     setIsWicket(false);
+    setWicketType('');
   };
 
-  const handleBallSubmit = () => {
+  const handleBallSubmit = async () => {
     if (!selectedBatsman || !selectedBowler) {
       toast({
-        title: "Missing Selection",
+        title: "Error",
         description: "Please select both batsman and bowler.",
         variant: "destructive",
       });
@@ -114,26 +122,25 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
       bowlerId: selectedBowler,
       runs: runs,
       extraType: extraType || null,
-      extraRuns: extraRuns || 0,
-      isWicket: wicketType !== 'none' && wicketType !== '' ? true : false,
-      wicketType: wicketType === 'none' || wicketType === '' ? null : wicketType,
-      commentary: generateCommentary(runs, wicketType !== 'none' && wicketType !== '', extraType, wicketType)
+      extraRuns: extraRuns,
+      isWicket: isWicket,
+      wicketType: isWicket ? wicketType : null,
+      commentary: generateCommentary(),
     };
 
     ballMutation.mutate(ballData);
   };
 
-  const generateCommentary = (runs: number, isWicket: boolean, extraType: string, wicketType: string) => {
+  const generateCommentary = () => {
+    let commentary = '';
     if (isWicket) {
-      return `${wicketType?.toUpperCase()} - ${currentBatsmen[0]?.player.name} is out!`;
+      commentary = `${wicketType} - ${currentBatsmen.find(b => b.playerId === selectedBatsman)?.player.name} is out`;
+    } else if (extraType) {
+      commentary = `${extraType} - ${runs + extraRuns} runs`;
+    } else {
+      commentary = `${runs} run${runs !== 1 ? 's' : ''}`;
     }
-    if (extraType) {
-      return `${extraType.toUpperCase()} - ${runs + extraRuns} runs added to the total`;
-    }
-    if (runs === 0) return "Dot ball - no runs scored";
-    if (runs === 4) return "FOUR! Beautiful shot to the boundary";
-    if (runs === 6) return "SIX! What a magnificent shot!";
-    return `${runs} run${runs > 1 ? 's' : ''} scored`;
+    return commentary;
   };
 
   const quickScoreButtons = [
@@ -141,15 +148,15 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
     { label: "1", runs: 1, variant: "outline" as const },
     { label: "2", runs: 2, variant: "outline" as const },
     { label: "3", runs: 3, variant: "outline" as const },
-    { label: "4", runs: 4, variant: "default" as const },
-    { label: "6", runs: 6, variant: "default" as const },
+    { label: "4", runs: 4, variant: "secondary" as const },
+    { label: "6", runs: 6, variant: "secondary" as const },
   ];
 
   const extraButtons = [
-    { label: "Wide", type: "wide", runs: 1 },
-    { label: "No Ball", type: "noball", runs: 1 },
-    { label: "Bye", type: "bye", runs: 1 },
-    { label: "Leg Bye", type: "legbye", runs: 1 },
+    { label: "Wide", type: "wide" },
+    { label: "No Ball", type: "noball" },
+    { label: "Bye", type: "bye" },
+    { label: "Leg Bye", type: "legbye" },
   ];
 
   const wicketButtons = [
@@ -198,7 +205,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                     <SelectContent>
                       {currentBatsmen.map((batsman) => (
                         <SelectItem key={batsman.id} value={batsman.playerId.toString()}>
-                          {batsman.player.name} ({batsman.runs}*)
+                          {batsman.player.name} ({batsman.runs}*) {batsman.isOnStrike ? '🏏 ON STRIKE' : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -230,7 +237,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                   {quickScoreButtons.map((button) => (
                     <Button
                       key={button.label}
-                      variant={button.variant}
+                      variant={runs === button.runs && !isWicket && !extraType ? "default" : button.variant}
                       size="lg"
                       onClick={() => {
                         setRuns(button.runs);
@@ -278,7 +285,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
             <TabsContent value="detailed" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Current Batsman</Label>
+                  <Label>Batsman</Label>
                   <Select value={selectedBatsman?.toString()} onValueChange={(value) => setSelectedBatsman(parseInt(value))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select batsman" />
@@ -286,7 +293,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                     <SelectContent>
                       {currentBatsmen.map((batsman) => (
                         <SelectItem key={batsman.id} value={batsman.playerId.toString()}>
-                          {batsman.player.name} ({batsman.runs}*)
+                          {batsman.player.name} ({batsman.runs}*) {batsman.isOnStrike ? '🏏 ON STRIKE' : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -294,7 +301,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                 </div>
                 
                 <div>
-                  <Label>Current Bowler</Label>
+                  <Label>Bowler</Label>
                   <Select value={selectedBowler?.toString()} onValueChange={(value) => setSelectedBowler(parseInt(value))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select bowler" />
@@ -315,31 +322,14 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Runs</Label>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setRuns(Math.max(0, runs - 1))}
-                    >
-                      <Minus className="w-4 h-4" />
-                    </Button>
-                    <Input
-                      type="number"
-                      value={runs}
-                      onChange={(e) => setRuns(parseInt(e.target.value) || 0)}
-                      className="text-center"
-                      min="0"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setRuns(runs + 1)}
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <Input
+                    type="number"
+                    value={runs}
+                    onChange={(e) => setRuns(parseInt(e.target.value) || 0)}
+                    min="0"
+                  />
                 </div>
-
+                
                 <div>
                   <Label>Extra Runs</Label>
                   <Input
@@ -353,18 +343,20 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
 
               <div>
                 <Label>Wicket Type</Label>
-                <Select value={wicketType} onValueChange={setWicketType}>
+                <Select value={wicketType} onValueChange={(value) => {
+                  setWicketType(value);
+                  setIsWicket(!!value);
+                }}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select wicket type" />
+                    <SelectValue placeholder="Select wicket type (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No Wicket</SelectItem>
-                    <SelectItem value="bowled">Bowled</SelectItem>
-                    <SelectItem value="caught">Caught</SelectItem>
-                    <SelectItem value="lbw">LBW</SelectItem>
-                    <SelectItem value="runout">Run Out</SelectItem>
-                    <SelectItem value="stumped">Stumped</SelectItem>
-                    <SelectItem value="hitwicket">Hit Wicket</SelectItem>
+                    <SelectItem value="">No wicket</SelectItem>
+                    {wicketButtons.map((wicket) => (
+                      <SelectItem key={wicket.type} value={wicket.type}>
+                        {wicket.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -373,7 +365,6 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                 onClick={handleBallSubmit}
                 disabled={ballMutation.isPending}
                 className="w-full"
-                size="lg"
               >
                 {ballMutation.isPending ? "Recording..." : "Record Ball"}
               </Button>
@@ -382,7 +373,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
             <TabsContent value="extras" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Current Batsman</Label>
+                  <Label>Batsman</Label>
                   <Select value={selectedBatsman?.toString()} onValueChange={(value) => setSelectedBatsman(parseInt(value))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select batsman" />
@@ -390,7 +381,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                     <SelectContent>
                       {currentBatsmen.map((batsman) => (
                         <SelectItem key={batsman.id} value={batsman.playerId.toString()}>
-                          {batsman.player.name} ({batsman.runs}*)
+                          {batsman.player.name} ({batsman.runs}*) {batsman.isOnStrike ? '🏏 ON STRIKE' : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -398,7 +389,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                 </div>
                 
                 <div>
-                  <Label>Current Bowler</Label>
+                  <Label>Bowler</Label>
                   <Select value={selectedBowler?.toString()} onValueChange={(value) => setSelectedBowler(parseInt(value))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select bowler" />
@@ -423,11 +414,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                     <Button
                       key={extra.type}
                       variant={extraType === extra.type ? "default" : "outline"}
-                      onClick={() => {
-                        setExtraType(extra.type);
-                        setExtraRuns(extra.runs);
-                        setIsWicket(false);
-                      }}
+                      onClick={() => setExtraType(extra.type)}
                     >
                       {extra.label}
                     </Button>
@@ -435,23 +422,34 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                 </div>
               </div>
 
-              <div>
-                <Label>Additional Runs</Label>
-                <Input
-                  type="number"
-                  value={extraRuns}
-                  onChange={(e) => setExtraRuns(parseInt(e.target.value) || 0)}
-                  min="0"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Runs Off Bat</Label>
+                  <Input
+                    type="number"
+                    value={runs}
+                    onChange={(e) => setRuns(parseInt(e.target.value) || 0)}
+                    min="0"
+                  />
+                </div>
+                
+                <div>
+                  <Label>Extra Runs</Label>
+                  <Input
+                    type="number"
+                    value={extraRuns}
+                    onChange={(e) => setExtraRuns(parseInt(e.target.value) || 0)}
+                    min="0"
+                  />
+                </div>
               </div>
 
               <Button 
                 onClick={handleBallSubmit}
                 disabled={ballMutation.isPending}
                 className="w-full"
-                size="lg"
               >
-                {ballMutation.isPending ? "Recording..." : "Record Extra"}
+                {ballMutation.isPending ? "Recording..." : "Record Ball"}
               </Button>
             </TabsContent>
           </Tabs>
