@@ -6,9 +6,10 @@ interface CurrentOverProps {
   balls: Ball[];
   bowlerName: string;
   overNumber: number;
+  totalBalls: number;
 }
 
-export function CurrentOver({ balls, bowlerName, overNumber }: CurrentOverProps) {
+export function CurrentOver({ balls, bowlerName, overNumber, totalBalls }: CurrentOverProps) {
   // Get balls from current over
   const currentOverBalls = balls
     .filter(ball => ball.overNumber === overNumber)
@@ -36,9 +37,10 @@ export function CurrentOver({ balls, bowlerName, overNumber }: CurrentOverProps)
 
   const wickets = currentOverBalls.filter(ball => ball.isWicket).length;
   
-  // Calculate balls remaining
-  const validBallsBowled = currentOverBalls.filter(ball => !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye').length;
-  const ballsRemaining = 6 - validBallsBowled;
+  // Calculate balls remaining using totalBalls
+  const ballsInCurrentOver = totalBalls % 6;
+  const ballsRemaining = ballsInCurrentOver === 0 && totalBalls > 0 ? 0 : 6 - ballsInCurrentOver;
+  const validBallsBowled = ballsInCurrentOver;
 
   // Show all balls in the over (including extras), but only show valid balls 1-6 with placeholders
   const validBalls = currentOverBalls.filter(ball => !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye');
@@ -58,7 +60,7 @@ export function CurrentOver({ balls, bowlerName, overNumber }: CurrentOverProps)
       <CardContent>
         <div className="text-center mb-4">
           <div className="text-2xl font-bold text-cricket-primary">
-            Over {overNumber}
+            Over {Math.floor(totalBalls / 6)}.{totalBalls % 6}
           </div>
           <div className="text-sm text-gray-600">{bowlerName} bowling</div>
           {ballsRemaining > 0 && (
@@ -66,7 +68,7 @@ export function CurrentOver({ balls, bowlerName, overNumber }: CurrentOverProps)
               {ballsRemaining} ball{ballsRemaining !== 1 ? 's' : ''} remaining
             </div>
           )}
-          {ballsRemaining === 0 && validBallsBowled === 6 && (
+          {ballsRemaining === 0 && totalBalls > 0 && totalBalls % 6 === 0 && (
             <div className="text-xs text-green-600 font-semibold mt-1">
               Over complete
             </div>

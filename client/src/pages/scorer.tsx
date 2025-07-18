@@ -694,6 +694,7 @@ export default function Scorer() {
               balls={currentData.currentInnings.balls}
               bowlerName={currentData.currentBowler?.player.name || 'Unknown'}
               overNumber={Math.floor(currentData.currentInnings.totalBalls / 6) + 1}
+              totalBalls={currentData.currentInnings.totalBalls}
             />
 
             <TeamStats
