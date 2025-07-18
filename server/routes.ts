@@ -358,6 +358,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Implement cricket strike rotation logic
+      await storage.updateStrikeRotation(ballData.inningsId, ballData.batsmanId, ballData.runs ?? 0, ballData.extraType ? true : false);
+
       // Update bowler stats
       const bowler = batterStats.find(s => s.playerId === ballData.bowlerId);
       if (bowler) {

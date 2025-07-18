@@ -50,6 +50,9 @@ export interface IStorage {
 
   // Live Match Data
   getLiveMatchData(matchId: number): Promise<LiveMatchData | undefined>;
+
+  // Cricket Logic
+  updateStrikeRotation(inningsId: number, batsmanId: number, runs: number, isExtra: boolean): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -372,6 +375,36 @@ export class MemStorage implements IStorage {
       currentBowler: currentBowler!
     };
   }
+
+  // Cricket Logic - Strike Rotation
+  async updateStrikeRotation(inningsId: number, batsmanId: number, runs: number, isExtra: boolean): Promise<void> {
+    // Cricket rule: On odd runs (1, 3, 5), batsmen cross over
+    // On even runs (0, 2, 4, 6), batsmen stay in same positions
+    // On extras (wide, no-ball), no strike rotation unless runs are taken
+    
+    if (isExtra && runs === 0) {
+      // No strike rotation on extras with no runs
+      return;
+    }
+    
+    const shouldRotateStrike = runs % 2 === 1; // Odd runs = strike rotation
+    
+    if (shouldRotateStrike) {
+      // Get current batsmen
+      const currentBatsmen = await this.getCurrentBatsmen(inningsId);
+      
+      if (currentBatsmen.length >= 2) {
+        // Find the non-striker (the batsman who didn't face this ball)
+        const nonStriker = currentBatsmen.find(b => b.playerId !== batsmanId);
+        
+        if (nonStriker) {
+          // Set the non-striker as the new striker by updating their position
+          // This is a simplified implementation - in a full system, we'd track isOnStrike field
+          console.log(`Strike rotation: ${nonStriker.player.name} is now on strike`);
+        }
+      }
+    }
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -600,9 +633,16 @@ export class DatabaseStorage implements IStorage {
       s.player.teamId === inningsData.battingTeamId && !s.isOut
     );
     
-    // Sort by balls faced (descending) to get the most active batsmen first
-    // If no one has faced balls, sort by player ID to maintain consistent order
+    // Sort by strike status first (on strike first), then by balls faced (descending)
     battingTeamPlayers.sort((a, b) => {
+      // First priority: on strike batsman comes first
+      const aOnStrike = a.isOnStrike ? 1 : 0;
+      const bOnStrike = b.isOnStrike ? 1 : 0;
+      if (aOnStrike !== bOnStrike) {
+        return bOnStrike - aOnStrike; // On strike first
+      }
+      
+      // Second priority: most active batsman (balls faced)
       const aBalls = a.ballsFaced || 0;
       const bBalls = b.ballsFaced || 0;
       if (aBalls === bBalls) {
@@ -651,6 +691,38 @@ export class DatabaseStorage implements IStorage {
       currentBatsmen,
       currentBowler: currentBowler!
     };
+  }
+  // Cricket Logic - Strike Rotation
+  async updateStrikeRotation(inningsId: number, batsmanId: number, runs: number, isExtra: boolean): Promise<void> {
+    // Cricket rule: On odd runs (1, 3, 5), batsmen cross over
+    // On even runs (0, 2, 4, 6), batsmen stay in same positions
+    // On extras (wide, no-ball), no strike rotation unless runs are taken
+    
+    if (isExtra && runs === 0) {
+      // No strike rotation on extras with no runs
+      return;
+    }
+    
+    const shouldRotateStrike = runs % 2 === 1; // Odd runs = strike rotation
+    
+    if (shouldRotateStrike) {
+      // Get current batsmen
+      const currentBatsmen = await this.getCurrentBatsmen(inningsId);
+      
+      if (currentBatsmen.length >= 2) {
+        // Find the striker (who faced this ball) and non-striker
+        const striker = currentBatsmen.find(b => b.playerId === batsmanId);
+        const nonStriker = currentBatsmen.find(b => b.playerId !== batsmanId);
+        
+        if (striker && nonStriker) {
+          // Switch their strike status
+          await this.updatePlayerStats(striker.id, { isOnStrike: false });
+          await this.updatePlayerStats(nonStriker.id, { isOnStrike: true });
+          
+          console.log(`Strike rotation: ${nonStriker.player.name} is now on strike (after ${runs} run${runs === 1 ? '' : 's'})`);
+        }
+      }
+    }
   }
 }
 
