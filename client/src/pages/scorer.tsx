@@ -325,12 +325,13 @@ export default function Scorer() {
         description: "The opening batsmen have been set successfully.",
       });
       
-      // Clear cache and force immediate refetch with a small delay
+      // Aggressive cache clearing and immediate refetch
       queryClient.removeQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      queryClient.clear(); // Clear all cache
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
-        queryClient.refetchQueries({ queryKey: ['/api/matches', matchId, 'live'] });
-      }, 100);
+        queryClient.refetchQueries({ queryKey: ['/api/matches', matchId, 'live'], type: 'active' });
+      }, 200);
     },
     onError: () => {
       toast({
