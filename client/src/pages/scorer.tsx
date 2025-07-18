@@ -52,6 +52,14 @@ export default function Scorer() {
     queryKey: ['/api/matches', matchId, 'live'],
     enabled: !!matchId,
     refetchInterval: isConnected ? false : 5000, // Only poll if websocket not connected
+    retry: false, // Don't retry failed requests
+  });
+
+  // Fetch basic match info if live data fails
+  const { data: basicMatchData } = useQuery({
+    queryKey: ['/api/matches', matchId],
+    enabled: !!matchId && !matchData && !isLoading,
+    retry: false,
   });
 
   const currentData = liveData || matchData;
@@ -147,17 +155,19 @@ export default function Scorer() {
 
   const startMatchMutation = useMutation({
     mutationFn: async () => {
-      if (!currentData) return;
+      // Use either currentData or basicMatchData
+      const matchData = currentData?.match || basicMatchData;
+      if (!matchData) return;
       
-      const battingTeamId = currentData.match.tossDecision === 'bat' 
-        ? currentData.match.tossWinnerId 
-        : currentData.match.tossWinnerId === currentData.match.team1Id
-          ? currentData.match.team2Id
-          : currentData.match.team1Id;
+      const battingTeamId = matchData.tossDecision === 'bat' 
+        ? matchData.tossWinnerId 
+        : matchData.tossWinnerId === matchData.team1Id
+          ? matchData.team2Id
+          : matchData.team1Id;
 
-      const bowlingTeamId = battingTeamId === currentData.match.team1Id 
-        ? currentData.match.team2Id 
-        : currentData.match.team1Id;
+      const bowlingTeamId = battingTeamId === matchData.team1Id 
+        ? matchData.team2Id 
+        : matchData.team1Id;
 
       const response = await apiRequest('POST', `/api/matches/${matchId}/start`, {
         battingTeamId,
@@ -501,6 +511,70 @@ export default function Scorer() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-xl font-semibold text-gray-700">Loading match...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // If no live data but basic match exists, show start match interface
+  if (!currentData && basicMatchData) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-cricket-primary text-white shadow-lg">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse" />
+                <div>
+                  <h1 className="text-xl font-bold">Cricket Voice Scorer</h1>
+                  <div className="text-sm text-cricket-light">Match Ready to Start</div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Button
+                  onClick={() => setLocation(`/match-settings/${matchId}`)}
+                  className="bg-cricket-accent hover:bg-orange-600"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Match Settings
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="container mx-auto px-4 py-6">
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <h2 className="text-3xl font-bold text-gray-800 mb-4">
+                  {basicMatchData.team1.name} vs {basicMatchData.team2.name}
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  {basicMatchData.matchType} Match • {basicMatchData.overs} Overs
+                </p>
+                <div className="bg-blue-50 p-6 rounded-lg mb-6">
+                  <h3 className="text-lg font-semibold text-blue-800 mb-2">Ready to Start!</h3>
+                  <p className="text-blue-700 mb-4">
+                    The match is set up and ready to begin. Click the button below to start the first innings.
+                  </p>
+                  <Button
+                    onClick={() => startMatchMutation.mutate()}
+                    disabled={startMatchMutation.isPending}
+                    size="lg"
+                    className="bg-green-500 hover:bg-green-600 text-white"
+                  >
+                    <Play className="h-5 w-5 mr-2" />
+                    {startMatchMutation.isPending ? 'Starting Match...' : 'Start Match'}
+                  </Button>
+                </div>
+                <div className="text-sm text-gray-500">
+                  Make sure to configure match settings before starting if needed.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
