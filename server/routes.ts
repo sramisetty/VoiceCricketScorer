@@ -381,6 +381,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Check for innings completion and handle second innings
+      const updatedInnings = await storage.getInnings(ballData.inningsId);
+      const match = await storage.getMatch(matchId);
+      
+      if (updatedInnings && match) {
+        const totalOvers = match.overs;
+        const totalWickets = updatedInnings.totalWickets ?? 0;
+        const currentBalls = updatedInnings.totalBalls ?? 0;
+        const isInningsComplete = totalWickets >= 10 || currentBalls >= (totalOvers * 6);
+        
+        if (isInningsComplete && !updatedInnings.isCompleted) {
+          // Mark current innings as completed
+          await storage.updateInnings(ballData.inningsId, { isCompleted: true });
+          
+          // Check if this is first innings and start second innings
+          if (updatedInnings.inningsNumber === 1) {
+            const secondInnings = await storage.createInnings({
+              matchId,
+              battingTeamId: updatedInnings.bowlingTeamId, // Teams swap
+              bowlingTeamId: updatedInnings.battingTeamId,
+              inningsNumber: 2,
+              totalRuns: 0,
+              totalWickets: 0,
+              totalOvers: 0,
+              totalBalls: 0,
+              extras: { wides: 0, noballs: 0, byes: 0, legbyes: 0 },
+              isCompleted: false
+            });
+
+            // Update match to second innings
+            await storage.updateMatch(matchId, { currentInnings: 2 });
+
+            // Initialize player stats for new innings
+            const newBattingPlayers = await storage.getPlayersByTeam(updatedInnings.bowlingTeamId);
+            const newBowlingPlayers = await storage.getPlayersByTeam(updatedInnings.battingTeamId);
+            
+            for (const player of [...newBattingPlayers, ...newBowlingPlayers]) {
+              await storage.createPlayerStats({
+                inningsId: secondInnings.id,
+                playerId: player.id,
+                runs: 0,
+                ballsFaced: 0,
+                fours: 0,
+                sixes: 0,
+                isOut: false,
+                isOnStrike: false,
+                oversBowled: 0,
+                ballsBowled: 0,
+                runsConceded: 0,
+                wicketsTaken: 0
+              });
+            }
+
+            broadcastToMatch(matchId, { 
+              type: 'innings_complete', 
+              data: { 
+                completedInnings: updatedInnings.inningsNumber,
+                newInnings: secondInnings 
+              } 
+            });
+          } else {
+            // Second innings completed - match finished
+            await storage.updateMatch(matchId, { status: 'completed' });
+            broadcastToMatch(matchId, { 
+              type: 'match_complete', 
+              data: { matchId } 
+            });
+          }
+        }
+      }
+
       const liveData = await storage.getLiveMatchData(matchId);
       broadcastToMatch(matchId, { type: 'ball_update', data: liveData });
 

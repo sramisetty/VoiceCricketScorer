@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import type { LiveMatchData } from '@shared/schema';
 
 interface WebSocketMessage {
-  type: 'match_started' | 'ball_update' | 'ball_undone';
-  data: LiveMatchData;
+  type: 'match_started' | 'ball_update' | 'ball_undone' | 'innings_complete' | 'match_complete';
+  data: LiveMatchData | any;
 }
 
 export function useWebSocket(matchId: number | null) {

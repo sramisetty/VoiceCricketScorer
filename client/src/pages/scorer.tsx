@@ -118,6 +118,33 @@ export default function Scorer() {
     }
   }, [currentData?.currentInnings.playerStats, currentData?.currentBatsmen, newBatsmanDialogOpen]);
 
+  // Handle innings completion notifications
+  useEffect(() => {
+    if (currentData?.currentInnings && currentData.match) {
+      const totalOvers = currentData.match.overs;
+      const totalWickets = currentData.currentInnings.totalWickets ?? 0;
+      const currentBalls = currentData.currentInnings.totalBalls ?? 0;
+      const isInningsComplete = totalWickets >= 10 || currentBalls >= (totalOvers * 6);
+      
+      // Show notifications for innings completion
+      if (isInningsComplete && currentData.currentInnings.isCompleted) {
+        if (currentData.currentInnings.inningsNumber === 1 && currentData.match.currentInnings === 2) {
+          toast({
+            title: "First Innings Complete!",
+            description: `${currentData.currentInnings.battingTeam.name} scored ${currentData.currentInnings.totalRuns}/${currentData.currentInnings.totalWickets}. Second innings starting...`,
+            duration: 10000,
+          });
+        } else if (currentData.currentInnings.inningsNumber === 2 && currentData.match.status === 'completed') {
+          toast({
+            title: "Match Complete!",
+            description: "Both innings have been completed. Check match results for final details.",
+            duration: 10000,
+          });
+        }
+      }
+    }
+  }, [currentData?.currentInnings.isCompleted, currentData?.match.currentInnings, currentData?.match.status]);
+
   const startMatchMutation = useMutation({
     mutationFn: async () => {
       if (!currentData) return;
@@ -511,7 +538,14 @@ export default function Scorer() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
-              <h1 className="text-xl font-bold">Cricket Voice Scorer</h1>
+              <div>
+                <h1 className="text-xl font-bold">Cricket Voice Scorer</h1>
+                {currentData && (
+                  <div className="text-sm text-cricket-light">
+                    {currentData.currentInnings.inningsNumber === 1 ? "1st" : "2nd"} Innings - {currentData.currentInnings.battingTeam.name} Batting
+                  </div>
+                )}
+              </div>
               {!isConnected && (
                 <span className="text-sm bg-red-500 px-2 py-1 rounded">Offline</span>
               )}

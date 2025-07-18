@@ -73,6 +73,9 @@ export default function Scoreboard() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div className="mb-4 sm:mb-0">
               <h1 className="text-2xl sm:text-3xl font-bold mb-2">Live Cricket Scoreboard</h1>
+              <div className="text-sm text-cricket-light">
+                {currentData.currentInnings.inningsNumber === 1 ? "1st" : "2nd"} Innings - {currentData.currentInnings.battingTeam.name} Batting
+              </div>
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
                 <span className="text-base sm:text-lg opacity-90">
                   {currentData.match.team1.name} vs {currentData.match.team2.name}

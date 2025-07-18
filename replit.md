@@ -113,6 +113,19 @@ Preferred communication style: Simple, everyday language.
 ### Key Features
 - **Voice-First Design**: Primary interaction through voice commands
 - **Real-Time Updates**: WebSocket-based live scoring
+- **Innings Management**: Automatic innings completion detection and second innings start
+- **Team Display**: Clear indication of which team is batting in headers
+- **Centralized Undo**: Quick Actions panel with consolidated undo functionality
 - **Mobile Responsive**: Works on all device sizes
 - **Offline Capability**: Local state management with sync when connected
 - **Cricket-Specific**: Tailored for cricket scoring terminology and rules
+
+## Recent Changes (January 2025)
+### January 18, 2025
+- **✓ Innings Completion Logic**: Implemented automatic detection when 10 wickets fall or overs complete
+- **✓ Second Innings Auto-Start**: Teams automatically swap roles for second innings
+- **✓ Header Team Display**: Shows current innings number and batting team in scorer and scoreboard
+- **✓ Centralized Undo**: Moved undo functionality from multiple locations to Quick Actions panel
+- **✓ Match Completion**: Automatic match status update when both innings complete
+- **✓ Notification System**: Toast notifications for innings completion and match completion
+- **✓ WebSocket Events**: Added support for innings_complete and match_complete events
