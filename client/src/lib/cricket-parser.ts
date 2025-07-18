@@ -36,7 +36,7 @@ const phoneticPatterns = {
   single: ['single', 'signal', 'simple', 'singer'],
   double: ['double', 'trouble', 'dribble', 'rubble'],
   wide: ['wide', 'wild', 'wine', 'ride', 'why'],
-  noball: ['no ball', 'noble', 'nibble', 'global'],
+  noball: ['no ball', 'noble', 'nibble', 'global', 'nobody', 'noblewith', 'nobody returns'],
   runs: ['runs', 'once', 'guns', 'ones', 'run'],
   boundary: ['boundary', 'foundry', 'hungry']
 };
@@ -44,9 +44,11 @@ const phoneticPatterns = {
 const extraPatterns = [
   /wide(?:\s*ball)?/i,
   /no\s*ball/i,
+  /nobody\s+returns/i,  // Common misinterpretation
+  /noble\s+with/i,      // Another misinterpretation
   /bye/i,
   /leg\s*bye/i,
-  /(wide|no ball)\s+(\d+)\s+runs?/i, // "wide 2 runs"
+  /(wide|no ball|nobody returns|noble with)\s+(\d+)\s+runs?/i, // "no ball 2 runs" or "nobody returns 2"
   /(bye|leg bye)\s+(\d+)/i, // "bye 4"
   /penalty\s+(\d+)/i, // "penalty 5"
   /dead\s+ball/i,
@@ -137,6 +139,12 @@ function normalizeTranscript(text: string): string {
   normalized = normalized.replace(/\b(dodge|not|dart|duck|dark)\s+ball\b/gi, 'dot ball');
   normalized = normalized.replace(/\bflorence\b/gi, 'four');
   normalized = normalized.replace(/\bdark\b/gi, 'dot');
+  
+  // Handle "no ball" misinterpretations
+  normalized = normalized.replace(/\bnobody\s+returns?\b/gi, 'no ball');
+  normalized = normalized.replace(/\bnoble\s+with\b/gi, 'no ball');
+  normalized = normalized.replace(/\bnobody\s+returns?\s+(\d+)/gi, 'no ball $1');
+  normalized = normalized.replace(/\bnoble\s+with\s+(\d+)/gi, 'no ball $1');
   
   // Replace common misinterpretations
   Object.entries(phoneticPatterns).forEach(([correct, alternatives]) => {
