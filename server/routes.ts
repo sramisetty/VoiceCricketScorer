@@ -413,15 +413,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/matches/:id/change-bowler', async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
-      const { bowlerId } = req.body;
+      const { newBowlerId } = req.body;
       
-      // Logic for changing bowler
+      const currentInnings = await storage.getCurrentInnings(matchId);
+      if (!currentInnings) {
+        return res.status(404).json({ error: 'No current innings found' });
+      }
+      
+      // Update all current bowlers to not be current
+      const playerStats = await storage.getPlayerStatsByInnings(currentInnings.id);
+      for (const stat of playerStats) {
+        if (stat.ballsBowled > 0) {
+          await storage.updatePlayerStats(stat.id, { isCurrentBowler: false });
+        }
+      }
+      
+      // Set new bowler as current
+      const newBowlerStats = playerStats.find(s => s.playerId === newBowlerId);
+      if (newBowlerStats) {
+        await storage.updatePlayerStats(newBowlerStats.id, { isCurrentBowler: true });
+      }
+      
       const liveData = await storage.getLiveMatchData(matchId);
       broadcastToMatch(matchId, { type: 'bowler_changed', data: liveData });
       
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: 'Failed to change bowler' });
+    }
+  });
+
+  app.post('/api/matches/:id/timeout', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      const { duration } = req.body;
+      
+      // Update match status to indicate timeout
+      await storage.updateMatch(matchId, { 
+        status: 'timeout',
+        lastActivity: new Date().toISOString()
+      });
+      
+      // Set timeout to resume match after duration
+      setTimeout(async () => {
+        await storage.updateMatch(matchId, { status: 'live' });
+        const liveData = await storage.getLiveMatchData(matchId);
+        broadcastToMatch(matchId, { type: 'timeout_ended', data: liveData });
+      }, duration * 60 * 1000); // Convert minutes to milliseconds
+      
+      const liveData = await storage.getLiveMatchData(matchId);
+      broadcastToMatch(matchId, { type: 'timeout_started', data: liveData });
+      
+      res.json({ success: true, duration });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to call timeout' });
     }
   });
 

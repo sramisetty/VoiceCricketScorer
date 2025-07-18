@@ -3,7 +3,11 @@ import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Share, Download, Settings, Pause, Play } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Share, Download, Settings, Pause, Play, Clock, User } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +32,10 @@ export default function Scorer() {
   const matchId = params?.matchId ? parseInt(params.matchId) : null;
   const { liveData, isConnected } = useWebSocket(matchId);
   const [isMatchStarted, setIsMatchStarted] = useState(false);
+  const [changeBowlerDialogOpen, setChangeBowlerDialogOpen] = useState(false);
+  const [timeoutDialogOpen, setTimeoutDialogOpen] = useState(false);
+  const [selectedNewBowler, setSelectedNewBowler] = useState('');
+  const [timeoutDuration, setTimeoutDuration] = useState(5);
 
   // Fetch initial match data
   const { data: matchData, isLoading, error } = useQuery<LiveMatchData>({
@@ -37,6 +45,12 @@ export default function Scorer() {
   });
 
   const currentData = liveData || matchData;
+
+  // Fetch available bowlers (bowling team players)
+  const { data: availableBowlers = [] } = useQuery({
+    queryKey: ['/api/teams', currentData?.currentInnings.bowlingTeam.id, 'players'],
+    enabled: !!currentData?.currentInnings.bowlingTeam.id,
+  });
 
   useEffect(() => {
     if (currentData?.match.status === 'live') {
@@ -150,6 +164,54 @@ export default function Scorer() {
       toast({
         title: "Error",
         description: "Failed to undo ball. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const changeBowlerMutation = useMutation({
+    mutationFn: async (newBowlerId: string) => {
+      const response = await apiRequest('POST', `/api/matches/${matchId}/change-bowler`, {
+        newBowlerId: parseInt(newBowlerId)
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Bowler Changed",
+        description: "The bowler has been changed successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      setChangeBowlerDialogOpen(false);
+      setSelectedNewBowler('');
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to change bowler. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const timeoutMutation = useMutation({
+    mutationFn: async (duration: number) => {
+      const response = await apiRequest('POST', `/api/matches/${matchId}/timeout`, {
+        duration
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Timeout Called",
+        description: `Match paused for ${timeoutDuration} minutes.`,
+      });
+      setTimeoutDialogOpen(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to call timeout. Please try again.",
         variant: "destructive",
       });
     }
@@ -358,20 +420,114 @@ export default function Scorer() {
               <CardContent className="pt-6">
                 <h3 className="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
                 <div className="space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full bg-cricket-primary hover:bg-cricket-secondary text-white"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Change Bowler
-                  </Button>
-                  <Button
-                    variant="outline" 
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                  >
-                    <Pause className="h-4 w-4 mr-2" />
-                    Timeout
-                  </Button>
+                  {/* Change Bowler Dialog */}
+                  <Dialog open={changeBowlerDialogOpen} onOpenChange={setChangeBowlerDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full bg-cricket-primary hover:bg-cricket-secondary text-white"
+                        disabled={!isMatchStarted}
+                      >
+                        <User className="h-4 w-4 mr-2" />
+                        Change Bowler
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Change Bowler</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="current-bowler">Current Bowler</Label>
+                          <div className="p-2 bg-gray-50 rounded text-sm">
+                            {currentData?.currentBowler?.player.name || 'No bowler selected'}
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="new-bowler">New Bowler</Label>
+                          <Select value={selectedNewBowler} onValueChange={setSelectedNewBowler}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select new bowler" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableBowlers.map((player: any) => (
+                                <SelectItem key={player.id} value={player.id.toString()}>
+                                  {player.name} ({player.role})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex gap-3 pt-4">
+                          <Button
+                            onClick={() => changeBowlerMutation.mutate(selectedNewBowler)}
+                            disabled={!selectedNewBowler || changeBowlerMutation.isPending}
+                            className="flex-1"
+                          >
+                            {changeBowlerMutation.isPending ? 'Changing...' : 'Change Bowler'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setChangeBowlerDialogOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Timeout Dialog */}
+                  <Dialog open={timeoutDialogOpen} onOpenChange={setTimeoutDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline" 
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                        disabled={!isMatchStarted}
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Timeout
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Call Timeout</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="timeout-duration">Duration (minutes)</Label>
+                          <Input
+                            type="number"
+                            value={timeoutDuration}
+                            onChange={(e) => setTimeoutDuration(parseInt(e.target.value) || 5)}
+                            min="1"
+                            max="15"
+                            placeholder="5"
+                          />
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          The match will be paused for {timeoutDuration} minutes.
+                        </div>
+                        <div className="flex gap-3 pt-4">
+                          <Button
+                            onClick={() => timeoutMutation.mutate(timeoutDuration)}
+                            disabled={timeoutMutation.isPending}
+                            className="flex-1"
+                          >
+                            {timeoutMutation.isPending ? 'Calling...' : 'Call Timeout'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setTimeoutDialogOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Match Settings */}
                   <Button
                     variant="outline"
                     className="w-full bg-gray-500 hover:bg-gray-600 text-white"
