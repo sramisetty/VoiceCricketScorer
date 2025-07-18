@@ -1,13 +1,42 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { type Ball, type Player } from '@shared/schema';
 import { cn } from '@/lib/utils';
+import { Undo } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface CommentaryProps {
   balls: (Ball & { batsman: Player; bowler: Player })[];
+  matchId: number;
 }
 
-export function Commentary({ balls }: CommentaryProps) {
+export function Commentary({ balls, matchId }: CommentaryProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const undoMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', `/api/matches/${matchId}/undo`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      toast({
+        title: "Ball Undone",
+        description: "The last ball has been removed.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to undo ball.",
+        variant: "destructive",
+      });
+    }
+  });
   const getBallStyle = (ball: Ball) => {
     if (ball.isWicket) return 'bg-red-50 border-red-200';
     if (ball.runs === 4) return 'bg-cricket-light border-cricket-primary/30';
@@ -48,8 +77,20 @@ export function Commentary({ balls }: CommentaryProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl font-bold text-gray-800">
+        <CardTitle className="text-xl font-bold text-gray-800 flex items-center justify-between">
           Ball-by-Ball Commentary
+          {balls.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => undoMutation.mutate()}
+              disabled={undoMutation.isPending}
+              className="ml-2"
+            >
+              <Undo className="w-4 h-4 mr-1" />
+              Undo Last Ball
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>

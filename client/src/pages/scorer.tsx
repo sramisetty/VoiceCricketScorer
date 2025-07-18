@@ -393,7 +393,7 @@ export default function Scorer() {
 
             <MatchStatistics matchData={currentData} />
 
-            <Commentary balls={currentData.recentBalls} />
+            <Commentary balls={currentData.recentBalls} matchId={matchId!} />
           </div>
 
           {/* Live Scoreboard */}
