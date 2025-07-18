@@ -24,10 +24,13 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
 
   const [lastCommand, setLastCommand] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lastProcessedTranscript, setLastProcessedTranscript] = useState<string>('');
 
   useEffect(() => {
-    if (transcript && !isListening) {
+    if (transcript && !isListening && !isProcessing && transcript !== lastProcessedTranscript) {
       setIsProcessing(true);
+      setLastProcessedTranscript(transcript);
+      
       const command = parseCricketCommand(transcript);
       
       if (command.confidence > 0.5) {
@@ -39,9 +42,13 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
       }
       
       resetTranscript();
-      setIsProcessing(false);
+      
+      // Add delay to prevent rapid-fire commands
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 1000);
     }
-  }, [transcript, isListening, onCommand, currentBatsman, currentBowler, resetTranscript]);
+  }, [transcript, isListening, isProcessing, lastProcessedTranscript, onCommand, currentBatsman, currentBowler, resetTranscript]);
 
   const handleMicClick = () => {
     if (isListening) {

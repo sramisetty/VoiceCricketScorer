@@ -48,6 +48,7 @@ export default function Scorer() {
   const [newBatsmanDialogOpen, setNewBatsmanDialogOpen] = useState(false);
   const [selectedNewBatsman, setSelectedNewBatsman] = useState('');
   const [outBatsmanName, setOutBatsmanName] = useState('');
+  const [isAddingBall, setIsAddingBall] = useState(false);
 
   // Fetch initial match data
   const { data: matchData, isLoading: liveDataLoading, error } = useQuery<LiveMatchData>({
@@ -230,9 +231,11 @@ export default function Scorer() {
       return response.json();
     },
     onSuccess: () => {
+      setIsAddingBall(false);
       queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
     },
     onError: (error: any) => {
+      setIsAddingBall(false);
       toast({
         title: "Error",
         description: error.message || "Failed to add ball. Please try again.",
@@ -411,13 +414,22 @@ export default function Scorer() {
       return;
     }
 
+    // Prevent multiple simultaneous ball additions
+    if ((command.type === 'runs' || command.type === 'extra') && (isAddingBall || addBallMutation.isPending)) {
+      console.log('Ignoring duplicate ball command - already processing');
+      return;
+    }
+
     switch (command.type) {
       case 'correction':
-        undoBallMutation.mutate();
+        if (!undoBallMutation.isPending) {
+          undoBallMutation.mutate();
+        }
         break;
         
       case 'runs':
       case 'extra':
+        setIsAddingBall(true);
         addBallMutation.mutate(command);
         break;
         
@@ -466,13 +478,13 @@ export default function Scorer() {
       case 'over_complete':
         if (currentData?.currentInnings) {
           const ballsInCurrentOver = currentData.currentInnings.totalBalls % 6;
-          if (ballsInCurrentOver === 0 && currentData.currentInnings.totalBalls > 0) {
+          if (ballsInCurrentOver === 0 && currentData.currentInnings.totalBalls > 0 && !overCompletedDialogOpen) {
             setOverCompletedDialogOpen(true);
             toast({
               title: "Over Complete",
               description: "Voice command confirmed. Please select the next bowler.",
             });
-          } else {
+          } else if (ballsInCurrentOver !== 0) {
             toast({
               title: "Over Not Complete",
               description: `${6 - ballsInCurrentOver} balls remaining in this over.`,
