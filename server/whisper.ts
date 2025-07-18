@@ -8,7 +8,33 @@ if (!process.env.OPENAI_API_KEY) {
 
 console.log("OpenAI API key loaded:", process.env.OPENAI_API_KEY ? `${process.env.OPENAI_API_KEY.substring(0, 8)}...` : "NOT SET");
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Check if this is an Azure OpenAI key (usually longer and different format)
+const isAzureKey = process.env.OPENAI_API_KEY.length > 32 && !process.env.OPENAI_API_KEY.startsWith('sk-');
+
+let openai: OpenAI;
+
+if (isAzureKey) {
+  // For Azure OpenAI, we need additional environment variables
+  const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT || "https://your-resource-name.openai.azure.com/";
+  const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT || "whisper-1";
+  
+  console.log("Using Azure OpenAI configuration");
+  console.log("Azure endpoint:", azureEndpoint);
+  console.log("Azure deployment:", azureDeployment);
+  
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: `${azureEndpoint}openai/deployments/${azureDeployment}`,
+    defaultQuery: { 'api-version': '2024-06-01' },
+    defaultHeaders: {
+      'api-key': process.env.OPENAI_API_KEY,
+    },
+  });
+} else {
+  // Standard OpenAI configuration
+  console.log("Using standard OpenAI configuration");
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export async function transcribeAudio(audioBuffer: Buffer, filename: string = "audio.wav"): Promise<{ text: string, confidence: number }> {
   try {
