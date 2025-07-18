@@ -223,6 +223,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/matches/:id', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      const updateData = req.body;
+      
+      const match = await storage.updateMatch(matchId, updateData);
+      
+      if (!match) {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+      
+      res.json(match);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update match' });
+    }
+  });
+
   app.post('/api/matches/:id/start', async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
@@ -423,15 +440,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update all current bowlers to not be current
       const playerStats = await storage.getPlayerStatsByInnings(currentInnings.id);
       for (const stat of playerStats) {
-        if (stat.ballsBowled > 0) {
-          await storage.updatePlayerStats(stat.id, { isCurrentBowler: false });
+        if ((stat.ballsBowled ?? 0) > 0) {
+          await storage.updatePlayerStats(stat.id, { isOnStrike: false });
         }
       }
       
       // Set new bowler as current
       const newBowlerStats = playerStats.find(s => s.playerId === newBowlerId);
       if (newBowlerStats) {
-        await storage.updatePlayerStats(newBowlerStats.id, { isCurrentBowler: true });
+        await storage.updatePlayerStats(newBowlerStats.id, { isOnStrike: true });
       }
       
       const liveData = await storage.getLiveMatchData(matchId);
@@ -450,8 +467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update match status to indicate timeout
       await storage.updateMatch(matchId, { 
-        status: 'timeout',
-        lastActivity: new Date().toISOString()
+        status: 'timeout'
       });
       
       // Set timeout to resume match after duration

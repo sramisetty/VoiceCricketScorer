@@ -531,7 +531,7 @@ export default function Scorer() {
                   <Button
                     variant="outline"
                     className="w-full bg-gray-500 hover:bg-gray-600 text-white"
-                    onClick={() => setLocation(`/match-setup`)}
+                    onClick={() => setLocation(`/match-settings/${matchId}`)}
                   >
                     <Settings className="h-4 w-4 mr-2" />
                     Match Settings

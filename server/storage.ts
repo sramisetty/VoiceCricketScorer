@@ -122,6 +122,7 @@ export class MemStorage implements IStorage {
       tossWinnerId: match.tossWinnerId ?? null,
       tossDecision: match.tossDecision ?? null,
       currentInnings: match.currentInnings ?? 1,
+      venue: match.venue ?? null,
       createdAt: new Date()
     };
     this.matches.set(id, newMatch);

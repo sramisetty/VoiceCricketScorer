@@ -25,6 +25,7 @@ export const matches = pgTable("matches", {
   tossDecision: text("toss_decision"), // bat, bowl
   matchType: text("match_type").notNull(), // T20, ODI, Test
   overs: integer("overs").notNull(),
+  venue: text("venue"),
   status: text("status").notNull().default("setup"), // setup, live, completed
   currentInnings: integer("current_innings").default(1),
   createdAt: timestamp("created_at").defaultNow(),
