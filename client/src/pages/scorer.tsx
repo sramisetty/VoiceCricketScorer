@@ -84,10 +84,14 @@ export default function Scorer() {
 
   // Check if no balls have been bowled and prompt for opener selection
   useEffect(() => {
-    if (currentData?.currentInnings && currentData.currentInnings.totalBalls === 0 && !openersDialogOpen) {
-      setOpenersDialogOpen(true);
+    if (currentData?.currentInnings && currentData.currentInnings.totalBalls === 0 && isMatchStarted) {
+      // Only show dialog if no batsmen are currently on strike (openers not set)
+      const hasOnStrikeBatsman = currentData.currentBatsmen.some(batsman => batsman.isOnStrike);
+      if (!hasOnStrikeBatsman && !openersDialogOpen) {
+        setOpenersDialogOpen(true);
+      }
     }
-  }, [currentData?.currentInnings.totalBalls, openersDialogOpen]);
+  }, [currentData?.currentInnings.totalBalls, currentData?.currentBatsmen, isMatchStarted, openersDialogOpen]);
 
   const startMatchMutation = useMutation({
     mutationFn: async () => {
@@ -237,15 +241,20 @@ export default function Scorer() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Openers Set",
-        description: "The opening batsmen have been set successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      // Close dialog immediately
       setOpenersDialogOpen(false);
       setSelectedOpener1('');
       setSelectedOpener2('');
       setSelectedStriker('');
+      
+      // Show success message
+      toast({
+        title: "Openers Set",
+        description: "The opening batsmen have been set successfully.",
+      });
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
     },
     onError: () => {
       toast({
