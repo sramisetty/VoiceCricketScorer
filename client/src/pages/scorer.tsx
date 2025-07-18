@@ -30,7 +30,9 @@ export default function Scorer() {
   const queryClient = useQueryClient();
   
   const matchId = params?.matchId ? parseInt(params.matchId) : null;
-  const { liveData, isConnected } = useWebSocket(matchId);
+  // Temporarily disable WebSocket due to connection issues
+  const liveData = null;
+  const isConnected = false;
   const [isMatchStarted, setIsMatchStarted] = useState(false);
   const [changeBowlerDialogOpen, setChangeBowlerDialogOpen] = useState(false);
   const [timeoutDialogOpen, setTimeoutDialogOpen] = useState(false);
@@ -51,7 +53,8 @@ export default function Scorer() {
   const { data: matchData, isLoading: liveDataLoading, error } = useQuery<LiveMatchData>({
     queryKey: ['/api/matches', matchId, 'live'],
     enabled: !!matchId,
-    refetchInterval: isConnected ? false : 5000, // Only poll if websocket not connected
+    refetchInterval: 3000, // Poll every 3 seconds since WebSocket is disabled
+    refetchOnWindowFocus: true,
     retry: false, // Don't retry failed requests
   });
 
@@ -62,7 +65,7 @@ export default function Scorer() {
     retry: false,
   });
 
-  // Force render for debugging - the API calls are working based on server logs
+  // Debug: Force no loading state to see actual data
   const isLoading = false;
 
   const currentData = liveData || matchData;
@@ -319,8 +322,9 @@ export default function Scorer() {
         description: "The opening batsmen have been set successfully.",
       });
       
-      // Refresh data
+      // Refresh data immediately and force refetch
       queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      queryClient.refetchQueries({ queryKey: ['/api/matches', matchId, 'live'] });
     },
     onError: () => {
       toast({
@@ -979,18 +983,17 @@ export default function Scorer() {
                     </Button>
                   )}
 
-                  {/* Undo Last Ball */}
-                  {currentData.recentBalls.length > 0 && (
-                    <Button
-                      variant="outline"
-                      className="w-full bg-red-500 hover:bg-red-600 text-white"
-                      onClick={() => undoBallMutation.mutate()}
-                      disabled={undoBallMutation.isPending || !isMatchStarted}
-                    >
-                      <Undo className="h-4 w-4 mr-2" />
-                      {undoBallMutation.isPending ? 'Undoing...' : 'Undo Last Ball'}
-                    </Button>
-                  )}
+                  {/* Undo Last Ball - Always visible in Quick Actions */}
+                  <Button
+                    variant="outline"
+                    className="w-full bg-red-500 hover:bg-red-600 text-white disabled:bg-gray-400 disabled:text-gray-600"
+                    onClick={() => undoBallMutation.mutate()}
+                    disabled={undoBallMutation.isPending || !isMatchStarted || currentData.recentBalls.length === 0}
+                  >
+                    <Undo className="h-4 w-4 mr-2" />
+                    {undoBallMutation.isPending ? 'Undoing...' : 
+                     currentData.recentBalls.length === 0 ? 'No Balls to Undo' : 'Undo Last Ball'}
+                  </Button>
 
                   {/* Match Settings */}
                   <Button
