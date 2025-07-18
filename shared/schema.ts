@@ -56,6 +56,7 @@ export const balls = pgTable("balls", {
   runs: integer("runs").default(0),
   isWicket: boolean("is_wicket").default(false),
   wicketType: text("wicket_type"), // bowled, caught, lbw, etc.
+  fielderId: integer("fielder_id").references(() => players.id), // who caught it or ran out the batsman
   extraType: text("extra_type"), // wide, noball, bye, legbye
   extraRuns: integer("extra_runs").default(0),
   commentary: text("commentary"),

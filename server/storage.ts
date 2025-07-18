@@ -250,6 +250,7 @@ export class MemStorage implements IStorage {
       runs: ball.runs ?? 0,
       isWicket: ball.isWicket ?? false,
       wicketType: ball.wicketType ?? null,
+      fielderId: ball.fielderId ?? null,
       extraType: ball.extraType ?? null,
       extraRuns: ball.extraRuns ?? 0,
       commentary: ball.commentary ?? null,

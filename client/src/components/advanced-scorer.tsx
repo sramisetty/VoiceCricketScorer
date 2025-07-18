@@ -28,6 +28,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
   const [extraRuns, setExtraRuns] = useState(0);
   const [wicketType, setWicketType] = useState<string>('');
   const [isWicket, setIsWicket] = useState(false);
+  const [fielderId, setFielderId] = useState<number | null>(null);
 
   const currentInnings = matchData.currentInnings;
   const battingTeam = currentInnings.battingTeam;
@@ -102,6 +103,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
     setExtraRuns(0);
     setIsWicket(false);
     setWicketType('');
+    setFielderId(null);
   };
 
   const handleBallSubmit = async () => {
@@ -125,6 +127,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
       extraRuns: extraRuns,
       isWicket: isWicket,
       wicketType: isWicket ? wicketType : null,
+      fielderId: isWicket && fielderId ? fielderId : null,
       commentary: generateCommentary(),
     };
 
@@ -134,7 +137,28 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
   const generateCommentary = () => {
     let commentary = '';
     if (isWicket) {
-      commentary = `${wicketType} - ${currentBatsmen.find(b => b.playerId === selectedBatsman)?.player.name} is out`;
+      const batsmanName = currentBatsmen.find(b => b.playerId === selectedBatsman)?.player.name;
+      let fielderInfo = '';
+      
+      if (fielderId) {
+        // Find fielder from bowling team players
+        const bowlingTeamPlayers = currentInnings.playerStats.filter(
+          stat => stat.player.teamId === bowlingTeam.id
+        );
+        const fielder = bowlingTeamPlayers.find(p => p.playerId === fielderId);
+        
+        if (fielder) {
+          if (wicketType === 'caught') {
+            fielderInfo = ` c ${fielder.player.name}`;
+          } else if (wicketType === 'runout') {
+            fielderInfo = ` (run out by ${fielder.player.name})`;
+          } else if (wicketType === 'stumped') {
+            fielderInfo = ` st ${fielder.player.name}`;
+          }
+        }
+      }
+      
+      commentary = `${wicketType}${fielderInfo} - ${batsmanName} is out`;
     } else if (extraType) {
       commentary = `${extraType} - ${runs + extraRuns} runs`;
     } else {
@@ -271,12 +295,39 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                       onClick={() => {
                         setIsWicket(true);
                         setWicketType(wicket.type);
+                        // Reset fielder when wicket type changes
+                        setFielderId(null);
                       }}
                     >
                       {wicket.label}
                     </Button>
                   ))}
                 </div>
+                
+                {/* Show fielder selection for wickets that involve a fielder */}
+                {isWicket && (wicketType === 'caught' || wicketType === 'runout' || wicketType === 'stumped') && (
+                  <div>
+                    <Label>
+                      {wicketType === 'caught' ? 'Caught by' : 
+                       wicketType === 'runout' ? 'Run out by' : 
+                       'Stumped by'}
+                    </Label>
+                    <Select value={fielderId?.toString() || ''} onValueChange={(value) => setFielderId(parseInt(value))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={`Select fielder`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentInnings.playerStats
+                          .filter(stat => stat.player.teamId === bowlingTeam.id)
+                          .map((player) => (
+                            <SelectItem key={player.playerId} value={player.playerId.toString()}>
+                              {player.player.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               <Separator />
@@ -364,6 +415,8 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                 <Select value={wicketType} onValueChange={(value) => {
                   setWicketType(value);
                   setIsWicket(!!value);
+                  // Reset fielder when wicket type changes
+                  setFielderId(null);
                 }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select wicket type (optional)" />
@@ -378,6 +431,31 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Show fielder selection for wickets that involve a fielder */}
+              {isWicket && (wicketType === 'caught' || wicketType === 'runout' || wicketType === 'stumped') && (
+                <div>
+                  <Label>
+                    {wicketType === 'caught' ? 'Caught by' : 
+                     wicketType === 'runout' ? 'Run out by' : 
+                     'Stumped by'}
+                  </Label>
+                  <Select value={fielderId?.toString() || ''} onValueChange={(value) => setFielderId(parseInt(value))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={`Select fielder`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currentInnings.playerStats
+                        .filter(stat => stat.player.teamId === bowlingTeam.id)
+                        .map((player) => (
+                          <SelectItem key={player.playerId} value={player.playerId.toString()}>
+                            {player.player.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <Button 
                 onClick={handleBallSubmit}
