@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { LiveMatchData } from '@shared/schema';
@@ -29,12 +30,21 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
   const [wicketType, setWicketType] = useState<string>('');
   const [isWicket, setIsWicket] = useState(false);
   const [fielderId, setFielderId] = useState<number | null>(null);
+  const [newBatsmanDialogOpen, setNewBatsmanDialogOpen] = useState(false);
+  const [selectedNewBatsman, setSelectedNewBatsman] = useState('');
+  const [outBatsmanName, setOutBatsmanName] = useState('');
 
   const currentInnings = matchData.currentInnings;
   const battingTeam = currentInnings.battingTeam;
   const bowlingTeam = currentInnings.bowlingTeam;
   const currentBatsmen = matchData.currentBatsmen;
   const currentBowler = matchData.currentBowler;
+
+  // Fetch available batsmen for new batsman selection
+  const { data: availableBatsmen = [] } = useQuery({
+    queryKey: ['/api/teams', battingTeam.id, 'players'],
+    enabled: !!battingTeam.id,
+  });
 
   // Set default selections - always select the on-strike batsman and current bowler
   useEffect(() => {
@@ -58,8 +68,16 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
       const response = await apiRequest('POST', `/api/matches/${matchId}/ball`, ballData);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      
+      // If it was a wicket, show new batsman dialog
+      if (variables.isWicket) {
+        const outBatsman = currentBatsmen.find(b => b.playerId === variables.batsmanId);
+        setOutBatsmanName(outBatsman?.player.name || 'Batsman');
+        setNewBatsmanDialogOpen(true);
+      }
+      
       resetForm();
       toast({
         title: "Ball Recorded",
@@ -92,6 +110,31 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
       toast({
         title: "Error",
         description: "Failed to undo ball. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const newBatsmanMutation = useMutation({
+    mutationFn: async (newBatsmanId: number) => {
+      const response = await apiRequest('POST', `/api/matches/${matchId}/new-batsman`, {
+        newBatsmanId
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      setNewBatsmanDialogOpen(false);
+      setSelectedNewBatsman('');
+      toast({
+        title: "New Batsman Added",
+        description: "The new batsman has been successfully added to the crease.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add new batsman. Please try again.",
         variant: "destructive",
       });
     }
@@ -560,6 +603,64 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* New Batsman Selection Dialog */}
+      <Dialog open={newBatsmanDialogOpen} onOpenChange={setNewBatsmanDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select New Batsman</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {outBatsmanName} is out. Please select the next batsman to come to the crease.
+            </p>
+            
+            <div>
+              <Label>Next Batsman</Label>
+              <Select value={selectedNewBatsman} onValueChange={setSelectedNewBatsman}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select next batsman" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableBatsmen
+                    .filter(player => {
+                      // Exclude players who are already batting or are already out
+                      const isCurrentlyBatting = currentBatsmen.some(batsman => batsman.playerId === player.id);
+                      const isAlreadyOut = currentInnings.playerStats.some(
+                        stat => stat.playerId === player.id && stat.isOut
+                      );
+                      return !isCurrentlyBatting && !isAlreadyOut;
+                    })
+                    .map(player => (
+                      <SelectItem key={player.id} value={player.id.toString()}>
+                        {player.name} ({player.role})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setNewBatsmanDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedNewBatsman) {
+                    newBatsmanMutation.mutate(parseInt(selectedNewBatsman));
+                  }
+                }}
+                disabled={!selectedNewBatsman || newBatsmanMutation.isPending}
+              >
+                {newBatsmanMutation.isPending ? "Adding..." : "Add Batsman"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
