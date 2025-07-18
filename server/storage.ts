@@ -752,6 +752,12 @@ export class DatabaseStorage implements IStorage {
       return bBalls - aBalls; // Most active first
     });
     
+    // If no balls have been bowled yet, return the two batsmen with isOnStrike status set
+    const batsmenOnStrike = battingTeamPlayers.filter(b => b.isOnStrike === true || b.isOnStrike === false);
+    if (batsmenOnStrike.length >= 2 && battingTeamPlayers.every(b => (b.ballsFaced || 0) === 0)) {
+      return batsmenOnStrike.slice(0, 2);
+    }
+    
     // Return first 2 batting team players (current batsmen)
     return battingTeamPlayers.slice(0, 2);
   }

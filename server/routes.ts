@@ -679,14 +679,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Match not found' });
       }
       
-      // Clear existing batsmen on strike status
+      // Clear existing batsmen on strike status and reset ballsFaced for all batsmen
       const currentInnings = liveData.currentInnings;
       const battingTeamStats = currentInnings.playerStats.filter(
         stat => stat.player.teamId === currentInnings.battingTeam.id
       );
       
       for (const stat of battingTeamStats) {
-        await storage.updatePlayerStats(stat.id, { isOnStrike: false });
+        await storage.updatePlayerStats(stat.id, { 
+          isOnStrike: false,
+          ballsFaced: 0 // Reset to 0 for all batsmen
+        });
       }
       
       // Set the selected openers - both should be at the crease, but only one is on strike
@@ -695,15 +698,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (opener1Stats) {
         await storage.updatePlayerStats(opener1Stats.id, { 
-          isOnStrike: strikerId === opener1Id,
-          ballsFaced: 1 // Mark as active batsman
+          isOnStrike: strikerId === opener1Id
         });
       }
       
       if (opener2Stats) {
         await storage.updatePlayerStats(opener2Stats.id, { 
-          isOnStrike: strikerId === opener2Id,
-          ballsFaced: 1 // Mark as active batsman
+          isOnStrike: strikerId === opener2Id
         });
       }
       
