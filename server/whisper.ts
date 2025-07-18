@@ -6,6 +6,8 @@ if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY environment variable is not set");
 }
 
+console.log("OpenAI API key loaded:", process.env.OPENAI_API_KEY ? `${process.env.OPENAI_API_KEY.substring(0, 8)}...` : "NOT SET");
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function transcribeAudio(audioBuffer: Buffer, filename: string = "audio.wav"): Promise<{ text: string, confidence: number }> {
