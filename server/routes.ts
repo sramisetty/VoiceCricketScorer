@@ -33,11 +33,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Join new match
-          currentMatchId = message.matchId;
-          if (!matchClients.has(currentMatchId)) {
-            matchClients.set(currentMatchId, new Set());
+          const matchId = message.matchId as number;
+          currentMatchId = matchId;
+          if (!matchClients.has(matchId)) {
+            matchClients.set(matchId, new Set());
           }
-          const clients = matchClients.get(currentMatchId);
+          const clients = matchClients.get(matchId);
           if (clients) {
             clients.add(ws);
           }

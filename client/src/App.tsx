@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import Matches from "@/pages/matches-simple";
 import MatchSetup from "@/pages/match-setup";
 import Scorer from "@/pages/scorer";
 import Scoreboard from "@/pages/scoreboard";
@@ -11,7 +12,8 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={MatchSetup} />
+      <Route path="/" component={Matches} />
+      <Route path="/matches" component={Matches} />
       <Route path="/match-setup" component={MatchSetup} />
       <Route path="/scorer/:matchId" component={Scorer} />
       <Route path="/scoreboard/:matchId" component={Scoreboard} />
