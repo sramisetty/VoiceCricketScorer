@@ -38,6 +38,10 @@ export default function Scorer() {
   const [timeoutDuration, setTimeoutDuration] = useState(5);
   const [overCompletedDialogOpen, setOverCompletedDialogOpen] = useState(false);
   const [nextBowlerId, setNextBowlerId] = useState('');
+  const [openersDialogOpen, setOpenersDialogOpen] = useState(false);
+  const [selectedOpener1, setSelectedOpener1] = useState('');
+  const [selectedOpener2, setSelectedOpener2] = useState('');
+  const [selectedStriker, setSelectedStriker] = useState('');
 
   // Fetch initial match data
   const { data: matchData, isLoading, error } = useQuery<LiveMatchData>({
@@ -52,6 +56,12 @@ export default function Scorer() {
   const { data: availableBowlers = [] } = useQuery({
     queryKey: ['/api/teams', currentData?.currentInnings.bowlingTeam.id, 'players'],
     enabled: !!currentData?.currentInnings.bowlingTeam.id,
+  });
+
+  // Fetch available batsmen (batting team players)
+  const { data: availableBatsmen = [] } = useQuery({
+    queryKey: ['/api/teams', currentData?.currentInnings.battingTeam.id, 'players'],
+    enabled: !!currentData?.currentInnings.battingTeam.id,
   });
 
   useEffect(() => {
@@ -71,6 +81,13 @@ export default function Scorer() {
       }
     }
   }, [currentData?.currentInnings.totalBalls, overCompletedDialogOpen]);
+
+  // Check if no balls have been bowled and prompt for opener selection
+  useEffect(() => {
+    if (currentData?.currentInnings && currentData.currentInnings.totalBalls === 0 && !openersDialogOpen) {
+      setOpenersDialogOpen(true);
+    }
+  }, [currentData?.currentInnings.totalBalls, openersDialogOpen]);
 
   const startMatchMutation = useMutation({
     mutationFn: async () => {
@@ -205,6 +222,35 @@ export default function Scorer() {
       toast({
         title: "Error",
         description: "Failed to change bowler. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const setOpenersMutation = useMutation({
+    mutationFn: async (openerData: { opener1Id: string, opener2Id: string, strikerId: string }) => {
+      const response = await apiRequest('POST', `/api/matches/${matchId}/set-openers`, {
+        opener1Id: parseInt(openerData.opener1Id),
+        opener2Id: parseInt(openerData.opener2Id),
+        strikerId: parseInt(openerData.strikerId)
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Openers Set",
+        description: "The opening batsmen have been set successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      setOpenersDialogOpen(false);
+      setSelectedOpener1('');
+      setSelectedOpener2('');
+      setSelectedStriker('');
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to set openers. Please try again.",
         variant: "destructive",
       });
     }
@@ -596,6 +642,94 @@ export default function Scorer() {
               >
                 <User className="w-4 h-4 mr-2" />
                 {changeBowlerMutation.isPending ? 'Changing...' : 'Change Bowler'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Openers Selection Dialog */}
+      <Dialog open={openersDialogOpen} onOpenChange={setOpenersDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Opening Batsmen</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Please select the two opening batsmen and who will face the first ball.
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="opener1">First Opener</Label>
+                <Select value={selectedOpener1} onValueChange={setSelectedOpener1}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select first opener" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableBatsmen.map((batsman) => (
+                      <SelectItem key={batsman.id} value={batsman.id.toString()}>
+                        {batsman.name} ({batsman.role})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="opener2">Second Opener</Label>
+                <Select value={selectedOpener2} onValueChange={setSelectedOpener2}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select second opener" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableBatsmen
+                      .filter(batsman => batsman.id.toString() !== selectedOpener1)
+                      .map((batsman) => (
+                        <SelectItem key={batsman.id} value={batsman.id.toString()}>
+                          {batsman.name} ({batsman.role})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="striker">Who will face the first ball?</Label>
+                <Select value={selectedStriker} onValueChange={setSelectedStriker}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select striker" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedOpener1 && (
+                      <SelectItem value={selectedOpener1}>
+                        {availableBatsmen.find(b => b.id.toString() === selectedOpener1)?.name} (ON STRIKE)
+                      </SelectItem>
+                    )}
+                    {selectedOpener2 && (
+                      <SelectItem value={selectedOpener2}>
+                        {availableBatsmen.find(b => b.id.toString() === selectedOpener2)?.name} (ON STRIKE)
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setOpenersDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => setOpenersMutation.mutate({
+                  opener1Id: selectedOpener1,
+                  opener2Id: selectedOpener2,
+                  strikerId: selectedStriker
+                })}
+                disabled={!selectedOpener1 || !selectedOpener2 || !selectedStriker || setOpenersMutation.isPending}
+              >
+                <User className="w-4 h-4 mr-2" />
+                {setOpenersMutation.isPending ? 'Setting...' : 'Set Openers'}
               </Button>
             </div>
           </div>

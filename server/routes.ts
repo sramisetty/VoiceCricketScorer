@@ -532,6 +532,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/matches/:id/set-openers', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      const { opener1Id, opener2Id, strikerId } = req.body;
+      
+      if (!opener1Id || !opener2Id || !strikerId) {
+        return res.status(400).json({ error: 'opener1Id, opener2Id, and strikerId are required' });
+      }
+      
+      if (opener1Id === opener2Id) {
+        return res.status(400).json({ error: 'Both openers cannot be the same player' });
+      }
+      
+      if (strikerId !== opener1Id && strikerId !== opener2Id) {
+        return res.status(400).json({ error: 'Striker must be one of the selected openers' });
+      }
+      
+      // Get current match data
+      const liveData = await storage.getLiveMatchData(matchId);
+      if (!liveData) {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+      
+      // Clear existing batsmen on strike status
+      const currentInnings = liveData.currentInnings;
+      const battingTeamStats = currentInnings.playerStats.filter(
+        stat => stat.player.teamId === currentInnings.battingTeam.id
+      );
+      
+      for (const stat of battingTeamStats) {
+        await storage.updatePlayerStats(stat.id, { isOnStrike: false });
+      }
+      
+      // Set the selected openers as on strike
+      const opener1Stats = battingTeamStats.find(stat => stat.playerId === opener1Id);
+      const opener2Stats = battingTeamStats.find(stat => stat.playerId === opener2Id);
+      
+      if (opener1Stats) {
+        await storage.updatePlayerStats(opener1Stats.id, { 
+          isOnStrike: strikerId === opener1Id 
+        });
+      }
+      
+      if (opener2Stats) {
+        await storage.updatePlayerStats(opener2Stats.id, { 
+          isOnStrike: strikerId === opener2Id 
+        });
+      }
+      
+      const updatedLiveData = await storage.getLiveMatchData(matchId);
+      broadcastToMatch(matchId, { type: 'openers_set', data: updatedLiveData });
+      
+      res.json({ success: true, opener1Id, opener2Id, strikerId });
+    } catch (error) {
+      console.error('Error setting openers:', error);
+      res.status(500).json({ error: 'Failed to set openers' });
+    }
+  });
+
   app.post('/api/matches/:id/reset', async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
