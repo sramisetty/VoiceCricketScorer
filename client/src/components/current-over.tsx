@@ -36,9 +36,13 @@ export function CurrentOver({ balls, bowlerName, overNumber }: CurrentOverProps)
 
   const wickets = currentOverBalls.filter(ball => ball.isWicket).length;
 
-  // Create array of 6 balls with placeholders
+  // Show all balls in the over (including extras), but only show valid balls 1-6 with placeholders
+  const validBalls = currentOverBalls.filter(ball => !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye');
+  const extraBalls = currentOverBalls.filter(ball => ball.extraType && ball.extraType !== 'bye' && ball.extraType !== 'legbye');
+  
+  // Create array of 6 valid balls with placeholders
   const ballsDisplay = Array.from({ length: 6 }, (_, index) => {
-    const ball = currentOverBalls.find(b => b.ballNumber === index + 1);
+    const ball = validBalls.find(b => b.ballNumber === index + 1);
     return ball || null;
   });
 
@@ -55,18 +59,41 @@ export function CurrentOver({ balls, bowlerName, overNumber }: CurrentOverProps)
           <div className="text-sm text-gray-600">{bowlerName} bowling</div>
         </div>
 
-        <div className="flex justify-center space-x-2 mb-4">
-          {ballsDisplay.map((ball, index) => (
-            <div
-              key={index}
-              className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
-                ball ? getBallColor(ball) : "bg-gray-200 text-gray-400"
-              )}
-            >
-              {ball ? getBallDisplay(ball) : '•'}
+        <div className="space-y-3">
+          {/* Valid balls (1-6) */}
+          <div className="flex justify-center space-x-2">
+            {ballsDisplay.map((ball, index) => (
+              <div
+                key={index}
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                  ball ? getBallColor(ball) : "bg-gray-200 text-gray-400"
+                )}
+              >
+                {ball ? getBallDisplay(ball) : '•'}
+              </div>
+            ))}
+          </div>
+          
+          {/* Extra balls (wides, no-balls) */}
+          {extraBalls.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-xs text-center text-gray-500">Extras:</div>
+              <div className="flex justify-center space-x-1">
+                {extraBalls.map((ball, index) => (
+                  <div
+                    key={`extra-${index}`}
+                    className={cn(
+                      "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                      getBallColor(ball)
+                    )}
+                  >
+                    {getBallDisplay(ball)}
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+          )}
         </div>
 
         <div className="text-center text-gray-600 text-sm">

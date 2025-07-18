@@ -36,7 +36,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
   const currentBatsmen = matchData.currentBatsmen;
   const currentBowler = matchData.currentBowler;
 
-  // Set default selections - always select the on-strike batsman
+  // Set default selections - always select the on-strike batsman and current bowler
   useEffect(() => {
     if (currentBatsmen.length > 0) {
       // Find the on-strike batsman and select them by default
@@ -48,7 +48,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
         setSelectedBatsman(currentBatsmen[0].playerId);
       }
     }
-    if (currentBowler && !selectedBowler) {
+    if (currentBowler) {
       setSelectedBowler(currentBowler.playerId);
     }
   }, [currentBatsmen, currentBowler]);
@@ -221,46 +221,46 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
             <TabsContent value="quick" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Current Batsman</Label>
-                  <Select value={selectedBatsman?.toString()} onValueChange={(value) => setSelectedBatsman(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select batsman" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currentBatsmen.map((batsman) => (
-                        <SelectItem key={batsman.id} value={batsman.playerId.toString()}>
-                          {batsman.player.name} ({batsman.runs}*) {batsman.isOnStrike ? '🏏 ON STRIKE' : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Current Batsman (On Strike)</Label>
+                  <Card className="p-3 bg-green-50 dark:bg-green-950">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold">
+                          {currentBatsmen.find(b => b.isOnStrike)?.player.name || currentBatsmen[0]?.player.name}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {currentBatsmen.find(b => b.isOnStrike)?.runs || currentBatsmen[0]?.runs}* runs
+                        </div>
+                      </div>
+                      <div className="text-2xl">🏏</div>
+                    </div>
+                  </Card>
                 </div>
                 
                 <div>
                   <Label>Current Bowler</Label>
-                  <Select value={selectedBowler?.toString()} onValueChange={(value) => setSelectedBowler(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select bowler" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currentInnings.playerStats
-                        .filter(stat => stat.player.teamId === bowlingTeam.id)
-                        .map((bowler) => {
-                          const balls = bowler.ballsBowled ?? 0;
-                          const overs = Math.floor(balls / 6);
-                          const remainingBalls = balls % 6;
-                          const overDisplay = remainingBalls > 0 ? `${overs}.${remainingBalls}` : `${overs}`;
-                          const runs = bowler.runsConceded ?? 0;
-                          const wickets = bowler.wicketsTaken ?? 0;
-                          const isCurrentBowler = bowler.playerId === currentBowler?.playerId;
-                          return (
-                            <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
-                              {bowler.player.name} ({overDisplay}-{runs}-{wickets}) {isCurrentBowler ? '🏏 BOWLING' : ''}
-                            </SelectItem>
-                          );
-                        })}
-                    </SelectContent>
-                  </Select>
+                  <Card className="p-3 bg-blue-50 dark:bg-blue-950">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold">{currentBowler?.player.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {(() => {
+                            const bowlerStats = currentInnings.playerStats.find(
+                              stat => stat.playerId === currentBowler?.playerId
+                            );
+                            const balls = bowlerStats?.ballsBowled ?? 0;
+                            const overs = Math.floor(balls / 6);
+                            const remainingBalls = balls % 6;
+                            const overDisplay = remainingBalls > 0 ? `${overs}.${remainingBalls}` : `${overs}`;
+                            const runs = bowlerStats?.runsConceded ?? 0;
+                            const wickets = bowlerStats?.wicketsTaken ?? 0;
+                            return `${overDisplay}-${runs}-${wickets}`;
+                          })()}
+                        </div>
+                      </div>
+                      <div className="text-2xl">⚾</div>
+                    </div>
+                  </Card>
                 </div>
               </div>
 
@@ -345,46 +345,46 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
             <TabsContent value="detailed" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Batsman</Label>
-                  <Select value={selectedBatsman?.toString()} onValueChange={(value) => setSelectedBatsman(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select batsman" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currentBatsmen.map((batsman) => (
-                        <SelectItem key={batsman.id} value={batsman.playerId.toString()}>
-                          {batsman.player.name} ({batsman.runs}*) {batsman.isOnStrike ? '🏏 ON STRIKE' : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Current Batsman (On Strike)</Label>
+                  <Card className="p-3 bg-green-50 dark:bg-green-950">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold">
+                          {currentBatsmen.find(b => b.isOnStrike)?.player.name || currentBatsmen[0]?.player.name}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {currentBatsmen.find(b => b.isOnStrike)?.runs || currentBatsmen[0]?.runs}* runs
+                        </div>
+                      </div>
+                      <div className="text-2xl">🏏</div>
+                    </div>
+                  </Card>
                 </div>
                 
                 <div>
-                  <Label>Bowler</Label>
-                  <Select value={selectedBowler?.toString()} onValueChange={(value) => setSelectedBowler(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select bowler" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currentInnings.playerStats
-                        .filter(stat => stat.player.teamId === bowlingTeam.id)
-                        .map((bowler) => {
-                          const balls = bowler.ballsBowled ?? 0;
-                          const overs = Math.floor(balls / 6);
-                          const remainingBalls = balls % 6;
-                          const overDisplay = remainingBalls > 0 ? `${overs}.${remainingBalls}` : `${overs}`;
-                          const runs = bowler.runsConceded ?? 0;
-                          const wickets = bowler.wicketsTaken ?? 0;
-                          const isCurrentBowler = bowler.playerId === currentBowler?.playerId;
-                          return (
-                            <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
-                              {bowler.player.name} ({overDisplay}-{runs}-{wickets}) {isCurrentBowler ? '🏏 BOWLING' : ''}
-                            </SelectItem>
-                          );
-                        })}
-                    </SelectContent>
-                  </Select>
+                  <Label>Current Bowler</Label>
+                  <Card className="p-3 bg-blue-50 dark:bg-blue-950">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold">{currentBowler?.player.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {(() => {
+                            const bowlerStats = currentInnings.playerStats.find(
+                              stat => stat.playerId === currentBowler?.playerId
+                            );
+                            const balls = bowlerStats?.ballsBowled ?? 0;
+                            const overs = Math.floor(balls / 6);
+                            const remainingBalls = balls % 6;
+                            const overDisplay = remainingBalls > 0 ? `${overs}.${remainingBalls}` : `${overs}`;
+                            const runs = bowlerStats?.runsConceded ?? 0;
+                            const wickets = bowlerStats?.wicketsTaken ?? 0;
+                            return `${overDisplay}-${runs}-${wickets}`;
+                          })()}
+                        </div>
+                      </div>
+                      <div className="text-2xl">⚾</div>
+                    </div>
+                  </Card>
                 </div>
               </div>
 
@@ -469,46 +469,46 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
             <TabsContent value="extras" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Batsman</Label>
-                  <Select value={selectedBatsman?.toString()} onValueChange={(value) => setSelectedBatsman(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select batsman" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currentBatsmen.map((batsman) => (
-                        <SelectItem key={batsman.id} value={batsman.playerId.toString()}>
-                          {batsman.player.name} ({batsman.runs}*) {batsman.isOnStrike ? '🏏 ON STRIKE' : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Current Batsman (On Strike)</Label>
+                  <Card className="p-3 bg-green-50 dark:bg-green-950">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold">
+                          {currentBatsmen.find(b => b.isOnStrike)?.player.name || currentBatsmen[0]?.player.name}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {currentBatsmen.find(b => b.isOnStrike)?.runs || currentBatsmen[0]?.runs}* runs
+                        </div>
+                      </div>
+                      <div className="text-2xl">🏏</div>
+                    </div>
+                  </Card>
                 </div>
                 
                 <div>
-                  <Label>Bowler</Label>
-                  <Select value={selectedBowler?.toString()} onValueChange={(value) => setSelectedBowler(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select bowler" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currentInnings.playerStats
-                        .filter(stat => stat.player.teamId === bowlingTeam.id)
-                        .map((bowler) => {
-                          const balls = bowler.ballsBowled ?? 0;
-                          const overs = Math.floor(balls / 6);
-                          const remainingBalls = balls % 6;
-                          const overDisplay = remainingBalls > 0 ? `${overs}.${remainingBalls}` : `${overs}`;
-                          const runs = bowler.runsConceded ?? 0;
-                          const wickets = bowler.wicketsTaken ?? 0;
-                          const isCurrentBowler = bowler.playerId === currentBowler?.playerId;
-                          return (
-                            <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
-                              {bowler.player.name} ({overDisplay}-{runs}-{wickets}) {isCurrentBowler ? '🏏 BOWLING' : ''}
-                            </SelectItem>
-                          );
-                        })}
-                    </SelectContent>
-                  </Select>
+                  <Label>Current Bowler</Label>
+                  <Card className="p-3 bg-blue-50 dark:bg-blue-950">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold">{currentBowler?.player.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {(() => {
+                            const bowlerStats = currentInnings.playerStats.find(
+                              stat => stat.playerId === currentBowler?.playerId
+                            );
+                            const balls = bowlerStats?.ballsBowled ?? 0;
+                            const overs = Math.floor(balls / 6);
+                            const remainingBalls = balls % 6;
+                            const overDisplay = remainingBalls > 0 ? `${overs}.${remainingBalls}` : `${overs}`;
+                            const runs = bowlerStats?.runsConceded ?? 0;
+                            const wickets = bowlerStats?.wicketsTaken ?? 0;
+                            return `${overDisplay}-${runs}-${wickets}`;
+                          })()}
+                        </div>
+                      </div>
+                      <div className="text-2xl">⚾</div>
+                    </div>
+                  </Card>
                 </div>
               </div>
 
