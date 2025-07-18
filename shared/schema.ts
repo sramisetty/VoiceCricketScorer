@@ -43,6 +43,7 @@ export const innings = pgTable("innings", {
   totalBalls: integer("total_balls").default(0),
   extras: jsonb("extras").default({}), // {wides: 0, noballs: 0, byes: 0, legbyes: 0}
   isCompleted: boolean("is_completed").default(false),
+  currentBowlerId: integer("current_bowler_id").references(() => players.id),
 });
 
 export const balls = pgTable("balls", {

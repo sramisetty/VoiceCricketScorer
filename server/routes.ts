@@ -337,7 +337,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalRuns: newTotalRuns,
           totalBalls: newTotalBalls,
           totalOvers: newTotalOvers,
-          totalWickets: newTotalWickets
+          totalWickets: newTotalWickets,
+          currentBowlerId: ballData.bowlerId
         });
       }
 
@@ -437,30 +438,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const matchId = parseInt(req.params.id);
       const { newBowlerId } = req.body;
       
+      if (!newBowlerId) {
+        return res.status(400).json({ error: 'newBowlerId is required' });
+      }
+      
       const currentInnings = await storage.getCurrentInnings(matchId);
       if (!currentInnings) {
         return res.status(404).json({ error: 'No current innings found' });
       }
       
-      // Update all current bowlers to not be current
+      // Get the player stats for this innings
       const playerStats = await storage.getPlayerStatsByInnings(currentInnings.id);
-      for (const stat of playerStats) {
-        if ((stat.ballsBowled ?? 0) > 0) {
-          await storage.updatePlayerStats(stat.id, { isOnStrike: false });
-        }
+      
+      // Find the new bowler's stats
+      const newBowlerStats = playerStats.find(s => s.playerId === newBowlerId);
+      if (!newBowlerStats) {
+        return res.status(400).json({ error: 'Bowler not found in this match' });
       }
       
-      // Set new bowler as current
-      const newBowlerStats = playerStats.find(s => s.playerId === newBowlerId);
-      if (newBowlerStats) {
-        await storage.updatePlayerStats(newBowlerStats.id, { isOnStrike: true });
+      // Check if the new bowler is from the bowling team
+      if (newBowlerStats.player.teamId !== currentInnings.bowlingTeam.id) {
+        return res.status(400).json({ error: 'Player is not from the bowling team' });
       }
+      
+      // Initialize the new bowler if they haven't bowled yet
+      if ((newBowlerStats.ballsBowled ?? 0) === 0) {
+        await storage.updatePlayerStats(newBowlerStats.id, {
+          ballsBowled: 0,
+          runsConceded: 0,
+          wicketsTaken: 0,
+          oversBowled: 0
+        });
+      }
+      
+      // Update innings to track the current bowler
+      await storage.updateInnings(currentInnings.id, {
+        currentBowlerId: newBowlerId
+      });
       
       const liveData = await storage.getLiveMatchData(matchId);
       broadcastToMatch(matchId, { type: 'bowler_changed', data: liveData });
       
-      res.json({ success: true });
+      res.json({ success: true, newBowlerId });
     } catch (error) {
+      console.error('Error changing bowler:', error);
       res.status(500).json({ error: 'Failed to change bowler' });
     }
   });

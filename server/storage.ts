@@ -188,7 +188,8 @@ export class MemStorage implements IStorage {
       totalOvers: innings.totalOvers ?? 0,
       totalBalls: innings.totalBalls ?? 0,
       extras: innings.extras ?? { wides: 0, noballs: 0, byes: 0, legbyes: 0 },
-      isCompleted: innings.isCompleted ?? false
+      isCompleted: innings.isCompleted ?? false,
+      currentBowlerId: innings.currentBowlerId ?? null
     };
     this.innings.set(id, newInnings);
     return newInnings;
@@ -733,12 +734,32 @@ export class DatabaseStorage implements IStorage {
     
     if (!inningsData) return undefined;
     
-    // Filter for bowling team players and find the current bowler
+    // Filter for bowling team players
     const bowlingTeamPlayers = inningsStats.filter(s => 
       s.player.teamId === inningsData.bowlingTeamId
     );
     
-    // Return the bowler who has bowled balls in the current over (not completed 6 balls)
+    // If there's a current bowler set in the innings, use that
+    if (inningsData.currentBowlerId) {
+      const currentBowler = bowlingTeamPlayers.find(s => s.playerId === inningsData.currentBowlerId);
+      if (currentBowler) {
+        return currentBowler;
+      }
+    }
+    
+    // Get the most recent ball to find who bowled it
+    const recentBalls = await this.getRecentBalls(inningsId, 1);
+    
+    if (recentBalls.length > 0) {
+      // Return the bowler who bowled the most recent ball
+      const lastBowlerId = recentBalls[0].bowlerId;
+      const currentBowler = bowlingTeamPlayers.find(s => s.playerId === lastBowlerId);
+      if (currentBowler) {
+        return currentBowler;
+      }
+    }
+    
+    // Fallback: Return the bowler who has bowled balls in the current over (not completed 6 balls)
     return bowlingTeamPlayers.find(s => (s.ballsBowled ?? 0) > 0 && (s.ballsBowled ?? 0) % 6 !== 0) ||
            bowlingTeamPlayers.find(s => (s.ballsBowled ?? 0) > 0) ||
            bowlingTeamPlayers[0]; // Default to first bowler if no one has bowled yet
