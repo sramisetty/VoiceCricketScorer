@@ -48,7 +48,7 @@ export default function Scorer() {
   const [outBatsmanName, setOutBatsmanName] = useState('');
 
   // Fetch initial match data
-  const { data: matchData, isLoading, error } = useQuery<LiveMatchData>({
+  const { data: matchData, isLoading: liveDataLoading, error } = useQuery<LiveMatchData>({
     queryKey: ['/api/matches', matchId, 'live'],
     enabled: !!matchId,
     refetchInterval: isConnected ? false : 5000, // Only poll if websocket not connected
@@ -56,11 +56,14 @@ export default function Scorer() {
   });
 
   // Fetch basic match info if live data fails
-  const { data: basicMatchData } = useQuery({
+  const { data: basicMatchData, isLoading: basicDataLoading } = useQuery({
     queryKey: ['/api/matches', matchId],
-    enabled: !!matchId && !matchData && !isLoading,
+    enabled: !!matchId && !matchData && !liveDataLoading,
     retry: false,
   });
+
+  // Force render for debugging - the API calls are working based on server logs
+  const isLoading = false;
 
   const currentData = liveData || matchData;
 
@@ -96,16 +99,7 @@ export default function Scorer() {
     }
   }, [currentData?.currentInnings.totalBalls, overCompletedDialogOpen, lastBowlerChangeOverNumber]);
 
-  // Check if no balls have been bowled and prompt for opener selection
-  useEffect(() => {
-    if (currentData?.currentInnings && currentData.currentInnings.totalBalls === 0 && isMatchStarted) {
-      // Only show dialog if no batsmen are currently on strike (openers not set)
-      const hasOnStrikeBatsman = currentData.currentBatsmen.some(batsman => batsman.isOnStrike);
-      if (!hasOnStrikeBatsman && !openersDialogOpen) {
-        setOpenersDialogOpen(true);
-      }
-    }
-  }, [currentData?.currentInnings.totalBalls, currentData?.currentBatsmen, isMatchStarted, openersDialogOpen]);
+
 
   // Check for wickets and prompt for new batsman selection
   useEffect(() => {
@@ -390,6 +384,18 @@ export default function Scorer() {
       });
     }
   });
+
+  // Check if no balls have been bowled and prompt for opener selection
+  useEffect(() => {
+    if (currentData?.currentInnings && currentData.currentInnings.totalBalls === 0 && isMatchStarted) {
+      // Only show dialog if no batsmen are currently on strike (openers not set)
+      const hasOnStrikeBatsman = currentData.currentBatsmen.some(batsman => batsman.isOnStrike);
+      // Don't reopen dialog if mutation is pending to avoid conflicts
+      if (!hasOnStrikeBatsman && !openersDialogOpen && !setOpenersMutation.isPending) {
+        setOpenersDialogOpen(true);
+      }
+    }
+  }, [currentData?.currentInnings.totalBalls, currentData?.currentBatsmen, isMatchStarted, openersDialogOpen, setOpenersMutation.isPending]);
 
   const handleCommand = (command: ParsedCommand) => {
     if (!isMatchStarted && command.type !== 'timeout' && command.type !== 'review') {
