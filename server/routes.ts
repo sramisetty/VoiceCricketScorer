@@ -3,6 +3,22 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertMatchSchema, insertTeamSchema, insertPlayerSchema, insertBallSchema } from "@shared/schema";
+import { transcribeAudio, validateAudioFormat } from "./whisper";
+import multer from "multer";
+
+// Configure multer for in-memory storage
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/webm'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid audio format'));
+    }
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -794,6 +810,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: 'Failed to reset match data' });
+    }
+  });
+
+  // Audio transcription endpoint for improved speech recognition
+  app.post('/api/transcribe-audio', upload.single('audio'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No audio file provided' });
+      }
+
+      const audioBuffer = req.file.buffer;
+      
+      // Validate audio format
+      if (!validateAudioFormat(audioBuffer)) {
+        return res.status(400).json({ error: 'Invalid audio format' });
+      }
+
+      // Transcribe audio using OpenAI Whisper
+      const result = await transcribeAudio(audioBuffer, req.file.originalname);
+      
+      res.json({
+        success: true,
+        transcript: result.text,
+        confidence: result.confidence
+      });
+    } catch (error) {
+      console.error('Audio transcription error:', error);
+      res.status(500).json({ error: 'Failed to transcribe audio' });
     }
   });
 
