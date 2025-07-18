@@ -591,12 +591,34 @@ export class DatabaseStorage implements IStorage {
 
   async getCurrentBatsmen(inningsId: number): Promise<(PlayerStats & { player: Player })[]> {
     const inningsStats = await this.getPlayerStatsByInnings(inningsId);
-    return inningsStats.filter(s => !s.isOut).slice(-2);
+    const [inningsData] = await db.select().from(innings).where(eq(innings.id, inningsId));
+    
+    if (!inningsData) return [];
+    
+    // Filter for batting team players who are not out
+    const battingTeamPlayers = inningsStats.filter(s => 
+      s.player.teamId === inningsData.battingTeamId && !s.isOut
+    );
+    
+    // Return first 2 batting team players (current batsmen)
+    return battingTeamPlayers.slice(0, 2);
   }
 
   async getCurrentBowler(inningsId: number): Promise<(PlayerStats & { player: Player }) | undefined> {
     const inningsStats = await this.getPlayerStatsByInnings(inningsId);
-    return inningsStats.find(s => (s.ballsBowled ?? 0) > 0 && (s.ballsBowled ?? 0) % 6 !== 0);
+    const [inningsData] = await db.select().from(innings).where(eq(innings.id, inningsId));
+    
+    if (!inningsData) return undefined;
+    
+    // Filter for bowling team players and find the current bowler
+    const bowlingTeamPlayers = inningsStats.filter(s => 
+      s.player.teamId === inningsData.bowlingTeamId
+    );
+    
+    // Return the bowler who has bowled balls in the current over (not completed 6 balls)
+    return bowlingTeamPlayers.find(s => (s.ballsBowled ?? 0) > 0 && (s.ballsBowled ?? 0) % 6 !== 0) ||
+           bowlingTeamPlayers.find(s => (s.ballsBowled ?? 0) > 0) ||
+           bowlingTeamPlayers[0]; // Default to first bowler if no one has bowled yet
   }
 
   // Live Match Data
