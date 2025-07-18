@@ -685,6 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stat => stat.player.teamId === currentInnings.battingTeam.id
       );
       
+      // First, reset all batsmen to false strike status
       for (const stat of battingTeamStats) {
         await storage.updatePlayerStats(stat.id, { 
           isOnStrike: false,
@@ -698,13 +699,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (opener1Stats) {
         await storage.updatePlayerStats(opener1Stats.id, { 
-          isOnStrike: strikerId === opener1Id
+          isOnStrike: strikerId === opener1Id,
+          ballsFaced: 0 // Keep accurate statistics
         });
       }
       
       if (opener2Stats) {
         await storage.updatePlayerStats(opener2Stats.id, { 
-          isOnStrike: strikerId === opener2Id
+          isOnStrike: strikerId === opener2Id,
+          ballsFaced: 0 // Keep accurate statistics  
         });
       }
       
