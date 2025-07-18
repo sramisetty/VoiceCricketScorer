@@ -1,11 +1,9 @@
 export interface ParsedCommand {
-  type: 'runs' | 'wicket' | 'extra' | 'correction' | 'bowler_change' | 'unknown';
+  type: 'runs' | 'extra' | 'correction' | 'bowler_change' | 'unknown';
   runs?: number;
   extraType?: 'wide' | 'noball' | 'bye' | 'legbye';
   extraRuns?: number;
-  wicketType?: 'bowled' | 'caught' | 'lbw' | 'runout' | 'stumped' | 'hitwicket';
   playerName?: string;
-  isWicket?: boolean;
   confidence: number;
 }
 
@@ -33,15 +31,7 @@ const extraPatterns = [
   /penalty\s+(\d+)/i // "penalty 5"
 ];
 
-const wicketPatterns = [
-  /(?:out|wicket|bowled|caught|lbw|run\s*out|stumped|hit\s*wicket)/i,
-  /(?:clean\s*)?bowled/i,
-  /caught/i,
-  /lbw/i,
-  /run\s*out/i,
-  /stumped/i,
-  /hit\s*wicket/i
-];
+
 
 const correctionPatterns = [
   /(?:correction|change|undo|wrong)/i,
@@ -66,31 +56,7 @@ export function parseCricketCommand(transcript: string): ParsedCommand {
     };
   }
 
-  // Check for wickets
-  for (const pattern of wicketPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      let wicketType: ParsedCommand['wicketType'] = 'caught';
-      
-      if (/bowled/i.test(text)) wicketType = 'bowled';
-      else if (/caught/i.test(text)) wicketType = 'caught';
-      else if (/lbw/i.test(text)) wicketType = 'lbw';
-      else if (/run\s*out/i.test(text)) wicketType = 'runout';
-      else if (/stumped/i.test(text)) wicketType = 'stumped';
-      else if (/hit\s*wicket/i.test(text)) wicketType = 'hitwicket';
 
-      const playerMatch = text.match(playerNamePatterns[0]);
-      const playerName = playerMatch ? playerMatch[1].trim() : undefined;
-
-      return {
-        type: 'wicket',
-        isWicket: true,
-        wicketType,
-        playerName,
-        confidence: 0.9
-      };
-    }
-  }
 
   // Check for extras
   for (const pattern of extraPatterns) {
