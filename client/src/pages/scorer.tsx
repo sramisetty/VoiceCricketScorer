@@ -598,6 +598,30 @@ export default function Scorer() {
                     </DialogContent>
                   </Dialog>
 
+                  {/* Change Batsmen Button */}
+                  <Button
+                    variant="outline"
+                    className="w-full bg-green-500 hover:bg-green-600 text-white"
+                    onClick={() => {
+                      // Pre-populate current batsmen when changing
+                      if (currentData?.currentBatsmen?.length >= 2) {
+                        const striker = currentData.currentBatsmen.find(b => b.isOnStrike);
+                        const nonStriker = currentData.currentBatsmen.find(b => !b.isOnStrike);
+                        
+                        if (striker && nonStriker) {
+                          setSelectedOpener1(striker.playerId.toString());
+                          setSelectedOpener2(nonStriker.playerId.toString());
+                          setSelectedStriker(striker.playerId.toString());
+                        }
+                      }
+                      setOpenersDialogOpen(true);
+                    }}
+                    disabled={!isMatchStarted}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Change Batsmen
+                  </Button>
+
                   {/* Match Settings */}
                   <Button
                     variant="outline"
@@ -661,11 +685,15 @@ export default function Scorer() {
       <Dialog open={openersDialogOpen} onOpenChange={setOpenersDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Select Opening Batsmen</DialogTitle>
+            <DialogTitle>
+              {currentData?.currentInnings?.totalBalls === 0 ? 'Select Opening Batsmen' : 'Change Batsmen'}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Please select the two opening batsmen and who will face the first ball.
+              {currentData?.currentInnings?.totalBalls === 0 
+                ? 'Please select the two opening batsmen and who will face the first ball.'
+                : 'Select the two batsmen currently at the crease and who is on strike.'}
             </p>
             
             <div className="space-y-4">
@@ -738,7 +766,8 @@ export default function Scorer() {
                 disabled={!selectedOpener1 || !selectedOpener2 || !selectedStriker || setOpenersMutation.isPending}
               >
                 <User className="w-4 h-4 mr-2" />
-                {setOpenersMutation.isPending ? 'Setting...' : 'Set Openers'}
+                {setOpenersMutation.isPending ? 'Setting...' : 
+                  (currentData?.currentInnings?.totalBalls === 0 ? 'Set Openers' : 'Change Batsmen')}
               </Button>
             </div>
           </div>
