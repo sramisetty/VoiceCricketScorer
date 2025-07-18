@@ -53,6 +53,9 @@ export interface IStorage {
 
   // Cricket Logic
   updateStrikeRotation(inningsId: number, batsmanId: number, runs: number, isExtra: boolean): Promise<void>;
+  
+  // Match Reset
+  resetMatchData(matchId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -405,6 +408,12 @@ export class MemStorage implements IStorage {
       }
     }
   }
+
+  // Match Reset
+  async resetMatchData(matchId: number): Promise<void> {
+    // This would be implemented for in-memory storage
+    // For now, we'll use the database version
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -586,7 +595,70 @@ export class DatabaseStorage implements IStorage {
 
     if (!lastBall) return false;
 
+    // Get the player stats for batsman and bowler to reverse their statistics
+    const inningsStats = await this.getPlayerStatsByInnings(inningsId);
+    const batsmanStats = inningsStats.find(s => s.playerId === lastBall.batsmanId);
+    const bowlerStats = inningsStats.find(s => s.playerId === lastBall.bowlerId);
+
+    // Reverse batsman statistics
+    if (batsmanStats) {
+      const newRuns = Math.max(0, (batsmanStats.runs ?? 0) - (lastBall.runs ?? 0));
+      const newBallsFaced = Math.max(0, (batsmanStats.ballsFaced ?? 0) - (lastBall.extraType ? 0 : 1));
+      const newFours = lastBall.runs === 4 ? Math.max(0, (batsmanStats.fours ?? 0) - 1) : batsmanStats.fours;
+      const newSixes = lastBall.runs === 6 ? Math.max(0, (batsmanStats.sixes ?? 0) - 1) : batsmanStats.sixes;
+      
+      await this.updatePlayerStats(batsmanStats.id, {
+        runs: newRuns,
+        ballsFaced: newBallsFaced,
+        fours: newFours,
+        sixes: newSixes,
+        isOut: lastBall.isWicket ? false : batsmanStats.isOut // Reverse wicket if it was a wicket
+      });
+    }
+
+    // Reverse bowler statistics
+    if (bowlerStats) {
+      const totalRunsToDeduct = (lastBall.runs ?? 0) + (lastBall.extraRuns ?? 0);
+      const newBallsBowled = Math.max(0, (bowlerStats.ballsBowled ?? 0) - (lastBall.extraType ? 0 : 1));
+      const newRunsConceded = Math.max(0, (bowlerStats.runsConceded ?? 0) - totalRunsToDeduct);
+      const newWickets = lastBall.isWicket ? Math.max(0, (bowlerStats.wicketsTaken ?? 0) - 1) : bowlerStats.wicketsTaken;
+      const newOversBowled = Math.floor(newBallsBowled / 6);
+      
+      await this.updatePlayerStats(bowlerStats.id, {
+        ballsBowled: newBallsBowled,
+        runsConceded: newRunsConceded,
+        wicketsTaken: newWickets,
+        oversBowled: newOversBowled
+      });
+    }
+
+    // Update innings totals
+    const [currentInnings] = await db.select().from(innings).where(eq(innings.id, inningsId));
+    if (currentInnings) {
+      const totalRunsToDeduct = (lastBall.runs ?? 0) + (lastBall.extraRuns ?? 0);
+      const newTotalRuns = Math.max(0, (currentInnings.totalRuns ?? 0) - totalRunsToDeduct);
+      const newTotalBalls = Math.max(0, (currentInnings.totalBalls ?? 0) - (lastBall.extraType ? 0 : 1));
+      const newTotalWickets = lastBall.isWicket ? Math.max(0, (currentInnings.totalWickets ?? 0) - 1) : (currentInnings.totalWickets ?? 0);
+      const newTotalOvers = Math.floor(newTotalBalls / 6);
+      
+      await db.update(innings).set({
+        totalRuns: newTotalRuns,
+        totalBalls: newTotalBalls,
+        totalWickets: newTotalWickets,
+        totalOvers: newTotalOvers
+      }).where(eq(innings.id, inningsId));
+    }
+
+    // Handle strike rotation reversal
+    if (lastBall.runs && lastBall.runs % 2 === 1) {
+      // If the last ball had odd runs, reverse the strike rotation
+      await this.updateStrikeRotation(inningsId, lastBall.batsmanId, lastBall.runs, lastBall.extraType ? true : false);
+    }
+
+    // Finally, delete the ball record
     await db.delete(balls).where(eq(balls.id, lastBall.id));
+    
+    console.log(`Undo: Reversed ball ${lastBall.overNumber}.${lastBall.ballNumber} - ${lastBall.runs} runs, ${lastBall.extraRuns} extras`);
     return true;
   }
 
@@ -692,6 +764,50 @@ export class DatabaseStorage implements IStorage {
       currentBowler: currentBowler!
     };
   }
+
+  // Match Reset - Clear all balls and reset player stats
+  async resetMatchData(matchId: number): Promise<void> {
+    const currentInnings = await this.getCurrentInnings(matchId);
+    if (!currentInnings) return;
+
+    // Delete all balls for this innings
+    await db.delete(balls).where(eq(balls.inningsId, currentInnings.id));
+
+    // Reset innings totals
+    await db.update(innings).set({
+      totalRuns: 0,
+      totalBalls: 0,
+      totalWickets: 0,
+      totalOvers: 0
+    }).where(eq(innings.id, currentInnings.id));
+
+    // Reset all player stats for this innings
+    const inningsStats = await this.getPlayerStatsByInnings(currentInnings.id);
+    for (const stat of inningsStats) {
+      await this.updatePlayerStats(stat.id, {
+        runs: 0,
+        ballsFaced: 0,
+        fours: 0,
+        sixes: 0,
+        ballsBowled: 0,
+        runsConceded: 0,
+        wicketsTaken: 0,
+        oversBowled: 0,
+        isOut: false,
+        isOnStrike: false
+      });
+    }
+
+    // Set the initial strike for batsmen (first two batsmen, first one on strike)
+    const battingTeamPlayers = inningsStats.filter(s => s.player.teamId === currentInnings.battingTeamId);
+    if (battingTeamPlayers.length >= 2) {
+      await this.updatePlayerStats(battingTeamPlayers[0].id, { isOnStrike: true });
+      await this.updatePlayerStats(battingTeamPlayers[1].id, { isOnStrike: false });
+    }
+
+    console.log(`Match ${matchId} data reset successfully`);
+  }
+
   // Cricket Logic - Strike Rotation
   async updateStrikeRotation(inningsId: number, batsmanId: number, runs: number, isExtra: boolean): Promise<void> {
     // Cricket rule: On odd runs (1, 3, 5), batsmen cross over

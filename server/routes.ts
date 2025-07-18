@@ -504,5 +504,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/matches/:id/reset', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      await storage.resetMatchData(matchId);
+      
+      const liveData = await storage.getLiveMatchData(matchId);
+      broadcastToMatch(matchId, { type: 'match_reset', data: liveData });
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to reset match data' });
+    }
+  });
+
   return httpServer;
 }
