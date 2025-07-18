@@ -212,15 +212,20 @@ export default function Scorer() {
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Bowler Changed",
-        description: "The bowler has been changed successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      // Close dialogs immediately
       setChangeBowlerDialogOpen(false);
       setSelectedNewBowler('');
       setOverCompletedDialogOpen(false);
       setNextBowlerId('');
+      
+      // Show success message
+      toast({
+        title: "Bowler Changed",
+        description: "The bowler has been changed successfully.",
+      });
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
     },
     onError: () => {
       toast({
