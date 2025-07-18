@@ -221,11 +221,20 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                     <SelectContent>
                       {currentInnings.playerStats
                         .filter(stat => stat.player.teamId === bowlingTeam.id)
-                        .map((bowler) => (
-                          <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
-                            {bowler.player.name} ({bowler.oversBowled ?? 0}-{bowler.runsConceded ?? 0})
-                          </SelectItem>
-                        ))}
+                        .map((bowler) => {
+                          const balls = bowler.ballsBowled ?? 0;
+                          const overs = Math.floor(balls / 6);
+                          const remainingBalls = balls % 6;
+                          const overDisplay = remainingBalls > 0 ? `${overs}.${remainingBalls}` : `${overs}`;
+                          const runs = bowler.runsConceded ?? 0;
+                          const wickets = bowler.wicketsTaken ?? 0;
+                          const isCurrentBowler = bowler.playerId === currentBowler?.playerId;
+                          return (
+                            <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
+                              {bowler.player.name} ({overDisplay}-{runs}-{wickets}) {isCurrentBowler ? '🏏 BOWLING' : ''}
+                            </SelectItem>
+                          );
+                        })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -309,11 +318,20 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                     <SelectContent>
                       {currentInnings.playerStats
                         .filter(stat => stat.player.teamId === bowlingTeam.id)
-                        .map((bowler) => (
-                          <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
-                            {bowler.player.name} ({bowler.oversBowled ?? 0}-{bowler.runsConceded ?? 0})
-                          </SelectItem>
-                        ))}
+                        .map((bowler) => {
+                          const balls = bowler.ballsBowled ?? 0;
+                          const overs = Math.floor(balls / 6);
+                          const remainingBalls = balls % 6;
+                          const overDisplay = remainingBalls > 0 ? `${overs}.${remainingBalls}` : `${overs}`;
+                          const runs = bowler.runsConceded ?? 0;
+                          const wickets = bowler.wicketsTaken ?? 0;
+                          const isCurrentBowler = bowler.playerId === currentBowler?.playerId;
+                          return (
+                            <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
+                              {bowler.player.name} ({overDisplay}-{runs}-{wickets}) {isCurrentBowler ? '🏏 BOWLING' : ''}
+                            </SelectItem>
+                          );
+                        })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -351,7 +369,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                     <SelectValue placeholder="Select wicket type (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No wicket</SelectItem>
+                    <SelectItem value="none">No wicket</SelectItem>
                     {wicketButtons.map((wicket) => (
                       <SelectItem key={wicket.type} value={wicket.type}>
                         {wicket.label}
@@ -397,11 +415,20 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
                     <SelectContent>
                       {currentInnings.playerStats
                         .filter(stat => stat.player.teamId === bowlingTeam.id)
-                        .map((bowler) => (
-                          <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
-                            {bowler.player.name} ({bowler.oversBowled ?? 0}-{bowler.runsConceded ?? 0})
-                          </SelectItem>
-                        ))}
+                        .map((bowler) => {
+                          const balls = bowler.ballsBowled ?? 0;
+                          const overs = Math.floor(balls / 6);
+                          const remainingBalls = balls % 6;
+                          const overDisplay = remainingBalls > 0 ? `${overs}.${remainingBalls}` : `${overs}`;
+                          const runs = bowler.runsConceded ?? 0;
+                          const wickets = bowler.wicketsTaken ?? 0;
+                          const isCurrentBowler = bowler.playerId === currentBowler?.playerId;
+                          return (
+                            <SelectItem key={bowler.playerId} value={bowler.playerId.toString()}>
+                              {bowler.player.name} ({overDisplay}-{runs}-{wickets}) {isCurrentBowler ? '🏏 BOWLING' : ''}
+                            </SelectItem>
+                          );
+                        })}
                     </SelectContent>
                   </Select>
                 </div>
