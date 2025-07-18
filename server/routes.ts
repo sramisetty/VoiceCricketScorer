@@ -22,7 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (message.type === 'join_match' && typeof message.matchId === 'number') {
           // Leave previous match if any
-          if (currentMatchId) {
+          if (currentMatchId !== null) {
             const clients = matchClients.get(currentMatchId);
             if (clients) {
               clients.delete(ws);
@@ -37,7 +37,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!matchClients.has(currentMatchId)) {
             matchClients.set(currentMatchId, new Set());
           }
-          matchClients.get(currentMatchId)!.add(ws);
+          const clients = matchClients.get(currentMatchId);
+          if (clients) {
+            clients.add(ws);
+          }
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -45,7 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     ws.on('close', () => {
-      if (currentMatchId) {
+      if (currentMatchId !== null) {
         const clients = matchClients.get(currentMatchId);
         if (clients) {
           clients.delete(ws);
@@ -125,6 +128,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const matchData = insertMatchSchema.parse(req.body);
       const match = await storage.createMatch(matchData);
+      
+      // Automatically create first innings based on toss decision
+      const tossWinnerId = matchData.tossWinnerId ?? matchData.team1Id;
+      const battingTeamId = matchData.tossDecision === 'bat' ? tossWinnerId : 
+                           tossWinnerId === matchData.team1Id ? matchData.team2Id : matchData.team1Id;
+      const bowlingTeamId = battingTeamId === matchData.team1Id ? matchData.team2Id : matchData.team1Id;
+      
+      // Create first innings
+      const innings = await storage.createInnings({
+        matchId: match.id,
+        battingTeamId,
+        bowlingTeamId,
+        inningsNumber: 1,
+        totalRuns: 0,
+        totalWickets: 0,
+        totalOvers: 0,
+        totalBalls: 0,
+        extras: { wides: 0, noballs: 0, byes: 0, legbyes: 0 },
+        isCompleted: false
+      });
+
+      // Update match status to live
+      await storage.updateMatch(match.id, { status: 'live', currentInnings: 1 });
+
+      // Initialize player stats for batting team
+      const battingPlayers = await storage.getPlayersByTeam(battingTeamId);
+      for (const player of battingPlayers) {
+        await storage.createPlayerStats({
+          inningsId: innings.id,
+          playerId: player.id,
+          runs: 0,
+          ballsFaced: 0,
+          fours: 0,
+          sixes: 0,
+          isOut: false,
+          isOnStrike: false,
+          oversBowled: 0,
+          ballsBowled: 0,
+          runsConceded: 0,
+          wicketsTaken: 0
+        });
+      }
+
+      // Initialize player stats for bowling team
+      const bowlingPlayers = await storage.getPlayersByTeam(bowlingTeamId);
+      for (const player of bowlingPlayers) {
+        await storage.createPlayerStats({
+          inningsId: innings.id,
+          playerId: player.id,
+          runs: 0,
+          ballsFaced: 0,
+          fours: 0,
+          sixes: 0,
+          isOut: false,
+          isOnStrike: false,
+          oversBowled: 0,
+          ballsBowled: 0,
+          runsConceded: 0,
+          wicketsTaken: 0
+        });
+      }
+
       res.json(match);
     } catch (error) {
       res.status(400).json({ error: 'Invalid match data' });
