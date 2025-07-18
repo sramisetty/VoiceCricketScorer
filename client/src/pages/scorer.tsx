@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Share, Download, Settings, Pause, Play, Clock, User } from 'lucide-react';
+import { Share, Download, Settings, Pause, Play, Clock, User, Undo } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useToast } from '@/hooks/use-toast';
@@ -685,7 +685,7 @@ export default function Scorer() {
 
             <MatchStatistics matchData={currentData} />
 
-            <Commentary balls={currentData.recentBalls} matchId={matchId!} />
+            <Commentary balls={currentData.recentBalls} />
           </div>
 
           {/* Live Scoreboard */}
@@ -843,6 +843,19 @@ export default function Scorer() {
                     >
                       <User className="h-4 w-4 mr-2" />
                       Change Batsmen
+                    </Button>
+                  )}
+
+                  {/* Undo Last Ball */}
+                  {currentData.recentBalls.length > 0 && (
+                    <Button
+                      variant="outline"
+                      className="w-full bg-red-500 hover:bg-red-600 text-white"
+                      onClick={() => undoBallMutation.mutate()}
+                      disabled={undoBallMutation.isPending || !isMatchStarted}
+                    >
+                      <Undo className="h-4 w-4 mr-2" />
+                      {undoBallMutation.isPending ? 'Undoing...' : 'Undo Last Ball'}
                     </Button>
                   )}
 

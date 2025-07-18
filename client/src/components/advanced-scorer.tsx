@@ -12,7 +12,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { LiveMatchData } from '@shared/schema';
-import { Undo, RotateCcw, UserX, ArrowRightLeft, Plus, Minus } from 'lucide-react';
+import { RotateCcw, UserX, ArrowRightLeft, Plus, Minus } from 'lucide-react';
 
 interface AdvancedScorerProps {
   matchData: LiveMatchData;
@@ -93,27 +93,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
     }
   });
 
-  const undoMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('POST', `/api/matches/${matchId}/undo`);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
-      resetForm();
-      toast({
-        title: "Ball Undone",
-        description: "The last ball has been successfully undone.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to undo ball. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
+
 
   const newBatsmanMutation = useMutation({
     mutationFn: async (newBatsmanId: number) => {
@@ -238,20 +218,7 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Advanced Scorer</span>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => undoMutation.mutate()}
-                disabled={undoMutation.isPending}
-              >
-                <Undo className="w-4 h-4 mr-1" />
-                Undo
-              </Button>
-            </div>
-          </CardTitle>
+          <CardTitle>Advanced Scorer</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="quick" className="w-full">
