@@ -4,6 +4,8 @@ import {
   type InsertTeam, type InsertPlayer, type InsertMatch, type InsertInnings, type InsertBall, type InsertPlayerStats,
   type MatchWithTeams, type InningsWithStats, type LiveMatchData
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Teams
@@ -371,4 +373,251 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  // Teams
+  async createTeam(team: InsertTeam): Promise<Team> {
+    const [newTeam] = await db.insert(teams).values(team).returning();
+    return newTeam;
+  }
+
+  async getTeam(id: number): Promise<Team | undefined> {
+    const [team] = await db.select().from(teams).where(eq(teams.id, id));
+    return team;
+  }
+
+  async getAllTeams(): Promise<Team[]> {
+    return await db.select().from(teams);
+  }
+
+  // Players
+  async createPlayer(player: InsertPlayer): Promise<Player> {
+    const [newPlayer] = await db.insert(players).values(player).returning();
+    return newPlayer;
+  }
+
+  async getPlayer(id: number): Promise<Player | undefined> {
+    const [player] = await db.select().from(players).where(eq(players.id, id));
+    return player;
+  }
+
+  async getPlayersByTeam(teamId: number): Promise<Player[]> {
+    return await db.select().from(players).where(eq(players.teamId, teamId));
+  }
+
+  async updatePlayer(id: number, player: Partial<Player>): Promise<Player | undefined> {
+    const [updatedPlayer] = await db.update(players).set(player).where(eq(players.id, id)).returning();
+    return updatedPlayer;
+  }
+
+  // Matches
+  async createMatch(match: InsertMatch): Promise<Match> {
+    const [newMatch] = await db.insert(matches).values(match).returning();
+    return newMatch;
+  }
+
+  async getMatch(id: number): Promise<Match | undefined> {
+    const [match] = await db.select().from(matches).where(eq(matches.id, id));
+    return match;
+  }
+
+  async getMatchWithTeams(id: number): Promise<MatchWithTeams | undefined> {
+    const [match] = await db.select().from(matches).where(eq(matches.id, id));
+    if (!match) return undefined;
+
+    const [team1] = await db.select().from(teams).where(eq(teams.id, match.team1Id));
+    const [team2] = await db.select().from(teams).where(eq(teams.id, match.team2Id));
+
+    if (!team1 || !team2) return undefined;
+
+    return { ...match, team1, team2 };
+  }
+
+  async updateMatch(id: number, match: Partial<Match>): Promise<Match | undefined> {
+    const [updatedMatch] = await db.update(matches).set(match).where(eq(matches.id, id)).returning();
+    return updatedMatch;
+  }
+
+  async getAllMatches(): Promise<MatchWithTeams[]> {
+    const allMatches = await db.select().from(matches);
+    const result: MatchWithTeams[] = [];
+    
+    for (const match of allMatches) {
+      const [team1] = await db.select().from(teams).where(eq(teams.id, match.team1Id));
+      const [team2] = await db.select().from(teams).where(eq(teams.id, match.team2Id));
+      
+      if (team1 && team2) {
+        result.push({ ...match, team1, team2 });
+      }
+    }
+    
+    return result;
+  }
+
+  // Innings
+  async createInnings(inning: InsertInnings): Promise<Innings> {
+    const [newInnings] = await db.insert(innings).values(inning).returning();
+    return newInnings;
+  }
+
+  async getInnings(id: number): Promise<Innings | undefined> {
+    const [inning] = await db.select().from(innings).where(eq(innings.id, id));
+    return inning;
+  }
+
+  async getInningsByMatch(matchId: number): Promise<Innings[]> {
+    return await db.select().from(innings).where(eq(innings.matchId, matchId));
+  }
+
+  async getCurrentInnings(matchId: number): Promise<InningsWithStats | undefined> {
+    const [match] = await db.select().from(matches).where(eq(matches.id, matchId));
+    if (!match) return undefined;
+
+    const matchInnings = await db.select().from(innings)
+      .where(eq(innings.matchId, matchId))
+      .orderBy(innings.inningsNumber);
+
+    const currentInnings = matchInnings[(match.currentInnings ?? 1) - 1];
+    if (!currentInnings) return undefined;
+
+    const [battingTeam] = await db.select().from(teams).where(eq(teams.id, currentInnings.battingTeamId));
+    const [bowlingTeam] = await db.select().from(teams).where(eq(teams.id, currentInnings.bowlingTeamId));
+    
+    if (!battingTeam || !bowlingTeam) return undefined;
+
+    const inningsBalls = await db.select().from(balls)
+      .where(eq(balls.inningsId, currentInnings.id))
+      .orderBy(balls.overNumber, balls.ballNumber);
+
+    const inningsStats = await this.getPlayerStatsByInnings(currentInnings.id);
+
+    return {
+      ...currentInnings,
+      battingTeam,
+      bowlingTeam,
+      balls: inningsBalls,
+      playerStats: inningsStats
+    };
+  }
+
+  async updateInnings(id: number, inning: Partial<Innings>): Promise<Innings | undefined> {
+    const [updatedInnings] = await db.update(innings).set(inning).where(eq(innings.id, id)).returning();
+    return updatedInnings;
+  }
+
+  // Balls
+  async createBall(ball: InsertBall): Promise<Ball> {
+    const [newBall] = await db.insert(balls).values({
+      ...ball,
+      createdAt: new Date()
+    }).returning();
+    return newBall;
+  }
+
+  async getBall(id: number): Promise<Ball | undefined> {
+    const [ball] = await db.select().from(balls).where(eq(balls.id, id));
+    return ball;
+  }
+
+  async getBallsByInnings(inningsId: number): Promise<Ball[]> {
+    return await db.select().from(balls)
+      .where(eq(balls.inningsId, inningsId))
+      .orderBy(balls.overNumber, balls.ballNumber);
+  }
+
+  async getRecentBalls(inningsId: number, count: number): Promise<(Ball & { batsman: Player; bowler: Player })[]> {
+    const recentBalls = await db.select().from(balls)
+      .where(eq(balls.inningsId, inningsId))
+      .orderBy(desc(balls.overNumber), desc(balls.ballNumber))
+      .limit(count);
+
+    const result: (Ball & { batsman: Player; bowler: Player })[] = [];
+    
+    for (const ball of recentBalls) {
+      const [batsman] = await db.select().from(players).where(eq(players.id, ball.batsmanId));
+      const [bowler] = await db.select().from(players).where(eq(players.id, ball.bowlerId));
+      
+      if (batsman && bowler) {
+        result.push({ ...ball, batsman, bowler });
+      }
+    }
+
+    return result;
+  }
+
+  async undoLastBall(inningsId: number): Promise<boolean> {
+    const [lastBall] = await db.select().from(balls)
+      .where(eq(balls.inningsId, inningsId))
+      .orderBy(desc(balls.overNumber), desc(balls.ballNumber))
+      .limit(1);
+
+    if (!lastBall) return false;
+
+    await db.delete(balls).where(eq(balls.id, lastBall.id));
+    return true;
+  }
+
+  // Player Stats
+  async createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats> {
+    const [newStats] = await db.insert(playerStats).values(stats).returning();
+    return newStats;
+  }
+
+  async getPlayerStats(id: number): Promise<PlayerStats | undefined> {
+    const [stats] = await db.select().from(playerStats).where(eq(playerStats.id, id));
+    return stats;
+  }
+
+  async getPlayerStatsByInnings(inningsId: number): Promise<(PlayerStats & { player: Player })[]> {
+    const inningsStats = await db.select().from(playerStats)
+      .where(eq(playerStats.inningsId, inningsId));
+
+    const result: (PlayerStats & { player: Player })[] = [];
+    
+    for (const stats of inningsStats) {
+      const [player] = await db.select().from(players).where(eq(players.id, stats.playerId));
+      if (player) {
+        result.push({ ...stats, player });
+      }
+    }
+    
+    return result;
+  }
+
+  async updatePlayerStats(id: number, stats: Partial<PlayerStats>): Promise<PlayerStats | undefined> {
+    const [updatedStats] = await db.update(playerStats).set(stats).where(eq(playerStats.id, id)).returning();
+    return updatedStats;
+  }
+
+  async getCurrentBatsmen(inningsId: number): Promise<(PlayerStats & { player: Player })[]> {
+    const inningsStats = await this.getPlayerStatsByInnings(inningsId);
+    return inningsStats.filter(s => !s.isOut).slice(-2);
+  }
+
+  async getCurrentBowler(inningsId: number): Promise<(PlayerStats & { player: Player }) | undefined> {
+    const inningsStats = await this.getPlayerStatsByInnings(inningsId);
+    return inningsStats.find(s => (s.ballsBowled ?? 0) > 0 && (s.ballsBowled ?? 0) % 6 !== 0);
+  }
+
+  // Live Match Data
+  async getLiveMatchData(matchId: number): Promise<LiveMatchData | undefined> {
+    const matchWithTeams = await this.getMatchWithTeams(matchId);
+    if (!matchWithTeams) return undefined;
+
+    const currentInnings = await this.getCurrentInnings(matchId);
+    if (!currentInnings) return undefined;
+
+    const recentBalls = await this.getRecentBalls(currentInnings.id, 10);
+    const currentBatsmen = await this.getCurrentBatsmen(currentInnings.id);
+    const currentBowler = await this.getCurrentBowler(currentInnings.id);
+
+    return {
+      match: matchWithTeams,
+      currentInnings,
+      recentBalls,
+      currentBatsmen,
+      currentBowler: currentBowler!
+    };
+  }
+}
+
+export const storage = new DatabaseStorage();

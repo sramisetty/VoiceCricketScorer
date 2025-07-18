@@ -21,8 +21,9 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with Express.js
 - **Language**: TypeScript with ESM modules
 - **API Design**: RESTful endpoints with WebSocket support for real-time updates
-- **Database**: PostgreSQL with Drizzle ORM
+- **Database**: PostgreSQL with Drizzle ORM for persistent data storage
 - **Database Provider**: Neon Database (serverless PostgreSQL)
+- **Data Layer**: DatabaseStorage class implementing complete CRUD operations
 
 ## Key Components
 
@@ -33,6 +34,7 @@ Preferred communication style: Simple, everyday language.
 - **Noise Handling**: Designed to work with ambient cricket ground sounds
 
 ### Database Schema
+- **Database**: PostgreSQL with Drizzle ORM for persistent data storage
 - **Teams**: Store team information and roster data
 - **Players**: Individual player records with roles and batting order
 - **Matches**: Match setup, toss results, and current status
