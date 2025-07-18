@@ -29,18 +29,25 @@ Preferred communication style: Simple, everyday language.
 
 ### Voice Recognition System
 - **Speech-to-Text**: Browser Web Speech API for real-time transcription
-- **Cricket Command Parser**: Enhanced NLP parser for cricket-specific phrases and complex commands
+- **Advanced Cricket Parser**: Comprehensive NLP parser for cricket-specific phrases and complex commands
+- **Command Categories**: Runs, extras, bowler changes, batsman changes, game flow (timeout, review)
+- **Enhanced Run Commands**: "single", "four", "six", "dot ball", "overthrow four", "misfield two"
+- **Bowler Logic**: "change bowler", "Smith to bowl", "bring on spinner", "fast bowler on"
+- **Game Flow Commands**: "over complete", "timeout", "review", "rotate strike", "retire hurt"
+- **Visual Feedback**: Real-time transcript display and command type indicators
 - **Confidence Scoring**: Commands filtered by confidence levels to ensure accuracy
 - **Noise Handling**: Designed to work with ambient cricket ground sounds
-- **Complex Commands**: Support for "2 runs and wicket", "wide 3 runs", "four and out" patterns
 
 ### Comprehensive Scoring System
 - **Advanced Scorer**: Multi-tab interface with quick scoring, detailed entry, and extras handling
+- **Voice Integration**: Advanced voice commands trigger appropriate UI dialogs and actions
+- **Wicket Handling**: Voice input removed for wickets; detailed wicket tracking through advanced scorer only
 - **Match Statistics**: Real-time batting, bowling, and partnership analytics
 - **Player Statistics**: Individual performance tracking with strike rates and economy rates
-- **Ball-by-Ball Tracking**: Complete ball tracking with commentary generation
+- **Ball-by-Ball Tracking**: Complete ball tracking with enhanced commentary generation
 - **Undo/Redo Functionality**: Ability to correct scoring mistakes
 - **Batsman Replacement**: Automatic dialog for selecting next batsman when wickets fall
+- **Smart Command Routing**: Voice commands automatically open relevant dialogs (bowler change, timeout, etc.)
 
 ### Database Schema
 - **Database**: PostgreSQL with Drizzle ORM for persistent data storage

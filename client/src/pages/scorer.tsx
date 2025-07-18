@@ -186,8 +186,7 @@ export default function Scorer() {
         batsmanId: striker.playerId,
         bowlerId: currentBowler.playerId,
         runs: command.runs || 0,
-        isWicket: command.isWicket || false,
-        wicketType: command.wicketType,
+        isWicket: false, // Wickets are now handled through the advanced scorer only
         extraType: command.extraType,
         extraRuns: command.extraRuns || 0,
         commentary
@@ -356,19 +355,107 @@ export default function Scorer() {
   });
 
   const handleCommand = (command: ParsedCommand) => {
-    if (!isMatchStarted) {
+    if (!isMatchStarted && command.type !== 'timeout' && command.type !== 'review') {
       toast({
         title: "Match Not Started",
-        description: "Please start the match before adding balls.",
+        description: "Please start the match before scoring.",
         variant: "destructive",
       });
       return;
     }
 
-    if (command.type === 'correction') {
-      undoBallMutation.mutate();
-    } else if (command.type === 'runs' || command.type === 'wicket' || command.type === 'extra') {
-      addBallMutation.mutate(command);
+    switch (command.type) {
+      case 'correction':
+        undoBallMutation.mutate();
+        break;
+        
+      case 'runs':
+      case 'extra':
+        addBallMutation.mutate(command);
+        break;
+        
+      case 'bowler_change':
+        if (command.bowlerName) {
+          // Try to find bowler by name and set them
+          const bowlingTeam = currentData?.currentInnings.bowlingTeam;
+          if (bowlingTeam) {
+            // For now, just open the change bowler dialog
+            // In a real implementation, we'd search for the player by name
+            setChangeBowlerDialogOpen(true);
+            toast({
+              title: "Bowler Change Requested",
+              description: `Voice command recognized: ${command.bowlerName} to bowl. Please select from the dropdown.`,
+            });
+          }
+        } else {
+          setChangeBowlerDialogOpen(true);
+        }
+        break;
+        
+      case 'batsman_change':
+        if (command.action === 'retire') {
+          toast({
+            title: "Batsman Retirement",
+            description: `Voice command: ${command.newPlayerName || 'Batsman'} ${command.action}. Use the advanced scorer for detailed retirement options.`,
+          });
+        } else {
+          setNewBatsmanDialogOpen(true);
+          if (command.newPlayerName) {
+            toast({
+              title: "New Batsman Requested",
+              description: `Voice command recognized: ${command.newPlayerName} to bat. Please select from the dropdown.`,
+            });
+          }
+        }
+        break;
+        
+      case 'strike_rotation':
+        toast({
+          title: "Strike Rotation",
+          description: `Voice command recognized. Strike rotation happens automatically based on runs scored.`,
+        });
+        break;
+        
+      case 'over_complete':
+        if (currentData?.currentInnings) {
+          const ballsInCurrentOver = currentData.currentInnings.totalBalls % 6;
+          if (ballsInCurrentOver === 0 && currentData.currentInnings.totalBalls > 0) {
+            setOverCompletedDialogOpen(true);
+            toast({
+              title: "Over Complete",
+              description: "Voice command confirmed. Please select the next bowler.",
+            });
+          } else {
+            toast({
+              title: "Over Not Complete",
+              description: `${6 - ballsInCurrentOver} balls remaining in this over.`,
+              variant: "destructive",
+            });
+          }
+        }
+        break;
+        
+      case 'timeout':
+        setTimeoutDialogOpen(true);
+        toast({
+          title: "Timeout Requested",
+          description: "Voice command recognized. Please specify the duration.",
+        });
+        break;
+        
+      case 'review':
+        toast({
+          title: "Review System",
+          description: "Voice command recognized. DRS/Review functionality would be implemented here.",
+        });
+        break;
+        
+      default:
+        toast({
+          title: "Command Not Recognized",
+          description: "Please try again with a clearer voice command.",
+          variant: "destructive",
+        });
     }
   };
 
@@ -529,6 +616,73 @@ export default function Scorer() {
               matchId={matchId!}
             />
 
+            {/* Batting Figures */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-gray-800">Batting Figures</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {currentData.currentInnings.playerStats
+                    .filter(stat => stat.player.teamId === currentData.currentInnings.battingTeam.id && stat.ballsFaced > 0)
+                    .sort((a, b) => b.runs - a.runs)
+                    .map((batsman) => {
+                      const isCurrentBatsman = currentBatsmen.some(cb => cb.playerId === batsman.playerId);
+                      const strikeRate = batsman.ballsFaced > 0 ? ((batsman.runs / batsman.ballsFaced) * 100).toFixed(1) : '0.0';
+                      const isOnStrike = currentBatsmen.find(cb => cb.playerId === batsman.playerId)?.isOnStrike;
+                      
+                      return (
+                        <div
+                          key={batsman.id}
+                          className={`flex justify-between items-center p-3 rounded-lg ${
+                            isCurrentBatsman
+                              ? isOnStrike 
+                                ? 'bg-cricket-light border border-cricket-primary'
+                                : 'bg-blue-50 border border-blue-200'
+                              : batsman.isOut 
+                                ? 'bg-red-50 border border-red-200'
+                                : 'bg-gray-50'
+                          }`}
+                        >
+                          <div>
+                            <div className="font-semibold text-gray-800 flex items-center">
+                              {batsman.player.name}
+                              {isOnStrike && <span className="ml-2 text-orange-500">*</span>}
+                              {isCurrentBatsman && !isOnStrike && <span className="ml-2 text-blue-500">•</span>}
+                              {batsman.isOut && (
+                                <span className="ml-2 text-xs bg-red-500 text-white px-2 py-1 rounded">
+                                  OUT
+                                </span>
+                              )}
+                              {isCurrentBatsman && !batsman.isOut && (
+                                <span className="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded">
+                                  BATTING
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              SR: {strikeRate} • {batsman.fours} fours • {batsman.sixes} sixes
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold text-lg">{batsman.runs}</div>
+                            <div className="text-sm text-gray-600">({batsman.ballsFaced} balls)</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  
+                  {currentData.currentInnings.playerStats.filter(stat => 
+                    stat.player.teamId === currentData.currentInnings.battingTeam.id && stat.ballsFaced > 0
+                  ).length === 0 && (
+                    <div className="text-center text-gray-500 py-4">
+                      No batting figures available yet
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             <MatchStatistics matchData={currentData} />
 
             <Commentary balls={currentData.recentBalls} matchId={matchId!} />
@@ -665,29 +819,31 @@ export default function Scorer() {
                     </DialogContent>
                   </Dialog>
 
-                  {/* Change Batsmen Button */}
-                  <Button
-                    variant="outline"
-                    className="w-full bg-green-500 hover:bg-green-600 text-white"
-                    onClick={() => {
-                      // Pre-populate current batsmen when changing
-                      if (currentData?.currentBatsmen?.length >= 2) {
-                        const striker = currentData.currentBatsmen.find(b => b.isOnStrike);
-                        const nonStriker = currentData.currentBatsmen.find(b => !b.isOnStrike);
-                        
-                        if (striker && nonStriker) {
-                          setSelectedOpener1(striker.playerId.toString());
-                          setSelectedOpener2(nonStriker.playerId.toString());
-                          setSelectedStriker(striker.playerId.toString());
+                  {/* Change Batsmen Button - Hidden after first ball is completed */}
+                  {currentData.currentInnings.totalBalls === 0 && (
+                    <Button
+                      variant="outline"
+                      className="w-full bg-green-500 hover:bg-green-600 text-white"
+                      onClick={() => {
+                        // Pre-populate current batsmen when changing
+                        if (currentData?.currentBatsmen?.length >= 2) {
+                          const striker = currentData.currentBatsmen.find(b => b.isOnStrike);
+                          const nonStriker = currentData.currentBatsmen.find(b => !b.isOnStrike);
+                          
+                          if (striker && nonStriker) {
+                            setSelectedOpener1(striker.playerId.toString());
+                            setSelectedOpener2(nonStriker.playerId.toString());
+                            setSelectedStriker(striker.playerId.toString());
+                          }
                         }
-                      }
-                      setOpenersDialogOpen(true);
-                    }}
-                    disabled={!isMatchStarted}
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    Change Batsmen
-                  </Button>
+                        setOpenersDialogOpen(true);
+                      }}
+                      disabled={!isMatchStarted}
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      Change Batsmen
+                    </Button>
+                  )}
 
                   {/* Match Settings */}
                   <Button

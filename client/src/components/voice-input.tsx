@@ -139,10 +139,10 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onCommand({ type: 'wicket', isWicket: true, wicketType: 'caught', confidence: 1.0 })}
-            className="bg-red-100 hover:bg-red-500 hover:text-white"
+            onClick={() => onCommand({ type: 'runs', runs: 6, confidence: 1.0 })}
+            className="bg-green-100 hover:bg-green-500 hover:text-white"
           >
-            Wicket
+            Six
           </Button>
           <Button
             variant="outline"
@@ -152,14 +152,97 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
           >
             Wide
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onCommand({ type: 'runs', runs: 0, confidence: 1.0 })}
+            className="bg-gray-100 hover:bg-gray-500 hover:text-white"
+          >
+            Dot Ball
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onCommand({ type: 'extra', extraType: 'noball', extraRuns: 1, confidence: 1.0 })}
+            className="bg-orange-100 hover:bg-orange-500 hover:text-white"
+          >
+            No Ball
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onCommand({ type: 'bowler_change', confidence: 1.0 })}
+            className="bg-purple-100 hover:bg-purple-500 hover:text-white"
+          >
+            Change Bowler
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onCommand({ type: 'over_complete', confidence: 1.0 })}
+            className="bg-blue-100 hover:bg-blue-500 hover:text-white"
+          >
+            Over Complete
+          </Button>
         </div>
 
+        {/* Real-time transcript */}
+        {isListening && transcript && (
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+            <div className="text-sm font-medium text-blue-800">Live Transcript:</div>
+            <div className="text-blue-700 italic">"{transcript}"</div>
+          </div>
+        )}
+
         {/* Status */}
-        <div className="text-center text-sm text-gray-600">
+        <div className="text-center text-sm text-gray-600 mb-4">
           {isListening && "🎤 Listening for cricket commands..."}
           {isProcessing && "⚡ Processing command..."}
           {!isListening && !isProcessing && "Click the microphone to start voice input"}
         </div>
+
+        {/* Command Type Indicators when Listening */}
+        {isListening && (
+          <div className="mb-4 grid grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center space-x-1 text-blue-600">
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+              <span>Runs (0-6)</span>
+            </div>
+            <div className="flex items-center space-x-1 text-orange-600">
+              <div className="w-2 h-2 bg-orange-600 rounded-full animate-pulse"></div>
+              <span>Extras</span>
+            </div>
+            <div className="flex items-center space-x-1 text-purple-600">
+              <div className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></div>
+              <span>Bowler change</span>
+            </div>
+            <div className="flex items-center space-x-1 text-green-600">
+              <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
+              <span>Game flow</span>
+            </div>
+          </div>
+        )}
+
+        {/* Command Examples */}
+        {!isListening && !isProcessing && (
+          <div className="mb-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Voice Command Examples:</h4>
+            <div className="grid grid-cols-1 gap-2 text-xs text-gray-600">
+              <div className="bg-gray-50 p-2 rounded">
+                <strong>Runs:</strong> "single", "four", "six", "dot ball", "three runs", "overthrow four"
+              </div>
+              <div className="bg-gray-50 p-2 rounded">
+                <strong>Extras:</strong> "wide", "no ball", "bye four", "leg bye two", "penalty five"
+              </div>
+              <div className="bg-gray-50 p-2 rounded">
+                <strong>Bowler:</strong> "change bowler", "Smith to bowl", "bring on spinner", "fast bowler on"
+              </div>
+              <div className="bg-gray-50 p-2 rounded">
+                <strong>Game Flow:</strong> "over complete", "timeout", "review", "rotate strike", "retire hurt"
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
