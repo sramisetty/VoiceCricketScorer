@@ -689,7 +689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updatePlayerStats(stat.id, { isOnStrike: false });
       }
       
-      // Set the selected openers as on strike
+      // Set the selected openers - both should be at the crease, but only one is on strike
       const opener1Stats = battingTeamStats.find(stat => stat.playerId === opener1Id);
       const opener2Stats = battingTeamStats.find(stat => stat.playerId === opener2Id);
       
