@@ -29,7 +29,8 @@ const runPatterns = [
 
 // Phonetic and misinterpretation patterns for improved voice recognition
 const phoneticPatterns = {
-  dot: ['dark', 'dot', 'dock', 'daft', 'dart', 'duck', 'dirt'],
+  dot: ['dark', 'dot', 'dock', 'daft', 'dart', 'duck', 'dirt', 'dodge', 'not'],
+  dotball: ['dot ball', 'dodge ball', 'not ball', 'dart ball', 'duck ball', 'dark ball'],
   four: ['four', 'for', 'fore', 'fall', 'foul', 'floor', 'florence', 'ford'],
   six: ['six', 'sick', 'sex', 'seeks', 'sickness'],
   single: ['single', 'signal', 'simple', 'singer'],
@@ -131,6 +132,11 @@ function checkPhoneticMatch(text: string, patterns: string[]): boolean {
 // Function to normalize misinterpreted speech
 function normalizeTranscript(text: string): string {
   let normalized = text.toLowerCase();
+  
+  // Handle specific multi-word phrases first
+  normalized = normalized.replace(/\b(dodge|not|dart|duck|dark)\s+ball\b/gi, 'dot ball');
+  normalized = normalized.replace(/\bflorence\b/gi, 'four');
+  normalized = normalized.replace(/\bdark\b/gi, 'dot');
   
   // Replace common misinterpretations
   Object.entries(phoneticPatterns).forEach(([correct, alternatives]) => {
@@ -291,7 +297,9 @@ export function parseCricketCommand(transcript: string): ParsedCommand {
     runs = 6;
     foundRuns = true;
     confidence = 0.95;
-  } else if (/(?:dot\s*ball|no\s*run|maiden)/i.test(text) || checkPhoneticMatch(text, phoneticPatterns.dot)) {
+  } else if (/(?:dot\s*ball|no\s*run|maiden)/i.test(text) || 
+             checkPhoneticMatch(text, phoneticPatterns.dot) || 
+             checkPhoneticMatch(text, phoneticPatterns.dotball)) {
     runs = 0;
     foundRuns = true;
     confidence = 0.85;
