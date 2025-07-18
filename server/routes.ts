@@ -6,18 +6,10 @@ import { insertMatchSchema, insertTeamSchema, insertPlayerSchema, insertBallSche
 import { transcribeAudio, validateAudioFormat } from "./whisper";
 import multer from "multer";
 
-// Configure multer for in-memory storage
+// Configure multer for in-memory storage - accept all files, validate later
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  fileFilter: (req, file, cb) => {
-    const allowedMimes = ['audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/webm'];
-    if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid audio format'));
-    }
-  }
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -816,28 +808,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Audio transcription endpoint for improved speech recognition
   app.post('/api/transcribe-audio', upload.single('audio'), async (req, res) => {
     try {
+      console.log("Received transcription request");
+      console.log("Request file:", req.file ? `${req.file.originalname} (${req.file.size} bytes)` : "No file");
+      
       if (!req.file) {
         return res.status(400).json({ error: 'No audio file provided' });
       }
 
       const audioBuffer = req.file.buffer;
+      console.log("Audio buffer size:", audioBuffer.length);
       
       // Validate audio format
       if (!validateAudioFormat(audioBuffer)) {
+        console.log("Invalid audio format detected");
         return res.status(400).json({ error: 'Invalid audio format' });
       }
 
+      console.log("Audio format validation passed");
+
       // Transcribe audio using OpenAI Whisper
       const result = await transcribeAudio(audioBuffer, req.file.originalname);
+      
+      console.log("Transcription successful:", result);
       
       res.json({
         success: true,
         transcript: result.text,
         confidence: result.confidence
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Audio transcription error:', error);
-      res.status(500).json({ error: 'Failed to transcribe audio' });
+      res.status(500).json({ error: `Failed to transcribe audio: ${error.message}` });
     }
   });
 

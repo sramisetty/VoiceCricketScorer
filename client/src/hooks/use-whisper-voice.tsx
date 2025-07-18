@@ -62,25 +62,32 @@ export function useWhisperVoice(): WhisperVoiceHook {
         setIsProcessing(true);
         try {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          console.log('Audio blob created:', audioBlob.size, 'bytes');
           
-          // Convert to WAV for better Whisper compatibility
+          // Create FormData for upload
           const formData = new FormData();
           formData.append('audio', audioBlob, 'recording.webm');
           
-          const response = await apiRequest('/api/transcribe-audio', {
+          console.log('Sending audio to server...');
+          
+          const response = await fetch('/api/transcribe-audio', {
             method: 'POST',
             body: formData
           });
           
-          if (response.success) {
-            setTranscript(response.transcript);
-            setConfidence(response.confidence);
+          const result = await response.json();
+          console.log('Server response:', result);
+          
+          if (result.success) {
+            setTranscript(result.transcript);
+            setConfidence(result.confidence);
+            setError(null);
           } else {
-            setError('Failed to transcribe audio');
+            setError(result.error || 'Failed to transcribe audio');
           }
         } catch (err) {
           console.error('Transcription error:', err);
-          setError('Failed to transcribe audio');
+          setError(`Failed to transcribe audio: ${err.message}`);
         } finally {
           setIsProcessing(false);
         }

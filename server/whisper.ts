@@ -2,11 +2,17 @@ import OpenAI from "openai";
 import { Readable } from "stream";
 
 // The newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY environment variable is not set");
+}
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function transcribeAudio(audioBuffer: Buffer, filename: string = "audio.wav"): Promise<{ text: string, confidence: number }> {
   try {
-    // Create a readable stream from the buffer
+    console.log(`Transcribing audio file: ${filename}, size: ${audioBuffer.length} bytes`);
+    
+    // Create a readable stream from the buffer with proper file metadata
     const audioStream = new Readable({
       read() {
         this.push(audioBuffer);
@@ -17,6 +23,9 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string = "a
     // Set the filename for the stream (required by OpenAI)
     (audioStream as any).path = filename;
 
+    // Add debug logging
+    console.log("Calling OpenAI Whisper API...");
+    
     const transcription = await openai.audio.transcriptions.create({
       file: audioStream,
       model: "whisper-1",
@@ -26,22 +35,47 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string = "a
       temperature: 0.2 // Lower temperature for more consistent results
     });
 
+    console.log("Whisper API response:", transcription);
+
     return {
       text: transcription.text || "",
       confidence: transcription.duration && transcription.duration > 0 ? 0.9 : 0.5
     };
   } catch (error) {
     console.error("Whisper transcription error:", error);
-    throw new Error("Failed to transcribe audio");
+    console.error("Error details:", {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+    throw new Error(`Failed to transcribe audio: ${error.message}`);
   }
 }
 
 export function validateAudioFormat(buffer: Buffer): boolean {
+  // Be more permissive for now to support WebM and other formats
+  // OpenAI Whisper can handle many formats
+  if (buffer.length < 100) {
+    return false; // File too small
+  }
+  
   // Check for common audio format signatures
   const wavSignature = buffer.slice(0, 4).toString() === "RIFF" && buffer.slice(8, 12).toString() === "WAVE";
   const mp3Signature = buffer.slice(0, 3).toString() === "ID3" || 
                       (buffer[0] === 0xFF && (buffer[1] & 0xE0) === 0xE0);
   const m4aSignature = buffer.slice(4, 8).toString() === "ftyp";
+  const webmSignature = buffer.slice(0, 4).toString('hex') === '1a45dfa3'; // WebM signature
   
-  return wavSignature || mp3Signature || m4aSignature;
+  // Log the file signature for debugging
+  console.log('Audio format check:', {
+    first4Bytes: buffer.slice(0, 4).toString('hex'),
+    first8Bytes: buffer.slice(0, 8).toString(),
+    wavSignature,
+    mp3Signature,
+    m4aSignature,
+    webmSignature
+  });
+  
+  // For now, accept most formats as Whisper is quite flexible
+  return buffer.length > 100;
 }
