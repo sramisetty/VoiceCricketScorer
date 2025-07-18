@@ -1,0 +1,374 @@
+import { 
+  teams, players, matches, innings, balls, playerStats,
+  type Team, type Player, type Match, type Innings, type Ball, type PlayerStats,
+  type InsertTeam, type InsertPlayer, type InsertMatch, type InsertInnings, type InsertBall, type InsertPlayerStats,
+  type MatchWithTeams, type InningsWithStats, type LiveMatchData
+} from "@shared/schema";
+
+export interface IStorage {
+  // Teams
+  createTeam(team: InsertTeam): Promise<Team>;
+  getTeam(id: number): Promise<Team | undefined>;
+  getAllTeams(): Promise<Team[]>;
+
+  // Players
+  createPlayer(player: InsertPlayer): Promise<Player>;
+  getPlayer(id: number): Promise<Player | undefined>;
+  getPlayersByTeam(teamId: number): Promise<Player[]>;
+  updatePlayer(id: number, player: Partial<Player>): Promise<Player | undefined>;
+
+  // Matches
+  createMatch(match: InsertMatch): Promise<Match>;
+  getMatch(id: number): Promise<Match | undefined>;
+  getMatchWithTeams(id: number): Promise<MatchWithTeams | undefined>;
+  updateMatch(id: number, match: Partial<Match>): Promise<Match | undefined>;
+  getAllMatches(): Promise<MatchWithTeams[]>;
+
+  // Innings
+  createInnings(innings: InsertInnings): Promise<Innings>;
+  getInnings(id: number): Promise<Innings | undefined>;
+  getInningsByMatch(matchId: number): Promise<Innings[]>;
+  getCurrentInnings(matchId: number): Promise<InningsWithStats | undefined>;
+  updateInnings(id: number, innings: Partial<Innings>): Promise<Innings | undefined>;
+
+  // Balls
+  createBall(ball: InsertBall): Promise<Ball>;
+  getBall(id: number): Promise<Ball | undefined>;
+  getBallsByInnings(inningsId: number): Promise<Ball[]>;
+  getRecentBalls(inningsId: number, count: number): Promise<(Ball & { batsman: Player; bowler: Player })[]>;
+  undoLastBall(inningsId: number): Promise<boolean>;
+
+  // Player Stats
+  createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats>;
+  getPlayerStats(id: number): Promise<PlayerStats | undefined>;
+  getPlayerStatsByInnings(inningsId: number): Promise<(PlayerStats & { player: Player })[]>;
+  updatePlayerStats(id: number, stats: Partial<PlayerStats>): Promise<PlayerStats | undefined>;
+  getCurrentBatsmen(inningsId: number): Promise<(PlayerStats & { player: Player })[]>;
+  getCurrentBowler(inningsId: number): Promise<(PlayerStats & { player: Player }) | undefined>;
+
+  // Live Match Data
+  getLiveMatchData(matchId: number): Promise<LiveMatchData | undefined>;
+}
+
+export class MemStorage implements IStorage {
+  private teams: Map<number, Team> = new Map();
+  private players: Map<number, Player> = new Map();
+  private matches: Map<number, Match> = new Map();
+  private innings: Map<number, Innings> = new Map();
+  private balls: Map<number, Ball> = new Map();
+  private playerStats: Map<number, PlayerStats> = new Map();
+  
+  private currentTeamId = 1;
+  private currentPlayerId = 1;
+  private currentMatchId = 1;
+  private currentInningsId = 1;
+  private currentBallId = 1;
+  private currentPlayerStatsId = 1;
+
+  // Teams
+  async createTeam(team: InsertTeam): Promise<Team> {
+    const id = this.currentTeamId++;
+    const newTeam: Team = { ...team, id, logo: team.logo ?? null };
+    this.teams.set(id, newTeam);
+    return newTeam;
+  }
+
+  async getTeam(id: number): Promise<Team | undefined> {
+    return this.teams.get(id);
+  }
+
+  async getAllTeams(): Promise<Team[]> {
+    return Array.from(this.teams.values());
+  }
+
+  // Players
+  async createPlayer(player: InsertPlayer): Promise<Player> {
+    const id = this.currentPlayerId++;
+    const newPlayer: Player = { 
+      ...player, 
+      id, 
+      teamId: player.teamId ?? null,
+      battingOrder: player.battingOrder ?? null
+    };
+    this.players.set(id, newPlayer);
+    return newPlayer;
+  }
+
+  async getPlayer(id: number): Promise<Player | undefined> {
+    return this.players.get(id);
+  }
+
+  async getPlayersByTeam(teamId: number): Promise<Player[]> {
+    return Array.from(this.players.values()).filter(p => p.teamId === teamId);
+  }
+
+  async updatePlayer(id: number, player: Partial<Player>): Promise<Player | undefined> {
+    const existing = this.players.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...player };
+    this.players.set(id, updated);
+    return updated;
+  }
+
+  // Matches
+  async createMatch(match: InsertMatch): Promise<Match> {
+    const id = this.currentMatchId++;
+    const newMatch: Match = { 
+      ...match, 
+      id,
+      status: match.status ?? "setup",
+      tossWinnerId: match.tossWinnerId ?? null,
+      tossDecision: match.tossDecision ?? null,
+      currentInnings: match.currentInnings ?? 1,
+      createdAt: new Date()
+    };
+    this.matches.set(id, newMatch);
+    return newMatch;
+  }
+
+  async getMatch(id: number): Promise<Match | undefined> {
+    return this.matches.get(id);
+  }
+
+  async getMatchWithTeams(id: number): Promise<MatchWithTeams | undefined> {
+    const match = this.matches.get(id);
+    if (!match) return undefined;
+
+    const team1 = this.teams.get(match.team1Id);
+    const team2 = this.teams.get(match.team2Id);
+    if (!team1 || !team2) return undefined;
+
+    const tossWinner = match.tossWinnerId ? this.teams.get(match.tossWinnerId) : undefined;
+
+    return {
+      ...match,
+      team1,
+      team2,
+      tossWinner
+    };
+  }
+
+  async updateMatch(id: number, match: Partial<Match>): Promise<Match | undefined> {
+    const existing = this.matches.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...match };
+    this.matches.set(id, updated);
+    return updated;
+  }
+
+  async getAllMatches(): Promise<MatchWithTeams[]> {
+    const matches = Array.from(this.matches.values());
+    const result: MatchWithTeams[] = [];
+    
+    for (const match of matches) {
+      const withTeams = await this.getMatchWithTeams(match.id);
+      if (withTeams) result.push(withTeams);
+    }
+    
+    return result;
+  }
+
+  // Innings
+  async createInnings(innings: InsertInnings): Promise<Innings> {
+    const id = this.currentInningsId++;
+    const newInnings: Innings = { 
+      ...innings, 
+      id,
+      totalRuns: innings.totalRuns ?? 0,
+      totalWickets: innings.totalWickets ?? 0,
+      totalOvers: innings.totalOvers ?? 0,
+      totalBalls: innings.totalBalls ?? 0,
+      extras: innings.extras ?? { wides: 0, noballs: 0, byes: 0, legbyes: 0 },
+      isCompleted: innings.isCompleted ?? false
+    };
+    this.innings.set(id, newInnings);
+    return newInnings;
+  }
+
+  async getInnings(id: number): Promise<Innings | undefined> {
+    return this.innings.get(id);
+  }
+
+  async getInningsByMatch(matchId: number): Promise<Innings[]> {
+    return Array.from(this.innings.values()).filter(i => i.matchId === matchId);
+  }
+
+  async getCurrentInnings(matchId: number): Promise<InningsWithStats | undefined> {
+    const match = this.matches.get(matchId);
+    if (!match) return undefined;
+
+    const matchInnings = Array.from(this.innings.values())
+      .filter(i => i.matchId === matchId)
+      .sort((a, b) => a.inningsNumber - b.inningsNumber);
+
+    const currentInnings = matchInnings[(match.currentInnings ?? 1) - 1];
+    if (!currentInnings) return undefined;
+
+    const battingTeam = this.teams.get(currentInnings.battingTeamId);
+    const bowlingTeam = this.teams.get(currentInnings.bowlingTeamId);
+    if (!battingTeam || !bowlingTeam) return undefined;
+
+    const inningsBalls = Array.from(this.balls.values())
+      .filter(b => b.inningsId === currentInnings.id)
+      .sort((a, b) => a.overNumber - b.overNumber || a.ballNumber - b.ballNumber);
+
+    const inningsStats = await this.getPlayerStatsByInnings(currentInnings.id);
+
+    return {
+      ...currentInnings,
+      battingTeam,
+      bowlingTeam,
+      balls: inningsBalls,
+      playerStats: inningsStats
+    };
+  }
+
+  async updateInnings(id: number, innings: Partial<Innings>): Promise<Innings | undefined> {
+    const existing = this.innings.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...innings };
+    this.innings.set(id, updated);
+    return updated;
+  }
+
+  // Balls
+  async createBall(ball: InsertBall): Promise<Ball> {
+    const id = this.currentBallId++;
+    const newBall: Ball = { 
+      ...ball, 
+      id,
+      runs: ball.runs ?? 0,
+      isWicket: ball.isWicket ?? false,
+      wicketType: ball.wicketType ?? null,
+      extraType: ball.extraType ?? null,
+      extraRuns: ball.extraRuns ?? 0,
+      commentary: ball.commentary ?? null,
+      createdAt: new Date()
+    };
+    this.balls.set(id, newBall);
+    return newBall;
+  }
+
+  async getBall(id: number): Promise<Ball | undefined> {
+    return this.balls.get(id);
+  }
+
+  async getBallsByInnings(inningsId: number): Promise<Ball[]> {
+    return Array.from(this.balls.values())
+      .filter(b => b.inningsId === inningsId)
+      .sort((a, b) => a.overNumber - b.overNumber || a.ballNumber - b.ballNumber);
+  }
+
+  async getRecentBalls(inningsId: number, count: number): Promise<(Ball & { batsman: Player; bowler: Player })[]> {
+    const inningsBalls = Array.from(this.balls.values())
+      .filter(b => b.inningsId === inningsId)
+      .sort((a, b) => b.overNumber - a.overNumber || b.ballNumber - a.ballNumber)
+      .slice(0, count);
+
+    const result: (Ball & { batsman: Player; bowler: Player })[] = [];
+    
+    for (const ball of inningsBalls) {
+      const batsman = this.players.get(ball.batsmanId);
+      const bowler = this.players.get(ball.bowlerId);
+      if (batsman && bowler) {
+        result.push({ ...ball, batsman, bowler });
+      }
+    }
+    
+    return result;
+  }
+
+  async undoLastBall(inningsId: number): Promise<boolean> {
+    const inningsBalls = Array.from(this.balls.values())
+      .filter(b => b.inningsId === inningsId)
+      .sort((a, b) => b.overNumber - a.overNumber || b.ballNumber - a.ballNumber);
+
+    if (inningsBalls.length === 0) return false;
+
+    const lastBall = inningsBalls[0];
+    this.balls.delete(lastBall.id);
+    return true;
+  }
+
+  // Player Stats
+  async createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats> {
+    const id = this.currentPlayerStatsId++;
+    const newStats: PlayerStats = { 
+      ...stats, 
+      id,
+      runs: stats.runs ?? 0,
+      ballsFaced: stats.ballsFaced ?? 0,
+      fours: stats.fours ?? 0,
+      sixes: stats.sixes ?? 0,
+      isOut: stats.isOut ?? false,
+      isOnStrike: stats.isOnStrike ?? false,
+      oversBowled: stats.oversBowled ?? 0,
+      ballsBowled: stats.ballsBowled ?? 0,
+      runsConceded: stats.runsConceded ?? 0,
+      wicketsTaken: stats.wicketsTaken ?? 0
+    };
+    this.playerStats.set(id, newStats);
+    return newStats;
+  }
+
+  async getPlayerStats(id: number): Promise<PlayerStats | undefined> {
+    return this.playerStats.get(id);
+  }
+
+  async getPlayerStatsByInnings(inningsId: number): Promise<(PlayerStats & { player: Player })[]> {
+    const inningsStats = Array.from(this.playerStats.values())
+      .filter(s => s.inningsId === inningsId);
+
+    const result: (PlayerStats & { player: Player })[] = [];
+    
+    for (const stats of inningsStats) {
+      const player = this.players.get(stats.playerId);
+      if (player) {
+        result.push({ ...stats, player });
+      }
+    }
+    
+    return result;
+  }
+
+  async updatePlayerStats(id: number, stats: Partial<PlayerStats>): Promise<PlayerStats | undefined> {
+    const existing = this.playerStats.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...stats };
+    this.playerStats.set(id, updated);
+    return updated;
+  }
+
+  async getCurrentBatsmen(inningsId: number): Promise<(PlayerStats & { player: Player })[]> {
+    const inningsStats = await this.getPlayerStatsByInnings(inningsId);
+    return inningsStats.filter(s => !s.isOut).slice(-2); // Last 2 not out batsmen
+  }
+
+  async getCurrentBowler(inningsId: number): Promise<(PlayerStats & { player: Player }) | undefined> {
+    const inningsStats = await this.getPlayerStatsByInnings(inningsId);
+    return inningsStats.find(s => (s.ballsBowled ?? 0) > 0 && (s.ballsBowled ?? 0) % 6 !== 0); // Current bowler
+  }
+
+  // Live Match Data
+  async getLiveMatchData(matchId: number): Promise<LiveMatchData | undefined> {
+    const matchWithTeams = await this.getMatchWithTeams(matchId);
+    if (!matchWithTeams) return undefined;
+
+    const currentInnings = await this.getCurrentInnings(matchId);
+    if (!currentInnings) return undefined;
+
+    const recentBalls = await this.getRecentBalls(currentInnings.id, 10);
+    const currentBatsmen = await this.getCurrentBatsmen(currentInnings.id);
+    const currentBowler = await this.getCurrentBowler(currentInnings.id);
+
+    return {
+      match: matchWithTeams,
+      currentInnings,
+      recentBalls,
+      currentBatsmen,
+      currentBowler: currentBowler!
+    };
+  }
+}
+
+export const storage = new MemStorage();
