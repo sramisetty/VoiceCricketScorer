@@ -35,6 +35,10 @@ export function CurrentOver({ balls, bowlerName, overNumber }: CurrentOverProps)
   }, 0);
 
   const wickets = currentOverBalls.filter(ball => ball.isWicket).length;
+  
+  // Calculate balls remaining
+  const validBallsBowled = currentOverBalls.filter(ball => !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye').length;
+  const ballsRemaining = 6 - validBallsBowled;
 
   // Show all balls in the over (including extras), but only show valid balls 1-6 with placeholders
   const validBalls = currentOverBalls.filter(ball => !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye');
@@ -57,6 +61,16 @@ export function CurrentOver({ balls, bowlerName, overNumber }: CurrentOverProps)
             Over {overNumber}
           </div>
           <div className="text-sm text-gray-600">{bowlerName} bowling</div>
+          {ballsRemaining > 0 && (
+            <div className="text-xs text-cricket-accent font-semibold mt-1">
+              {ballsRemaining} ball{ballsRemaining !== 1 ? 's' : ''} remaining
+            </div>
+          )}
+          {ballsRemaining === 0 && validBallsBowled === 6 && (
+            <div className="text-xs text-green-600 font-semibold mt-1">
+              Over complete
+            </div>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -96,9 +110,16 @@ export function CurrentOver({ balls, bowlerName, overNumber }: CurrentOverProps)
           )}
         </div>
 
-        <div className="text-center text-gray-600 text-sm">
-          {overRuns} runs
-          {wickets > 0 && ` • ${wickets} wicket${wickets > 1 ? 's' : ''}`}
+        <div className="text-center text-gray-600 text-sm space-y-1">
+          <div>
+            {overRuns} runs • {validBallsBowled}/6 balls bowled
+            {wickets > 0 && ` • ${wickets} wicket${wickets > 1 ? 's' : ''}`}
+          </div>
+          {extraBalls.length > 0 && (
+            <div className="text-xs">
+              ({extraBalls.length} extra ball{extraBalls.length !== 1 ? 's' : ''})
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
