@@ -43,6 +43,9 @@ export default function Scorer() {
   const [selectedOpener1, setSelectedOpener1] = useState('');
   const [selectedOpener2, setSelectedOpener2] = useState('');
   const [selectedStriker, setSelectedStriker] = useState('');
+  const [newBatsmanDialogOpen, setNewBatsmanDialogOpen] = useState(false);
+  const [selectedNewBatsman, setSelectedNewBatsman] = useState('');
+  const [outBatsmanName, setOutBatsmanName] = useState('');
 
   // Fetch initial match data
   const { data: matchData, isLoading, error } = useQuery<LiveMatchData>({
@@ -95,6 +98,25 @@ export default function Scorer() {
       }
     }
   }, [currentData?.currentInnings.totalBalls, currentData?.currentBatsmen, isMatchStarted, openersDialogOpen]);
+
+  // Check for wickets and prompt for new batsman selection
+  useEffect(() => {
+    if (currentData?.currentInnings && currentData.currentBatsmen.length > 0) {
+      // Check if any batsman is out and we need a replacement
+      const outBatsmen = currentData.currentInnings.playerStats.filter(
+        stat => stat.isOut && stat.player.teamId === currentData.currentInnings.battingTeam.id
+      );
+      
+      // If we have less than 2 active batsmen and there are out batsmen, show dialog
+      const activeBatsmen = currentData.currentBatsmen.filter(batsman => !batsman.isOut);
+      
+      if (activeBatsmen.length < 2 && outBatsmen.length > 0 && !newBatsmanDialogOpen) {
+        const lastOutBatsman = outBatsmen[outBatsmen.length - 1]; // Most recent out batsman
+        setOutBatsmanName(lastOutBatsman.player.name);
+        setNewBatsmanDialogOpen(true);
+      }
+    }
+  }, [currentData?.currentInnings.playerStats, currentData?.currentBatsmen, newBatsmanDialogOpen]);
 
   const startMatchMutation = useMutation({
     mutationFn: async () => {
@@ -274,6 +296,37 @@ export default function Scorer() {
       toast({
         title: "Error",
         description: "Failed to set openers. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const newBatsmanMutation = useMutation({
+    mutationFn: async (newBatsmanId: string) => {
+      const response = await apiRequest('POST', `/api/matches/${matchId}/new-batsman`, {
+        newBatsmanId: parseInt(newBatsmanId)
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      // Close dialog immediately
+      setNewBatsmanDialogOpen(false);
+      setSelectedNewBatsman('');
+      setOutBatsmanName('');
+      
+      // Show success message
+      toast({
+        title: "New Batsman Added",
+        description: "The new batsman has been added to the crease.",
+      });
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add new batsman. Please try again.",
         variant: "destructive",
       });
     }
@@ -782,6 +835,58 @@ export default function Scorer() {
                 <User className="w-4 h-4 mr-2" />
                 {setOpenersMutation.isPending ? 'Setting...' : 
                   (currentData?.currentInnings?.totalBalls === 0 ? 'Set Openers' : 'Change Batsmen')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Batsman Selection Dialog */}
+      <Dialog open={newBatsmanDialogOpen} onOpenChange={setNewBatsmanDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select New Batsman</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium">{outBatsmanName}</span> is out. Please select the next batsman to come to the crease.
+            </p>
+            
+            <div>
+              <Label htmlFor="new-batsman">New Batsman</Label>
+              <Select value={selectedNewBatsman} onValueChange={setSelectedNewBatsman}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select new batsman" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableBatsmen
+                    .filter(batsman => {
+                      // Filter out batsmen who are already on the crease or out
+                      const isCurrentlyBatting = currentData?.currentBatsmen.some(cb => cb.playerId === batsman.id);
+                      const isOut = currentData?.currentInnings.playerStats.some(
+                        stat => stat.playerId === batsman.id && stat.isOut
+                      );
+                      return !isCurrentlyBatting && !isOut;
+                    })
+                    .map((batsman) => (
+                      <SelectItem key={batsman.id} value={batsman.id.toString()}>
+                        {batsman.name} ({batsman.role})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setNewBatsmanDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => newBatsmanMutation.mutate(selectedNewBatsman)}
+                disabled={!selectedNewBatsman || newBatsmanMutation.isPending}
+              >
+                <User className="w-4 h-4 mr-2" />
+                {newBatsmanMutation.isPending ? 'Adding...' : 'Add Batsman'}
               </Button>
             </div>
           </div>

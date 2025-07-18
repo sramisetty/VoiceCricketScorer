@@ -40,6 +40,7 @@ Preferred communication style: Simple, everyday language.
 - **Player Statistics**: Individual performance tracking with strike rates and economy rates
 - **Ball-by-Ball Tracking**: Complete ball tracking with commentary generation
 - **Undo/Redo Functionality**: Ability to correct scoring mistakes
+- **Batsman Replacement**: Automatic dialog for selecting next batsman when wickets fall
 
 ### Database Schema
 - **Database**: PostgreSQL with Drizzle ORM for persistent data storage

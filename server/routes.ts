@@ -614,6 +614,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/matches/:id/new-batsman', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      const { newBatsmanId } = req.body;
+      
+      if (!newBatsmanId) {
+        return res.status(400).json({ error: 'newBatsmanId is required' });
+      }
+      
+      // Get current match data
+      const liveData = await storage.getLiveMatchData(matchId);
+      if (!liveData) {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+      
+      const currentInnings = liveData.currentInnings;
+      const battingTeamStats = currentInnings.playerStats.filter(
+        stat => stat.player.teamId === currentInnings.battingTeam.id
+      );
+      
+      // Check if the new batsman is valid (not already out, not currently batting)
+      const newBatsmanStats = battingTeamStats.find(stat => stat.playerId === newBatsmanId);
+      if (newBatsmanStats && newBatsmanStats.isOut) {
+        return res.status(400).json({ error: 'Selected batsman is already out' });
+      }
+      
+      const isCurrentlyBatting = liveData.currentBatsmen.some(batsman => batsman.playerId === newBatsmanId);
+      if (isCurrentlyBatting) {
+        return res.status(400).json({ error: 'Selected batsman is already batting' });
+      }
+      
+      // Initialize stats for the new batsman if they don't exist
+      if (!newBatsmanStats) {
+        // Create player stats for the new batsman
+        await storage.createPlayerStats({
+          inningsId: currentInnings.id,
+          playerId: newBatsmanId,
+          runs: 0,
+          ballsFaced: 0,
+          fours: 0,
+          sixes: 0,
+          isOut: false,
+          isOnStrike: false
+        });
+      } else {
+        // Reset their out status if they were marked as out
+        await storage.updatePlayerStats(newBatsmanStats.id, { 
+          isOut: false,
+          isOnStrike: false 
+        });
+      }
+      
+      const updatedLiveData = await storage.getLiveMatchData(matchId);
+      broadcastToMatch(matchId, { type: 'new_batsman_added', data: updatedLiveData });
+      
+      res.json({ success: true, newBatsmanId });
+    } catch (error) {
+      console.error('Error adding new batsman:', error);
+      res.status(500).json({ error: 'Failed to add new batsman' });
+    }
+  });
+
   app.post('/api/matches/:id/reset', async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
