@@ -395,10 +395,10 @@ export default function Scorer() {
   // Check if no balls have been bowled and prompt for opener selection
   useEffect(() => {
     if (currentData?.currentInnings && currentData.currentInnings.totalBalls === 0 && isMatchStarted) {
-      // Only show dialog if no batsmen are currently on strike (openers not set)
-      const hasOnStrikeBatsman = currentData.currentBatsmen.some(batsman => batsman.isOnStrike);
+      // Only show dialog if no batsmen are currently set (openers not set)
+      const hasBatsmen = currentData.currentBatsmen && currentData.currentBatsmen.length > 0;
       // Don't reopen dialog if mutation is pending to avoid conflicts
-      if (!hasOnStrikeBatsman && !openersDialogOpen && !setOpenersMutation.isPending) {
+      if (!hasBatsmen && !openersDialogOpen && !setOpenersMutation.isPending) {
         setOpenersDialogOpen(true);
       }
     }
