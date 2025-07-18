@@ -752,14 +752,15 @@ export class DatabaseStorage implements IStorage {
       return bBalls - aBalls; // Most active first
     });
     
-    // If no balls have been bowled, return the two batsmen with explicit strike status (one true, one false)
-    if (battingTeamPlayers.every(b => (b.ballsFaced || 0) === 0)) {
-      const onStrikeBatsman = battingTeamPlayers.find(b => b.isOnStrike === true);
-      const notOnStrikeBatsman = battingTeamPlayers.find(b => b.isOnStrike === false);
+    // If no actual balls have been bowled, return the two batsmen with ballsFaced = -1 (selected openers)
+    if (battingTeamPlayers.every(b => (b.ballsFaced || 0) <= 0)) {
+      const selectedBatsmen = battingTeamPlayers.filter(b => (b.ballsFaced || 0) === -1);
       
-      if (onStrikeBatsman && notOnStrikeBatsman) {
+      if (selectedBatsmen.length === 2) {
+        // Reset their ballsFaced to 0 for accurate statistics display
+        selectedBatsmen.forEach(b => b.ballsFaced = 0);
         // Return the two selected openers, sorted by strike status (on strike first)
-        return [onStrikeBatsman, notOnStrikeBatsman];
+        return selectedBatsmen.sort((a, b) => (b.isOnStrike ? 1 : 0) - (a.isOnStrike ? 1 : 0));
       }
     }
     

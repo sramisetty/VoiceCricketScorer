@@ -129,3 +129,6 @@ Preferred communication style: Simple, everyday language.
 - **✓ Match Completion**: Automatic match status update when both innings complete
 - **✓ Notification System**: Toast notifications for innings completion and match completion
 - **✓ WebSocket Events**: Added support for innings_complete and match_complete events
+- **✓ Opener Selection Fix**: Fixed critical issue where wrong second batsman was displayed during opener selection
+- **✓ Batting Statistics Accuracy**: Resolved "1 balls" display issue - now shows accurate "0 balls" when no deliveries bowled
+- **✓ Database Synchronization**: Implemented temporary marker system (-1 ballsFaced) to distinguish selected openers from other players

@@ -685,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stat => stat.player.teamId === currentInnings.battingTeam.id
       );
       
-      // First, reset all batsmen to false strike status
+      // First, reset all batsmen to false strike status and ballsFaced to 0
       for (const stat of battingTeamStats) {
         await storage.updatePlayerStats(stat.id, { 
           isOnStrike: false,
@@ -693,21 +693,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Set the selected openers - both should be at the crease, but only one is on strike
+      // Set the selected openers - use temporary ballsFaced marker to distinguish selected openers
       const opener1Stats = battingTeamStats.find(stat => stat.playerId === opener1Id);
       const opener2Stats = battingTeamStats.find(stat => stat.playerId === opener2Id);
       
       if (opener1Stats) {
         await storage.updatePlayerStats(opener1Stats.id, { 
           isOnStrike: strikerId === opener1Id,
-          ballsFaced: 0 // Keep accurate statistics
+          ballsFaced: -1 // Use -1 as temporary marker for selected openers
         });
       }
       
       if (opener2Stats) {
         await storage.updatePlayerStats(opener2Stats.id, { 
           isOnStrike: strikerId === opener2Id,
-          ballsFaced: 0 // Keep accurate statistics  
+          ballsFaced: -1 // Use -1 as temporary marker for selected openers
         });
       }
       
