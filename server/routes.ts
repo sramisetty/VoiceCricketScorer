@@ -242,6 +242,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/matches/:id', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      
+      // Reset match status and clear all match data
+      await storage.updateMatch(matchId, { 
+        status: 'setup', 
+        currentInnings: 1 
+      });
+      
+      // Clear all innings, balls, and player stats for this match
+      await storage.clearMatchData(matchId);
+      
+      res.json({ success: true, message: 'Match data cleared successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to clear match data' });
+    }
+  });
+
   app.post('/api/matches/:id/start', async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
@@ -316,6 +335,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const matchId = parseInt(req.params.id);
       const ballData = insertBallSchema.parse(req.body);
+
+      // Check current innings state before adding ball
+      const currentInnings = await storage.getInnings(ballData.inningsId);
+      if (!currentInnings) {
+        return res.status(400).json({ error: 'Innings not found' });
+      }
+
+      // Cricket rule: Maximum 10 wickets can fall (11th player remains not out)
+      if (ballData.isWicket && (currentInnings.totalWickets ?? 0) >= 10) {
+        return res.status(400).json({ error: 'Cannot record more than 10 wickets in an innings' });
+      }
 
       const ball = await storage.createBall(ballData);
 

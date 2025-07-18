@@ -55,7 +55,7 @@ export interface IStorage {
   updateStrikeRotation(inningsId: number, batsmanId: number, runs: number, isExtra: boolean): Promise<void>;
   
   // Match Reset
-  resetMatchData(matchId: number): Promise<void>;
+  clearMatchData(matchId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -163,6 +163,33 @@ export class MemStorage implements IStorage {
     const updated = { ...existing, ...match };
     this.matches.set(id, updated);
     return updated;
+  }
+
+  async clearMatchData(matchId: number): Promise<void> {
+    // Find all innings for this match
+    const matchInnings = Array.from(this.innings.values()).filter(i => i.matchId === matchId);
+    
+    // Delete all balls for these innings
+    const inningsIds = matchInnings.map(i => i.id);
+    const ballsToDelete = Array.from(this.balls.keys()).filter(ballId => {
+      const ball = this.balls.get(ballId);
+      return ball && inningsIds.includes(ball.inningsId);
+    });
+    ballsToDelete.forEach(ballId => this.balls.delete(ballId));
+    
+    // Delete all player stats for these innings
+    const statsToDelete = Array.from(this.playerStats.keys()).filter(statsId => {
+      const stats = this.playerStats.get(statsId);
+      return stats && inningsIds.includes(stats.inningsId);
+    });
+    statsToDelete.forEach(statsId => this.playerStats.delete(statsId));
+    
+    // Delete all innings for this match
+    const inningsToDelete = Array.from(this.innings.keys()).filter(inningsId => {
+      const innings = this.innings.get(inningsId);
+      return innings && innings.matchId === matchId;
+    });
+    inningsToDelete.forEach(inningsId => this.innings.delete(inningsId));
   }
 
   async getAllMatches(): Promise<MatchWithTeams[]> {
@@ -861,6 +888,27 @@ export class DatabaseStorage implements IStorage {
         }
       }
     }
+  }
+
+  async clearMatchData(matchId: number): Promise<void> {
+    // Find all innings for this match
+    const matchInnings = await db.select().from(innings).where(eq(innings.matchId, matchId));
+    const inningsIds = matchInnings.map(i => i.id);
+
+    // Delete all balls for these innings
+    for (const inningsId of inningsIds) {
+      await db.delete(balls).where(eq(balls.inningsId, inningsId));
+    }
+
+    // Delete all player stats for these innings
+    for (const inningsId of inningsIds) {
+      await db.delete(playerStats).where(eq(playerStats.inningsId, inningsId));
+    }
+
+    // Delete all innings for this match
+    await db.delete(innings).where(eq(innings.matchId, matchId));
+
+    console.log(`Match ${matchId} data cleared successfully`);
   }
 }
 

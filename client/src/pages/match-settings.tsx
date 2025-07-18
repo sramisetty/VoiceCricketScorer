@@ -85,6 +85,28 @@ export default function MatchSettings() {
     updateMatchMutation.mutate(matchData);
   };
 
+  const clearMatchDataMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('DELETE', `/api/matches/${matchId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Match Data Cleared",
+        description: "All match data has been cleared successfully. You can now start fresh.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      setLocation(`/scorer/${matchId}`);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to clear match data.",
+        variant: "destructive",
+      });
+    }
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -376,6 +398,32 @@ export default function MatchSettings() {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Danger Zone */}
+        <Card className="mt-8 border-red-200">
+          <CardHeader>
+            <CardTitle className="text-red-600 flex items-center gap-2">
+              ⚠️ Danger Zone
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-red-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-red-800 mb-2">Clear All Match Data</h3>
+              <p className="text-red-700 mb-4 text-sm">
+                This will permanently delete all innings, balls, and player statistics for this match. 
+                The match will be reset to setup state. This action cannot be undone.
+              </p>
+              <Button
+                onClick={() => clearMatchDataMutation.mutate()}
+                disabled={clearMatchDataMutation.isPending}
+                variant="destructive"
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {clearMatchDataMutation.isPending ? 'Clearing...' : 'Clear All Match Data'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
