@@ -600,6 +600,17 @@ export class DatabaseStorage implements IStorage {
       s.player.teamId === inningsData.battingTeamId && !s.isOut
     );
     
+    // Sort by balls faced (descending) to get the most active batsmen first
+    // If no one has faced balls, sort by player ID to maintain consistent order
+    battingTeamPlayers.sort((a, b) => {
+      const aBalls = a.ballsFaced || 0;
+      const bBalls = b.ballsFaced || 0;
+      if (aBalls === bBalls) {
+        return a.playerId - b.playerId; // Consistent ordering by player ID
+      }
+      return bBalls - aBalls; // Most active first
+    });
+    
     // Return first 2 batting team players (current batsmen)
     return battingTeamPlayers.slice(0, 2);
   }
