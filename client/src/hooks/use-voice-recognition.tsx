@@ -45,6 +45,8 @@ export function useVoiceRecognition(): VoiceRecognitionHook {
     recognitionInstance.continuous = true;
     recognitionInstance.interimResults = true;
     recognitionInstance.lang = 'en-US';
+    recognitionInstance.maxAlternatives = 3; // Get multiple alternatives
+    recognitionInstance.interimResults = false; // Only get final results for better accuracy
 
     recognitionInstance.onstart = () => {
       setIsListening(true);

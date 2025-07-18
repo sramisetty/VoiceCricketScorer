@@ -25,6 +25,8 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
   const [lastCommand, setLastCommand] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastProcessedTranscript, setLastProcessedTranscript] = useState<string>('');
+  const [interpretedCommand, setInterpretedCommand] = useState<string>('');
+  const [commandType, setCommandType] = useState<string>('');
 
   useEffect(() => {
     if (transcript && !isListening && !isProcessing && transcript !== lastProcessedTranscript) {
@@ -33,12 +35,28 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
       
       const command = parseCricketCommand(transcript);
       
+      // Show what was interpreted
+      let interpretedText = transcript;
+      if (command.type === 'runs') {
+        interpretedText = command.runs === 0 ? 'dot ball' : 
+                        command.runs === 1 ? 'single' :
+                        command.runs === 2 ? 'double' :
+                        command.runs === 4 ? 'four' :
+                        command.runs === 6 ? 'six' :
+                        `${command.runs} runs`;
+      } else if (command.type === 'extra') {
+        interpretedText = `${command.extraType} ${command.extraRuns}`;
+      }
+      
+      setInterpretedCommand(interpretedText);
+      setCommandType(command.type);
+      
       if (command.confidence > 0.5) {
         const commentary = generateCommentary(command, currentBatsman, currentBowler);
-        setLastCommand(`"${transcript}" - ${commentary}`);
+        setLastCommand(`"${transcript}" → ${interpretedText} - ${commentary}`);
         onCommand(command);
       } else {
-        setLastCommand(`"${transcript}" - Command not recognized`);
+        setLastCommand(`"${transcript}" - Command not recognized (confidence: ${Math.round(command.confidence * 100)}%)`);
       }
       
       resetTranscript();
@@ -114,6 +132,45 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
           </div>
         )}
 
+        {/* Command Interpretation */}
+        {interpretedCommand && (
+          <div className={cn(
+            "rounded-lg p-4 mb-4",
+            commandType === 'runs' ? "bg-green-50 border border-green-200" :
+            commandType === 'extra' ? "bg-yellow-50 border border-yellow-200" :
+            commandType === 'unknown' ? "bg-red-50 border border-red-200" :
+            "bg-blue-50 border border-blue-200"
+          )}>
+            <div className="flex items-center space-x-2 mb-2">
+              <Volume2 className={cn(
+                "h-4 w-4",
+                commandType === 'runs' ? "text-green-600" :
+                commandType === 'extra' ? "text-yellow-600" :
+                commandType === 'unknown' ? "text-red-600" :
+                "text-blue-600"
+              )} />
+              <span className={cn(
+                "text-sm font-medium",
+                commandType === 'runs' ? "text-green-700" :
+                commandType === 'extra' ? "text-yellow-700" :
+                commandType === 'unknown' ? "text-red-700" :
+                "text-blue-700"
+              )}>
+                Interpreted as:
+              </span>
+            </div>
+            <p className={cn(
+              "font-medium",
+              commandType === 'runs' ? "text-green-800" :
+              commandType === 'extra' ? "text-yellow-800" :
+              commandType === 'unknown' ? "text-red-800" :
+              "text-blue-800"
+            )}>
+              {interpretedCommand}
+            </p>
+          </div>
+        )}
+
         {/* Voice Feedback */}
         {lastCommand && (
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
@@ -121,7 +178,7 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
               <Volume2 className="text-cricket-primary h-4 w-4" />
               <span className="text-sm font-medium text-gray-700">Last Command:</span>
             </div>
-            <p className="text-gray-800">{lastCommand}</p>
+            <p className="text-gray-800 text-sm">{lastCommand}</p>
           </div>
         )}
 

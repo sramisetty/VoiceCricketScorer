@@ -27,6 +27,19 @@ const runPatterns = [
   /misfield\s+(\d+)\s+runs?/i
 ];
 
+// Phonetic and misinterpretation patterns for improved voice recognition
+const phoneticPatterns = {
+  dot: ['dark', 'dot', 'dock', 'daft', 'dart', 'duck', 'dirt'],
+  four: ['four', 'for', 'fore', 'fall', 'foul', 'floor', 'florence', 'ford'],
+  six: ['six', 'sick', 'sex', 'seeks', 'sickness'],
+  single: ['single', 'signal', 'simple', 'singer'],
+  double: ['double', 'trouble', 'dribble', 'rubble'],
+  wide: ['wide', 'wild', 'wine', 'ride', 'why'],
+  noball: ['no ball', 'noble', 'nibble', 'global'],
+  runs: ['runs', 'once', 'guns', 'ones', 'run'],
+  boundary: ['boundary', 'foundry', 'hungry']
+};
+
 const extraPatterns = [
   /wide(?:\s*ball)?/i,
   /no\s*ball/i,
@@ -103,9 +116,44 @@ const playerNamePatterns = [
   /([A-Za-z]+(?:\s+[A-Za-z]+)*?)\s+(?:to\s+)?(?:face|facing|bowl|bowling)/i
 ];
 
+// Function to check phonetic similarity
+function checkPhoneticMatch(text: string, patterns: string[]): boolean {
+  const words = text.toLowerCase().split(/\s+/);
+  return patterns.some(pattern => 
+    words.some(word => 
+      word.includes(pattern) || 
+      pattern.includes(word) ||
+      word.replace(/[aeiou]/g, '') === pattern.replace(/[aeiou]/g, '') // Consonant matching
+    )
+  );
+}
+
+// Function to normalize misinterpreted speech
+function normalizeTranscript(text: string): string {
+  let normalized = text.toLowerCase();
+  
+  // Replace common misinterpretations
+  Object.entries(phoneticPatterns).forEach(([correct, alternatives]) => {
+    alternatives.forEach(alt => {
+      if (alt !== correct) {
+        const regex = new RegExp(`\\b${alt}\\b`, 'gi');
+        normalized = normalized.replace(regex, correct);
+      }
+    });
+  });
+  
+  return normalized;
+}
+
 export function parseCricketCommand(transcript: string): ParsedCommand {
-  const text = transcript.toLowerCase().trim();
+  const originalText = transcript.toLowerCase().trim();
+  const text = normalizeTranscript(originalText);
   let confidence = 0.7; // Base confidence
+  
+  // Boost confidence if we made phonetic corrections
+  if (text !== originalText) {
+    confidence = Math.min(confidence + 0.1, 0.95);
+  }
 
   // Check for corrections first
   if (correctionPatterns.some(pattern => pattern.test(text))) {
@@ -193,14 +241,14 @@ export function parseCricketCommand(transcript: string): ParsedCommand {
     }
   }
 
-  // Check for extras
+  // Check for extras with phonetic matching
   for (const pattern of extraPatterns) {
     const match = text.match(pattern);
-    if (match) {
+    if (match || checkPhoneticMatch(text, phoneticPatterns.wide) || checkPhoneticMatch(text, phoneticPatterns.noball)) {
       let extraType: ParsedCommand['extraType'] = 'wide';
       
-      if (/wide/i.test(text)) extraType = 'wide';
-      else if (/no\s*ball/i.test(text)) extraType = 'noball';
+      if (/wide/i.test(text) || checkPhoneticMatch(text, phoneticPatterns.wide)) extraType = 'wide';
+      else if (/no\s*ball/i.test(text) || checkPhoneticMatch(text, phoneticPatterns.noball)) extraType = 'noball';
       else if (/leg\s*bye/i.test(text)) extraType = 'legbye';
       else if (/bye/i.test(text)) extraType = 'bye';
       else if (/penalty/i.test(text)) extraType = 'penalty';
@@ -214,20 +262,20 @@ export function parseCricketCommand(transcript: string): ParsedCommand {
         extraType,
         extraRuns,
         runs: extraType === 'wide' || extraType === 'noball' ? extraRuns : 0,
-        confidence: 0.85
+        confidence: match ? 0.85 : 0.75 // Lower confidence for phonetic matches
       };
     }
   }
 
-  // Check for runs
+  // Check for runs with improved phonetic matching
   let runs = 0;
   let foundRuns = false;
 
-  if (/single|(?:quick|fast)\s+single/i.test(text)) {
+  if (/single|(?:quick|fast)\s+single/i.test(text) || checkPhoneticMatch(text, phoneticPatterns.single)) {
     runs = 1;
     foundRuns = true;
     confidence = 0.9;
-  } else if (/(?:double|two|easy\s+single)/i.test(text)) {
+  } else if (/(?:double|two|easy\s+single)/i.test(text) || checkPhoneticMatch(text, phoneticPatterns.double)) {
     runs = 2;
     foundRuns = true;
     confidence = 0.9;
@@ -235,15 +283,15 @@ export function parseCricketCommand(transcript: string): ParsedCommand {
     runs = 3;
     foundRuns = true;
     confidence = 0.9;
-  } else if (/(?:four|boundary)/i.test(text)) {
+  } else if (/(?:four|boundary)/i.test(text) || checkPhoneticMatch(text, phoneticPatterns.four) || checkPhoneticMatch(text, phoneticPatterns.boundary)) {
     runs = 4;
     foundRuns = true;
     confidence = 0.95;
-  } else if (/(?:six|maximum)/i.test(text)) {
+  } else if (/(?:six|maximum)/i.test(text) || checkPhoneticMatch(text, phoneticPatterns.six)) {
     runs = 6;
     foundRuns = true;
     confidence = 0.95;
-  } else if (/(?:dot\s*ball|no\s*run|maiden)/i.test(text)) {
+  } else if (/(?:dot\s*ball|no\s*run|maiden)/i.test(text) || checkPhoneticMatch(text, phoneticPatterns.dot)) {
     runs = 0;
     foundRuns = true;
     confidence = 0.85;
@@ -258,12 +306,22 @@ export function parseCricketCommand(transcript: string): ParsedCommand {
     foundRuns = true;
     confidence = 0.8;
   } else {
-    // Look for explicit number
-    const runsMatch = text.match(/(\d+)\s*runs?/i);
-    if (runsMatch) {
-      runs = parseInt(runsMatch[1]);
-      foundRuns = true;
-      confidence = 0.8;
+    // Look for explicit number with runs
+    const runsMatch = text.match(/(\d+)\s*(?:runs?|run)/i);
+    if (runsMatch || checkPhoneticMatch(text, phoneticPatterns.runs)) {
+      if (runsMatch) {
+        runs = parseInt(runsMatch[1]);
+        foundRuns = true;
+        confidence = 0.8;
+      } else {
+        // Try to extract number from context if "runs" was recognized phonetically
+        const numberMatch = text.match(/(\d+)/);
+        if (numberMatch) {
+          runs = parseInt(numberMatch[1]);
+          foundRuns = true;
+          confidence = 0.75;
+        }
+      }
     }
   }
 
