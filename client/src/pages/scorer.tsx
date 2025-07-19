@@ -98,15 +98,24 @@ export default function Scorer() {
       const isOverCompleted = ballsInCurrentOver === 0 && currentData.currentInnings.totalBalls > 0;
       const currentOverNumber = Math.floor(currentData.currentInnings.totalBalls / 6);
       
-      console.log(`Over check: balls=${currentData.currentInnings.totalBalls}, ballsInOver=${ballsInCurrentOver}, overNumber=${currentOverNumber}, lastChange=${lastBowlerChangeOverNumber}, isCompleted=${isOverCompleted}, dialogOpen=${overCompletedDialogOpen}`);
+      // Check if the current bowler already bowled at least one ball in this over
+      // If so, it means bowler was already changed and no dialog needed
+      const currentBowlerHasBowledThisOver = currentData.recentBalls.some(ball => 
+        ball.overNumber === currentOverNumber && ball.bowlerId === currentData.currentBowler?.playerId
+      );
       
-      // Only show dialog if over is completed AND dialog is not already open AND we haven't just changed bowler for this over
-      if (isOverCompleted && !overCompletedDialogOpen && lastBowlerChangeOverNumber !== currentOverNumber) {
+      console.log(`Over check: balls=${currentData.currentInnings.totalBalls}, ballsInOver=${ballsInCurrentOver}, overNumber=${currentOverNumber}, isCompleted=${isOverCompleted}, dialogOpen=${overCompletedDialogOpen}, bowlerBowledThisOver=${currentBowlerHasBowledThisOver}`);
+      
+      // Only show dialog if:
+      // 1. Over is completed
+      // 2. Dialog is not already open  
+      // 3. Current bowler hasn't bowled any balls in this over (meaning no bowler change happened yet)
+      if (isOverCompleted && !overCompletedDialogOpen && !currentBowlerHasBowledThisOver) {
         console.log(`Showing bowler change dialog for over ${currentOverNumber}`);
         setOverCompletedDialogOpen(true);
       }
     }
-  }, [currentData?.currentInnings.totalBalls, overCompletedDialogOpen, lastBowlerChangeOverNumber]);
+  }, [currentData?.currentInnings.totalBalls, currentData?.recentBalls, currentData?.currentBowler?.playerId, overCompletedDialogOpen]);
 
 
 
@@ -327,11 +336,10 @@ export default function Scorer() {
       setOverCompletedDialogOpen(false);
       setNextBowlerId('');
       
-      // Track that we just changed bowler for this over
+      // Log bowler change (no longer need to track state since we check ball history)
       if (currentData?.currentInnings) {
         const currentOverNumber = Math.floor(currentData.currentInnings.totalBalls / 6);
-        setLastBowlerChangeOverNumber(currentOverNumber);
-        console.log(`Bowler changed for over ${currentOverNumber}, updating lastBowlerChangeOverNumber`);
+        console.log(`Bowler changed for over ${currentOverNumber}`);
       }
       
       // Show success message
