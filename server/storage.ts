@@ -578,11 +578,29 @@ export class DatabaseStorage implements IStorage {
 
   // Balls
   async createBall(ball: InsertBall): Promise<Ball> {
+    // Check cricket rule: same bowler cannot bowl consecutive overs
+    await this.validateNonConsecutiveBowling(ball.inningsId, ball.bowlerId, ball.overNumber);
+    
     const [newBall] = await db.insert(balls).values({
       ...ball,
       createdAt: new Date()
     }).returning();
     return newBall;
+  }
+
+  async validateNonConsecutiveBowling(inningsId: number, bowlerId: number, currentOver: number): Promise<void> {
+    if (currentOver <= 1) return; // First over is always allowed
+    
+    // Get the last ball of the previous over
+    const [previousOverLastBall] = await db.select().from(balls)
+      .where(eq(balls.inningsId, inningsId))
+      .where(eq(balls.overNumber, currentOver - 1))
+      .orderBy(desc(balls.ballNumber))
+      .limit(1);
+    
+    if (previousOverLastBall && previousOverLastBall.bowlerId === bowlerId) {
+      throw new Error(`Cricket Rule Violation: Same bowler cannot bowl consecutive overs. Please select a different bowler for over ${currentOver}.`);
+    }
   }
 
   async getBall(id: number): Promise<Ball | undefined> {

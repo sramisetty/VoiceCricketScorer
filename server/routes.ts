@@ -355,7 +355,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Cannot record more than 10 wickets in an innings' });
       }
 
-      const ball = await storage.createBall(ballData);
+      // Create and save the ball (this will validate consecutive bowling rule)
+      try {
+        var ball = await storage.createBall(ballData);
+      } catch (error) {
+        if (error.message.includes('Cricket Rule Violation')) {
+          return res.status(400).json({ error: error.message });
+        }
+        throw error; // Re-throw if it's not a cricket rule violation
+      }
 
       // Update innings totals
       const innings = await storage.getInnings(ballData.inningsId);
@@ -587,6 +595,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if the new bowler is from the bowling team
       if (newBowlerStats.player.teamId !== currentInnings.bowlingTeam.id) {
         return res.status(400).json({ error: 'Player is not from the bowling team' });
+      }
+      
+      // Check cricket rule: same bowler cannot bowl consecutive overs
+      try {
+        // Get current over number
+        const totalBalls = currentInnings.totalBalls ?? 0;
+        const currentOver = Math.floor(totalBalls / 6) + 1;
+        
+        await storage.validateNonConsecutiveBowling(currentInnings.id, newBowlerId, currentOver);
+      } catch (error) {
+        if (error.message.includes('Cricket Rule Violation')) {
+          return res.status(400).json({ error: error.message });
+        }
+        throw error;
       }
       
       // Initialize the new bowler if they haven't bowled yet
