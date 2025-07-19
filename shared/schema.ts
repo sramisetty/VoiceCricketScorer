@@ -55,10 +55,14 @@ export const balls = pgTable("balls", {
   bowlerId: integer("bowler_id").references(() => players.id).notNull(),
   runs: integer("runs").default(0),
   isWicket: boolean("is_wicket").default(false),
-  wicketType: text("wicket_type"), // bowled, caught, lbw, etc.
+  wicketType: text("wicket_type"), // bowled, caught, lbw, run_out, stumped, hit_wicket, etc.
   fielderId: integer("fielder_id").references(() => players.id), // who caught it or ran out the batsman
-  extraType: text("extra_type"), // wide, noball, bye, legbye
+  extraType: text("extra_type"), // wide, noball, bye, legbye, penalty
   extraRuns: integer("extra_runs").default(0),
+  isShortRun: boolean("is_short_run").default(false), // ICC Rule: Short runs
+  isDeadBall: boolean("is_dead_ball").default(false), // ICC Rule: Dead ball
+  penaltyRuns: integer("penalty_runs").default(0), // ICC Rule: 5-run penalties
+  batsmanCrossed: boolean("batsman_crossed").default(false), // For run out scenarios
   commentary: text("commentary"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -73,11 +77,17 @@ export const playerStats = pgTable("player_stats", {
   sixes: integer("sixes").default(0),
   isOut: boolean("is_out").default(false),
   isOnStrike: boolean("is_on_strike").default(false),
+  dismissalType: text("dismissal_type"), // ICC Rule: How player was dismissed
+  dismissalBall: integer("dismissal_ball"), // Ball ID when dismissed
+  fielderId: integer("fielder_id").references(() => players.id), // Fielder who dismissed
   // bowling stats
   oversBowled: integer("overs_bowled").default(0),
   ballsBowled: integer("balls_bowled").default(0),
   runsConceded: integer("runs_conceded").default(0),
   wicketsTaken: integer("wickets_taken").default(0),
+  maidenOvers: integer("maiden_overs").default(0), // ICC Rule: Maiden overs
+  wideBalls: integer("wide_balls").default(0), // ICC Rule: Wide balls bowled
+  noBalls: integer("no_balls").default(0), // ICC Rule: No balls bowled
 });
 
 // Insert schemas

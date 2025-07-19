@@ -39,25 +39,33 @@ Preferred communication style: Simple, everyday language.
 - **High Confidence Scoring**: Enhanced accuracy with phonetic correction boosting
 - **Noise Handling**: Designed to work with ambient cricket ground sounds
 
-### Comprehensive Scoring System
+### Comprehensive Scoring System with ICC Rules
 - **Advanced Scorer**: Multi-tab interface with quick scoring, detailed entry, and extras handling
+- **ICC Cricket Rules Engine**: Comprehensive implementation of ICC Playing Conditions 2019-20
+- **Automatic Rule Validation**: Real-time validation of all balls against ICC cricket rules
+- **Penalty Runs System**: Automatic calculation and application of penalty runs for rule violations
+- **Over Management**: Proper 6-ball over validation with consecutive over prevention (ICC Rule 17.6)
+- **Strike Rotation**: Automatic ICC-compliant strike rotation on odd runs and end-of-over changes
+- **Wide & No Ball Handling**: Automatic penalty run application with enhanced commentary
+- **Dead Ball & Short Run Detection**: Complete ICC rule validation for all ball scenarios
+- **Dismissal Validation**: Verification of all wicket types against ICC permitted dismissal methods
 - **Voice Integration**: Advanced voice commands trigger appropriate UI dialogs and actions
 - **Wicket Handling**: Voice input removed for wickets; detailed wicket tracking through advanced scorer only
 - **Match Statistics**: Real-time batting, bowling, and partnership analytics
 - **Player Statistics**: Individual performance tracking with strike rates and economy rates
 - **Ball-by-Ball Tracking**: Complete ball tracking with enhanced commentary generation
-- **Undo/Redo Functionality**: Ability to correct scoring mistakes
+- **Undo/Redo Functionality**: Ability to correct scoring mistakes with proper rule reversal
 - **Batsman Replacement**: Automatic dialog for selecting next batsman when wickets fall
 - **Smart Command Routing**: Voice commands automatically open relevant dialogs (bowler change, timeout, etc.)
 
 ### Database Schema
-- **Database**: PostgreSQL with Drizzle ORM for persistent data storage
+- **Database**: PostgreSQL with Drizzle ORM for persistent data storage with ICC-compliant fields
 - **Teams**: Store team information and roster data
 - **Players**: Individual player records with roles and batting order
 - **Matches**: Match setup, toss results, and current status
 - **Innings**: Inning-specific data including runs, wickets, and overs
-- **Balls**: Ball-by-ball tracking with detailed scoring information
-- **Player Stats**: Real-time batting and bowling statistics
+- **Balls**: Ball-by-ball tracking with detailed scoring information and ICC rule fields (isShortRun, isDeadBall, penaltyRuns, batsmanCrossed)
+- **Player Stats**: Real-time batting and bowling statistics with ICC-compliant dismissal tracking (dismissalType, fielderId, maidenOvers, wideBalls, noBalls)
 
 ### Real-Time Features
 - **WebSocket Server**: Live score updates using ws library
@@ -123,6 +131,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 ### January 19, 2025
+- **✓ Complete ICC Cricket Rules Implementation**: Implemented comprehensive ICC Playing Conditions 2019-20 with full rule validation engine
+- **✓ Enhanced Database Schema**: Added ICC-compliant fields (isShortRun, isDeadBall, penaltyRuns, batsmanCrossed, dismissalType, maidenOvers, wideBalls, noBalls)
+- **✓ Cricket Rules Engine**: Created dedicated cricket-rules.ts module with complete ICC rule validation for all scenarios
+- **✓ Automatic Rule Application**: Wide balls and no balls automatically apply penalty runs with proper commentary generation
+- **✓ Over Management**: Proper 6-ball over validation with extra ball handling for wides and no-balls
+- **✓ Consecutive Over Prevention**: Enforced ICC Rule 17.6 preventing same bowler from bowling consecutive overs
+- **✓ Strike Rotation Logic**: Implemented proper ICC Rule 18 for strike rotation on odd runs and end-of-over changes
+- **✓ Penalty Runs System**: Complete ICC Rule 18.6 penalty runs calculation for all rule violations
+- **✓ Dismissal Validation**: Validated dismissal types against ICC permitted dismissal methods
+- **✓ Dead Ball Handling**: ICC Rule 20 dead ball validation with proper run nullification
+- **✓ Short Run Detection**: ICC Rule 18.4/18.5 for unintentional and deliberate short runs with penalties
+- **✓ Wicket Limit Enforcement**: Maximum 10 wickets per innings validation
 - **✓ Clear Match Data Functionality**: Added comprehensive API endpoint to reset all balls, runs, and player statistics while preserving team setup
 - **✓ Database Reset Logic**: Implemented complete match data clearing that resets innings totals, player stats, and match status to 'not_started'
 - **✓ Clear Match Button**: Added and then removed Clear Match Data button from Quick Actions panel per user request

@@ -6,6 +6,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
+import { cricketRules, type CricketRuleValidation } from "./cricket-rules";
 
 export interface IStorage {
   // Teams
@@ -39,6 +40,7 @@ export interface IStorage {
   getBallsByInnings(inningsId: number): Promise<Ball[]>;
   getRecentBalls(inningsId: number, count: number): Promise<(Ball & { batsman: Player; bowler: Player })[]>;
   undoLastBall(inningsId: number): Promise<boolean>;
+  validateBallWithICCRules(ball: InsertBall, inningsId: number): Promise<CricketRuleValidation>;
 
   // Player Stats
   createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats>;
@@ -578,28 +580,151 @@ export class DatabaseStorage implements IStorage {
 
   // Balls
   async createBall(ball: InsertBall): Promise<Ball> {
-    // Check cricket rule: same bowler cannot bowl consecutive overs
-    await this.validateNonConsecutiveBowling(ball.inningsId, ball.bowlerId, ball.overNumber);
+    // Apply comprehensive ICC cricket rules validation
+    const validation = await this.validateBallWithICCRules(ball, ball.inningsId);
+    
+    if (!validation.isValid) {
+      throw new Error(validation.errorMessage || "ICC Cricket Rule Violation");
+    }
+
+    // Use adjusted ball data if rules engine modified it
+    const finalBall = validation.adjustedBall ? { ...ball, ...validation.adjustedBall } : ball;
     
     const [newBall] = await db.insert(balls).values({
-      ...ball,
+      ...finalBall,
       createdAt: new Date()
     }).returning();
     return newBall;
   }
 
-  async validateNonConsecutiveBowling(inningsId: number, bowlerId: number, currentOver: number): Promise<void> {
-    if (currentOver <= 1) return; // First over is always allowed
+  async validateBallWithICCRules(ball: InsertBall, inningsId: number): Promise<CricketRuleValidation> {
+    try {
+      // Get current innings and existing balls for context
+      const [currentInnings] = await db.select().from(innings).where(eq(innings.id, inningsId));
+      if (!currentInnings) {
+        return { isValid: false, errorMessage: "Innings not found" };
+      }
+
+      // Get existing balls in this over
+      const overBalls = await db.select().from(balls)
+        .where(eq(balls.inningsId, inningsId))
+        .where(eq(balls.overNumber, ball.overNumber));
+
+      // ICC Rule 17.6: Bowler consecutive overs validation
+      if (ball.overNumber > 1) {
+        const [previousOverLastBall] = await db.select().from(balls)
+          .where(eq(balls.inningsId, inningsId))
+          .where(eq(balls.overNumber, ball.overNumber - 1))
+          .orderBy(desc(balls.ballNumber))
+          .limit(1);
+
+        const consecutiveValidation = cricketRules.validateBowlerConsecutiveOvers(
+          previousOverLastBall?.bowlerId || null, 
+          ball.bowlerId
+        );
+        if (!consecutiveValidation.isValid) return consecutiveValidation;
+      }
+
+      // ICC Rule 17: Over validation (6 balls max)
+      const overValidation = cricketRules.validateOver(overBalls, ball);
+      if (!overValidation.isValid) return overValidation;
+
+      // ICC Rule 18: Scoring runs validation
+      const scoringValidation = cricketRules.validateScoringRuns(ball);
+      if (!scoringValidation.isValid) return scoringValidation;
+
+      // ICC Rule 21: No ball validation
+      const noBallValidation = cricketRules.validateNoBall(ball);
+      if (!noBallValidation.isValid) return noBallValidation;
+
+      // ICC Rule 22: Wide ball validation  
+      const wideBallValidation = cricketRules.validateWideBall(ball);
+      if (!wideBallValidation.isValid) return wideBallValidation;
+
+      // ICC Rule 18.4/18.5: Short runs validation
+      const shortRunValidation = cricketRules.validateShortRuns(ball);
+      if (!shortRunValidation.isValid) return shortRunValidation;
+
+      // ICC Rule 20: Dead ball validation
+      const deadBallValidation = cricketRules.validateDeadBall(ball);
+      if (!deadBallValidation.isValid) return deadBallValidation;
+
+      // ICC Rule: Maximum 10 wickets validation
+      if (ball.isWicket) {
+        const wicketValidation = cricketRules.validateWicketLimit(currentInnings.totalWickets || 0);
+        if (!wicketValidation.isValid) return wicketValidation;
+
+        // Validate dismissal type
+        if (ball.wicketType) {
+          const dismissalValidation = cricketRules.validateDismissalType(ball.wicketType);
+          if (!dismissalValidation.isValid) return dismissalValidation;
+        }
+      }
+
+      // Combine adjustments from all validations
+      let adjustedBall = { ...ball };
+      
+      // Apply no ball adjustments
+      if (noBallValidation.adjustedBall) {
+        adjustedBall = { ...adjustedBall, ...noBallValidation.adjustedBall };
+      }
+      
+      // Apply wide ball adjustments
+      if (wideBallValidation.adjustedBall) {
+        adjustedBall = { ...adjustedBall, ...wideBallValidation.adjustedBall };
+      }
+      
+      // Apply short run adjustments
+      if (shortRunValidation.adjustedBall) {
+        adjustedBall = { ...adjustedBall, ...shortRunValidation.adjustedBall };
+      }
+      
+      // Apply dead ball adjustments
+      if (deadBallValidation.adjustedBall) {
+        adjustedBall = { ...adjustedBall, ...deadBallValidation.adjustedBall };
+      }
+
+      // Apply over adjustments (ball number corrections for extras)
+      if (overValidation.adjustedBall) {
+        adjustedBall = { ...adjustedBall, ...overValidation.adjustedBall };
+      }
+
+      // Calculate total penalty runs
+      const totalPenaltyRuns = cricketRules.calculatePenaltyRuns(adjustedBall);
+      if (totalPenaltyRuns > 0) {
+        adjustedBall.penaltyRuns = totalPenaltyRuns;
+      }
+
+      return {
+        isValid: true,
+        adjustedBall: adjustedBall !== ball ? adjustedBall : undefined
+      };
+
+    } catch (error) {
+      return {
+        isValid: false,
+        errorMessage: `ICC Rules validation error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+
+  /**
+   * ICC Rule: Automatic strike rotation at end of over
+   */
+  async applyEndOfOverStrikeRotation(inningsId: number): Promise<void> {
+    const currentBatsmen = await this.getCurrentBatsmen(inningsId);
     
-    // Get the last ball of the previous over
-    const [previousOverLastBall] = await db.select().from(balls)
-      .where(eq(balls.inningsId, inningsId))
-      .where(eq(balls.overNumber, currentOver - 1))
-      .orderBy(desc(balls.ballNumber))
-      .limit(1);
-    
-    if (previousOverLastBall && previousOverLastBall.bowlerId === bowlerId) {
-      throw new Error(`Cricket Rule Violation: Same bowler cannot bowl consecutive overs. Please select a different bowler for over ${currentOver}.`);
+    if (currentBatsmen.length >= 2) {
+      const striker = currentBatsmen.find(b => b.isOnStrike);
+      const nonStriker = currentBatsmen.find(b => !b.isOnStrike);
+      
+      if (striker && nonStriker) {
+        // ICC Rule: Non-striker becomes striker for next over
+        await this.updatePlayerStats(striker.id, { isOnStrike: false });
+        await this.updatePlayerStats(nonStriker.id, { isOnStrike: true });
+        
+        console.log(`End of over: ${nonStriker.player.name} is now on strike for next over`);
+      }
     }
   }
 
@@ -1003,8 +1128,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Cricket Logic - Strike Rotation
+  /**
+   * ICC Rule 18: Strike rotation on odd runs
+   */
   async updateStrikeRotation(inningsId: number, batsmanId: number, runs: number, isExtra: boolean): Promise<void> {
-    // Cricket rule: On odd runs (1, 3, 5), batsmen cross over
+    // ICC Rule: On odd runs (1, 3, 5), batsmen cross over
     // On even runs (0, 2, 4, 6), batsmen stay in same positions
     // On extras (wide, no-ball), no strike rotation unless runs are taken
     
