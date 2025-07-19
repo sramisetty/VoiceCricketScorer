@@ -117,6 +117,20 @@ sudo ./ssl-setup.sh
 - Valid email address
 - Ports 80 and 443 open
 
+### 5. `fix-nodejs.sh` - Node.js Conflict Resolution
+
+Fixes Node.js version conflicts on CentOS/RHEL/Fedora systems:
+
+**Usage:**
+```bash
+sudo ./fix-nodejs.sh
+```
+
+**When to use:**
+- When deployment fails with Node.js package conflicts
+- When upgrading from older Node.js versions
+- When multiple Node.js repositories conflict
+
 ## Post-Deployment Configuration
 
 ### 1. Environment Variables
@@ -268,6 +282,19 @@ PostgreSQL is configured with basic optimizations. For high-traffic deployments,
 - Security headers
 
 ## Troubleshooting
+
+### Node.js Version Conflicts (CentOS/RHEL/Fedora)
+If you encounter Node.js package conflicts during deployment:
+```bash
+# Run the Node.js conflict resolution script
+sudo ./fix-nodejs.sh
+```
+
+This script will:
+- Remove conflicting Node.js packages
+- Clean package cache
+- Install Node.js 20 with conflict resolution
+- Restart the application service
 
 ### Application Won't Start
 ```bash

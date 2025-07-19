@@ -12,6 +12,17 @@ APP_DIR="/opt/cricket-scorer"
 BACKUP_DIR="/opt/cricket-scorer-backups"
 SERVICE_NAME="cricket-scorer"
 
+# Detect package manager
+if command -v apt-get &> /dev/null; then
+    PKG_MANAGER="apt"
+elif command -v yum &> /dev/null; then
+    PKG_MANAGER="yum"
+elif command -v dnf &> /dev/null; then
+    PKG_MANAGER="dnf"
+else
+    PKG_MANAGER="unknown"
+fi
+
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

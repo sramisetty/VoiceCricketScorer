@@ -176,22 +176,45 @@ install_nodejs() {
     
     if [ "$PKG_MANAGER" = "apt" ]; then
         # Ubuntu/Debian Node.js installation
-        $PKG_INSTALL nodejs npm 2>/dev/null || true
         curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
         $PKG_INSTALL nodejs
     elif [ "$PKG_MANAGER" = "yum" ] || [ "$PKG_MANAGER" = "dnf" ]; then
         # CentOS/RHEL/Fedora Node.js installation
-        $PKG_INSTALL nodejs npm 2>/dev/null || true
+        
+        # Remove existing Node.js and npm to avoid conflicts
+        log "Removing existing Node.js packages to avoid conflicts..."
+        $PKG_MANAGER remove -y nodejs npm 2>/dev/null || true
+        
+        # Clean package cache
+        if [ "$PKG_MANAGER" = "yum" ]; then
+            yum clean all
+        elif [ "$PKG_MANAGER" = "dnf" ]; then
+            dnf clean all
+        fi
+        
+        # Install Node.js 20 from NodeSource with conflict resolution
+        log "Setting up NodeSource repository..."
         curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-        $PKG_INSTALL nodejs
+        
+        # Install with allowerasing to handle conflicts
+        log "Installing Node.js 20 with conflict resolution..."
+        if [ "$PKG_MANAGER" = "yum" ]; then
+            yum install -y --allowerasing nodejs
+        elif [ "$PKG_MANAGER" = "dnf" ]; then
+            dnf install -y --allowerasing nodejs
+        fi
     fi
     
     # Verify installation
-    NODE_VERSION=$(node --version)
-    NPM_VERSION=$(npm --version)
+    NODE_VERSION=$(node --version 2>/dev/null || echo "Failed to get version")
+    NPM_VERSION=$(npm --version 2>/dev/null || echo "Failed to get version")
     
-    log "Node.js installed: $NODE_VERSION"
-    log "NPM installed: $NPM_VERSION"
+    if [[ "$NODE_VERSION" == v20* ]]; then
+        log "✓ Node.js installed successfully: $NODE_VERSION"
+        log "✓ NPM installed: $NPM_VERSION"
+    else
+        error "Failed to install Node.js 20. Current version: $NODE_VERSION"
+    fi
 }
 
 # Create application user
