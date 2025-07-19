@@ -274,6 +274,9 @@ EOF
 configure_nginx() {
     log "Configuring Nginx..."
     
+    # Create nginx directories if they don't exist
+    mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+    
     cat > "$NGINX_SITE" << EOF
 server {
     listen 80;
@@ -341,6 +344,14 @@ EOF
     # Enable site and remove default
     ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/ 2>/dev/null || true
     rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
+    
+    # For systems without sites-available/sites-enabled, use conf.d
+    if [ ! -d "/etc/nginx/sites-available" ]; then
+        mkdir -p /etc/nginx/conf.d
+        cp "$NGINX_SITE" /etc/nginx/conf.d/cricket-scorer.conf
+        # Remove default server block from main config
+        sed -i '/server {/,/^}/d' /etc/nginx/nginx.conf 2>/dev/null || true
+    fi
     
     # Test configuration
     nginx -t
@@ -483,6 +494,9 @@ setup_ssl() {
             systemctl stop nginx
             certbot certonly --standalone --non-interactive --agree-tos --email "$EMAIL" -d "$DOMAIN"
             
+            # Create nginx directories if they don't exist
+            mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+            
             # Update Nginx configuration for SSL
             cat > "$NGINX_SITE" << EOF
 # HTTP redirect to HTTPS
@@ -567,6 +581,12 @@ EOF
             # Update app environment
             sed -i "s|APP_URL=.*|APP_URL=https://$DOMAIN|" "$APP_DIR/current/.env"
             sudo -u $APP_USER pm2 restart cricket-scorer
+            
+            # For systems without sites-available/sites-enabled, use conf.d
+            if [ ! -d "/etc/nginx/sites-available" ]; then
+                mkdir -p /etc/nginx/conf.d
+                cp "$NGINX_SITE" /etc/nginx/conf.d/cricket-scorer.conf
+            fi
             
             systemctl start nginx
             

@@ -444,6 +444,9 @@ start_application() {
 configure_nginx() {
     log "Configuring Nginx with SSL-ready setup..."
     
+    # Create nginx directories if they don't exist
+    mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+    
     cat > "$NGINX_SITE" << EOF
 # HTTP server block (will redirect to HTTPS when SSL is configured)
 server {
