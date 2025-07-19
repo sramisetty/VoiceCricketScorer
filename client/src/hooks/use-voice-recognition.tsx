@@ -70,8 +70,17 @@ export function useVoiceRecognition(): VoiceRecognitionHook {
     };
 
     recognitionInstance.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('Speech recognition error:', event.error);
+      console.error('Speech recognition error:', event.error, event.message);
       setIsListening(false);
+      
+      // Handle specific error types
+      if (event.error === 'not-allowed') {
+        console.error('Microphone permission denied');
+      } else if (event.error === 'no-speech') {
+        console.log('No speech detected, continuing to listen');
+      } else if (event.error === 'network') {
+        console.error('Network error during speech recognition');
+      }
     };
 
     recognitionInstance.onend = () => {
@@ -89,14 +98,26 @@ export function useVoiceRecognition(): VoiceRecognitionHook {
 
   const startListening = useCallback(() => {
     if (recognition && !isListening) {
-      setTranscript('');
-      recognition.start();
+      try {
+        setTranscript('');
+        console.log('Starting speech recognition...');
+        recognition.start();
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        setIsListening(false);
+      }
     }
   }, [recognition, isListening]);
 
   const stopListening = useCallback(() => {
     if (recognition && isListening) {
-      recognition.stop();
+      try {
+        console.log('Stopping speech recognition...');
+        recognition.stop();
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+        setIsListening(false);
+      }
     }
   }, [recognition, isListening]);
 

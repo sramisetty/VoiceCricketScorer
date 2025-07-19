@@ -68,11 +68,20 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
     }
   }, [transcript, isListening, isProcessing, lastProcessedTranscript, onCommand, currentBatsman, currentBowler, resetTranscript]);
 
-  const handleMicClick = () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      startListening();
+  const handleMicClick = async () => {
+    try {
+      if (isListening) {
+        stopListening();
+      } else {
+        // Request microphone permission explicitly
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
+        startListening();
+      }
+    } catch (error) {
+      console.error('Voice input error:', error);
+      setLastCommand('Microphone permission denied or not available. Please allow microphone access and try again.');
     }
   };
 
@@ -106,6 +115,7 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
                   : "bg-cricket-primary hover:bg-cricket-secondary active:bg-cricket-dark"
               )}
               disabled={isProcessing}
+              title={isListening ? "Stop listening" : "Start voice input"}
             >
               {isListening ? (
                 <MicOff className="text-white w-6 h-6 sm:w-8 sm:h-8" />
@@ -187,35 +197,50 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
           <Button
             variant="outline"
             className="mobile-button touch-feedback bg-cricket-light hover:bg-cricket-primary hover:text-white mobile-text"
-            onClick={() => onCommand({ type: 'runs', runs: 1, confidence: 1.0 })}
+            onClick={() => {
+              console.log('Single button clicked');
+              onCommand({ type: 'runs', runs: 1, confidence: 1.0 });
+            }}
           >
             Single
           </Button>
           <Button
             variant="outline"
             className="mobile-button touch-feedback bg-cricket-light hover:bg-cricket-primary hover:text-white mobile-text"
-            onClick={() => onCommand({ type: 'runs', runs: 4, confidence: 1.0 })}
+            onClick={() => {
+              console.log('Four button clicked');
+              onCommand({ type: 'runs', runs: 4, confidence: 1.0 });
+            }}
           >
             Four
           </Button>
           <Button
             variant="outline"
             className="mobile-button touch-feedback bg-green-100 hover:bg-green-500 hover:text-white mobile-text"
-            onClick={() => onCommand({ type: 'runs', runs: 6, confidence: 1.0 })}
+            onClick={() => {
+              console.log('Six button clicked');
+              onCommand({ type: 'runs', runs: 6, confidence: 1.0 });
+            }}
           >
             Six
           </Button>
           <Button
             variant="outline"
             className="mobile-button touch-feedback bg-gray-100 hover:bg-gray-500 hover:text-white mobile-text"
-            onClick={() => onCommand({ type: 'runs', runs: 0, confidence: 1.0 })}
+            onClick={() => {
+              console.log('Dot ball button clicked');
+              onCommand({ type: 'runs', runs: 0, confidence: 1.0 });
+            }}
           >
             Dot Ball
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onCommand({ type: 'extra', extraType: 'noball', extraRuns: 1, confidence: 1.0 })}
+            onClick={() => {
+              console.log('No ball button clicked');
+              onCommand({ type: 'extra', extraType: 'noball', extraRuns: 1, confidence: 1.0 });
+            }}
             className="bg-orange-100 hover:bg-orange-500 hover:text-white"
           >
             No Ball
@@ -223,7 +248,10 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onCommand({ type: 'bowler_change', confidence: 1.0 })}
+            onClick={() => {
+              console.log('Change bowler button clicked');
+              onCommand({ type: 'bowler_change', confidence: 1.0 });
+            }}
             className="bg-purple-100 hover:bg-purple-500 hover:text-white"
           >
             Change Bowler
@@ -231,7 +259,10 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onCommand({ type: 'over_complete', confidence: 1.0 })}
+            onClick={() => {
+              console.log('Over complete button clicked');
+              onCommand({ type: 'over_complete', confidence: 1.0 });
+            }}
             className="bg-blue-100 hover:bg-blue-500 hover:text-white"
           >
             Over Complete
