@@ -152,10 +152,17 @@ create_app_user() {
     fi
 }
 
-# Setup PostgreSQL
+# Setup PostgreSQL (or configure for external database)
 setup_postgresql() {
-    log "Setting up PostgreSQL..."
+    log "Setting up database configuration..."
     
+    # Check if DATABASE_URL is already provided (e.g., Neon, external DB)
+    if [ -f ".env" ] && grep -q "DATABASE_URL.*neon.tech" .env 2>/dev/null; then
+        log "External database (Neon) detected - skipping local PostgreSQL installation"
+        return 0
+    fi
+    
+    # Install and setup local PostgreSQL only if needed
     if [ "$PKG_MANAGER" = "yum" ] || [ "$PKG_MANAGER" = "dnf" ]; then
         if [ ! -f /var/lib/pgsql/data/postgresql.conf ]; then
             postgresql-setup initdb 2>/dev/null || postgresql-setup --initdb 2>/dev/null || true
@@ -205,7 +212,25 @@ create_env() {
     
     SESSION_SECRET=$(openssl rand -base64 32)
     
-    cat > "$APP_DIR/current/.env" << EOF
+    # Check if .env already exists and has DATABASE_URL (preserve existing database config)
+    if [ -f "$APP_DIR/current/.env" ] && grep -q "DATABASE_URL" "$APP_DIR/current/.env"; then
+        log "Existing .env file found - preserving database configuration"
+        # Update only non-database settings
+        sed -i "s/^NODE_ENV=.*/NODE_ENV=production/" "$APP_DIR/current/.env"
+        sed -i "s/^PORT=.*/PORT=3000/" "$APP_DIR/current/.env"
+        
+        # Add SESSION_SECRET if not present
+        if ! grep -q "SESSION_SECRET" "$APP_DIR/current/.env"; then
+            echo "SESSION_SECRET=$SESSION_SECRET" >> "$APP_DIR/current/.env"
+        fi
+        
+        # Add OPENAI_API_KEY if not present
+        if ! grep -q "OPENAI_API_KEY" "$APP_DIR/current/.env"; then
+            echo "OPENAI_API_KEY=your_openai_api_key_here" >> "$APP_DIR/current/.env"
+        fi
+    else
+        # Create new .env file with local database configuration
+        cat > "$APP_DIR/current/.env" << EOF
 # Production Environment Configuration
 NODE_ENV=production
 PORT=3000
@@ -228,6 +253,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 APP_URL=http://localhost:3000
 LOG_LEVEL=info
 EOF
+    fi
     
     chown $APP_USER:$APP_USER "$APP_DIR/current/.env"
     chmod 600 "$APP_DIR/current/.env"
@@ -475,7 +501,16 @@ run_migrations() {
     log "Running database migrations..."
     
     cd "$APP_DIR/current"
-    sudo -u $APP_USER npm run db:push
+    
+    # Check if we're using Neon database (skip local PostgreSQL setup)
+    if grep -q "neon.tech" "$APP_DIR/current/.env" 2>/dev/null; then
+        log "Using Neon database - skipping local PostgreSQL setup"
+        # Use existing DATABASE_URL from environment
+        sudo -u $APP_USER npm run db:push
+    else
+        # For local PostgreSQL setup
+        sudo -u $APP_USER npm run db:push
+    fi
     
     log "✓ Database migrations completed"
 }
