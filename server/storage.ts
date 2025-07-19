@@ -624,6 +624,24 @@ export class DatabaseStorage implements IStorage {
 
     if (!lastBall) return false;
 
+    // Check if this is the first ball of an over (ball number 1)
+    const isFirstBallOfOver = lastBall.ballNumber === 1;
+    let previousBowlerId: number | null = null;
+
+    // If undoing the first ball of an over, we need to find the previous bowler
+    if (isFirstBallOfOver && lastBall.overNumber > 1) {
+      // Get the last ball of the previous over (over - 1, ball 6)
+      const [previousOverLastBall] = await db.select().from(balls)
+        .where(eq(balls.inningsId, inningsId))
+        .where(eq(balls.overNumber, lastBall.overNumber - 1))
+        .orderBy(desc(balls.ballNumber))
+        .limit(1);
+      
+      if (previousOverLastBall) {
+        previousBowlerId = previousOverLastBall.bowlerId;
+      }
+    }
+
     // Get the player stats for batsman and bowler to reverse their statistics
     const inningsStats = await this.getPlayerStatsByInnings(inningsId);
     const batsmanStats = inningsStats.find(s => s.playerId === lastBall.batsmanId);
@@ -678,10 +696,26 @@ export class DatabaseStorage implements IStorage {
       }).where(eq(innings.id, inningsId));
     }
 
+    // Handle bowler change reversal for first ball of over
+    if (isFirstBallOfOver && previousBowlerId !== null) {
+      // Revert the current bowler to the previous bowler
+      await db.update(innings).set({
+        currentBowlerId: previousBowlerId
+      }).where(eq(innings.id, inningsId));
+      
+      console.log(`Undo: Reverted current bowler back to previous bowler (ID: ${previousBowlerId})`);
+    }
+
     // Handle strike rotation reversal
     if (lastBall.runs && lastBall.runs % 2 === 1) {
       // If the last ball had odd runs, reverse the strike rotation
       await this.updateStrikeRotation(inningsId, lastBall.batsmanId, lastBall.runs, lastBall.extraType ? true : false);
+    }
+
+    // Handle end-of-over strike rotation reversal
+    if (lastBall.ballNumber === 6 && !lastBall.extraType) {
+      // If undoing the last ball of an over, reverse the automatic strike rotation that happens at over end
+      await this.updateStrikeRotation(inningsId, lastBall.batsmanId, 1, false); // Force strike rotation reversal
     }
 
     // Finally, delete the ball record

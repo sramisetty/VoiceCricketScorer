@@ -936,6 +936,11 @@ export default function Scorer() {
                   bowlerName={currentData.currentBowler?.player.name || 'Unknown'}
                   overNumber={Math.floor(currentData.currentInnings.totalBalls / 6) + 1}
                   totalBalls={currentData.currentInnings.totalBalls}
+                  currentBowlerStats={currentData.currentBowler ? {
+                    ballsBowled: currentData.currentBowler.ballsBowled || 0,
+                    runsConceded: currentData.currentBowler.runsConceded || 0,
+                    wicketsTaken: currentData.currentBowler.wicketsTaken || 0
+                  } : undefined}
                 />
               </CardContent>
             </Card>

@@ -7,9 +7,14 @@ interface CurrentOverProps {
   bowlerName: string;
   overNumber: number;
   totalBalls: number;
+  currentBowlerStats?: {
+    ballsBowled: number;
+    runsConceded: number;
+    wicketsTaken: number;
+  };
 }
 
-export function CurrentOver({ balls, bowlerName, overNumber, totalBalls }: CurrentOverProps) {
+export function CurrentOver({ balls, bowlerName, overNumber, totalBalls, currentBowlerStats }: CurrentOverProps) {
   // Get balls from current over
   const currentOverBalls = balls
     .filter(ball => ball.overNumber === overNumber)
@@ -37,10 +42,23 @@ export function CurrentOver({ balls, bowlerName, overNumber, totalBalls }: Curre
 
   const wickets = currentOverBalls.filter(ball => ball.isWicket).length;
   
-  // Calculate balls remaining using totalBalls
-  const ballsInCurrentOver = totalBalls % 6;
-  const ballsRemaining = ballsInCurrentOver === 0 && totalBalls > 0 ? 0 : 6 - ballsInCurrentOver;
-  const validBallsBowled = ballsInCurrentOver;
+  // Use current bowler stats if available, otherwise fall back to totalBalls calculation
+  let ballsInCurrentOver: number;
+  let ballsRemaining: number;
+  let validBallsBowled: number;
+  
+  if (currentBowlerStats) {
+    // Use the same calculation as Advanced Scorer
+    const bowlerBalls = currentBowlerStats.ballsBowled;
+    ballsInCurrentOver = bowlerBalls % 6;
+    validBallsBowled = ballsInCurrentOver;
+    ballsRemaining = ballsInCurrentOver === 0 && bowlerBalls > 0 ? 0 : 6 - ballsInCurrentOver;
+  } else {
+    // Fallback to totalBalls calculation
+    ballsInCurrentOver = totalBalls % 6;
+    validBallsBowled = ballsInCurrentOver;
+    ballsRemaining = ballsInCurrentOver === 0 && totalBalls > 0 ? 0 : 6 - ballsInCurrentOver;
+  }
 
   // Show all balls in the over (including extras), but only show valid balls 1-6 with placeholders
   const validBalls = currentOverBalls.filter(ball => !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye');
@@ -60,9 +78,14 @@ export function CurrentOver({ balls, bowlerName, overNumber, totalBalls }: Curre
       <CardContent>
         <div className="text-center mb-4">
           <div className="text-2xl font-bold text-cricket-primary">
-            Over {Math.floor(totalBalls / 6)}.{totalBalls % 6}
+            Over {currentBowlerStats ? Math.floor(currentBowlerStats.ballsBowled / 6) : Math.floor(totalBalls / 6)}.{ballsInCurrentOver}
           </div>
           <div className="text-sm text-gray-600">{bowlerName} bowling</div>
+          {currentBowlerStats && (
+            <div className="text-xs text-blue-600 font-medium mt-1">
+              {currentBowlerStats.ballsBowled}-{currentBowlerStats.runsConceded}-{currentBowlerStats.wicketsTaken}
+            </div>
+          )}
           {ballsRemaining > 0 && (
             <div className="text-xs text-cricket-accent font-semibold mt-1">
               {ballsRemaining} ball{ballsRemaining !== 1 ? 's' : ''} remaining
