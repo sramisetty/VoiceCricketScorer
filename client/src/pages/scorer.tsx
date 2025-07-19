@@ -1152,17 +1152,6 @@ export default function Scorer() {
                      currentData.recentBalls.length === 0 ? 'No Balls to Undo' : 'Undo Last Ball'}
                   </Button>
 
-                  {/* Clear Match Data */}
-                  <Button
-                    variant="outline"
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                    onClick={() => clearMatchMutation.mutate()}
-                    disabled={clearMatchMutation.isPending}
-                  >
-                    <Trash className="h-4 w-4 mr-2" />
-                    {clearMatchMutation.isPending ? 'Clearing...' : 'Clear Match Data'}
-                  </Button>
-
                   {/* Match Settings */}
                   <Button
                     variant="outline"

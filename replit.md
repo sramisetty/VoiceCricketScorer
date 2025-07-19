@@ -122,6 +122,13 @@ Preferred communication style: Simple, everyday language.
 - **Cricket-Specific**: Tailored for cricket scoring terminology and rules
 
 ## Recent Changes (January 2025)
+### January 19, 2025
+- **✓ Clear Match Data Functionality**: Added comprehensive API endpoint to reset all balls, runs, and player statistics while preserving team setup
+- **✓ Database Reset Logic**: Implemented complete match data clearing that resets innings totals, player stats, and match status to 'not_started'
+- **✓ Clear Match Button**: Added and then removed Clear Match Data button from Quick Actions panel per user request
+- **✓ Current Over Display Fix**: Resolved inconsistency between Current Over widget and Advanced Scorer ball counts by using same calculation method
+- **✓ Enhanced Undo Functionality**: Fixed undo to properly revert current bowler when undoing first ball of an over with enhanced strike rotation reversal
+
 ### January 18, 2025
 - **✓ Innings Completion Logic**: Implemented automatic detection when 10 wickets fall or overs complete
 - **✓ Second Innings Auto-Start**: Teams automatically swap roles for second innings
