@@ -388,44 +388,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Update player stats (runs, balls faced, etc.)
-      const batterStats = await storage.getPlayerStatsByInnings(ballData.inningsId);
-      const batsman = batterStats.find(s => s.playerId === ballData.batsmanId);
-      if (batsman) {
-        const currentRuns = batsman.runs ?? 0;
-        const currentBalls = batsman.ballsFaced ?? 0;
-        const currentFours = batsman.fours ?? 0;
-        const currentSixes = batsman.sixes ?? 0;
-        const ballRuns = ballData.runs ?? 0;
-        
-        await storage.updatePlayerStats(batsman.id, {
-          runs: currentRuns + ballRuns,
-          ballsFaced: currentBalls + (ballData.extraType ? 0 : 1),
-          fours: ballRuns === 4 ? currentFours + 1 : currentFours,
-          sixes: ballRuns === 6 ? currentSixes + 1 : currentSixes,
-          isOut: ballData.isWicket ? true : batsman.isOut
-        });
-      }
-
-      // Implement cricket strike rotation logic
-      await storage.updateStrikeRotation(ballData.inningsId, ballData.batsmanId, ballData.runs ?? 0, ballData.extraType ? true : false);
-
-      // Update bowler stats
-      const bowler = batterStats.find(s => s.playerId === ballData.bowlerId);
-      if (bowler) {
-        const currentBallsBowled = bowler.ballsBowled ?? 0;
-        const currentRunsConceded = bowler.runsConceded ?? 0;
-        const currentWickets = bowler.wicketsTaken ?? 0;
-        const ballRuns = ballData.runs ?? 0;
-        const extraRuns = ballData.extraRuns ?? 0;
-        
-        await storage.updatePlayerStats(bowler.id, {
-          ballsBowled: currentBallsBowled + (ballData.extraType ? 0 : 1),
-          runsConceded: currentRunsConceded + ballRuns + extraRuns,
-          wicketsTaken: ballData.isWicket ? currentWickets + 1 : currentWickets,
-          oversBowled: Math.floor((currentBallsBowled + (ballData.extraType ? 0 : 1)) / 6)
-        });
-      }
+      // Update player statistics with ICC compliance
+      const totalRunsScored = (ballData.runs ?? 0) + (ballData.extraRuns ?? 0);
+      const isValidBall = !ballData.extraType || ballData.extraType === 'bye' || ballData.extraType === 'legbye';
+      const isExtra = ballData.extraType && ['wide', 'noball'].includes(ballData.extraType);
+      
+      await storage.updateBatsmanStatsWithICCRules(ballData.inningsId, ballData.batsmanId, ballData.runs ?? 0, isValidBall, ballData.isWicket ?? false, ballData.extraType);
+      await storage.updateBowlerStatsWithICCRules(ballData.inningsId, ballData.bowlerId, totalRunsScored, isValidBall, ballData.isWicket ?? false, ballData.extraType);
+      
+      // Handle strike rotation with ICC rules
+      await storage.updateStrikeRotation(ballData.inningsId, ballData.batsmanId, ballData.runs ?? 0, !!isExtra);
 
       // Check for innings completion and handle second innings
       const updatedInnings = await storage.getInnings(ballData.inningsId);

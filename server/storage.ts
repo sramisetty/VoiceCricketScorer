@@ -594,6 +594,10 @@ export class DatabaseStorage implements IStorage {
       ...finalBall,
       createdAt: new Date()
     }).returning();
+
+    // ICC Rule: Check if over is completed and apply end-of-over strike rotation
+    await this.checkAndHandleOverCompletion(finalBall.inningsId, finalBall.overNumber);
+    
     return newBall;
   }
 
@@ -649,6 +653,10 @@ export class DatabaseStorage implements IStorage {
       const deadBallValidation = cricketRules.validateDeadBall(ball);
       if (!deadBallValidation.isValid) return deadBallValidation;
 
+      // ICC Rule 23: Bye and leg-bye validation
+      const byeValidation = cricketRules.validateByeAndLegBye(ball);
+      if (!byeValidation.isValid) return byeValidation;
+
       // ICC Rule: Maximum 10 wickets validation
       if (ball.isWicket) {
         const wicketValidation = cricketRules.validateWicketLimit(currentInnings.totalWickets || 0);
@@ -683,6 +691,11 @@ export class DatabaseStorage implements IStorage {
       if (deadBallValidation.adjustedBall) {
         adjustedBall = { ...adjustedBall, ...deadBallValidation.adjustedBall };
       }
+      
+      // Apply bye/leg-bye adjustments
+      if (byeValidation.adjustedBall) {
+        adjustedBall = { ...adjustedBall, ...byeValidation.adjustedBall };
+      }
 
       // Apply over adjustments (ball number corrections for extras)
       if (overValidation.adjustedBall) {
@@ -705,6 +718,58 @@ export class DatabaseStorage implements IStorage {
         isValid: false,
         errorMessage: `ICC Rules validation error: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
+    }
+  }
+
+  /**
+   * ICC Rule: Check over completion and handle end-of-over procedures
+   */
+  async checkAndHandleOverCompletion(inningsId: number, overNumber: number): Promise<void> {
+    // Get all balls in this over
+    const overBalls = await db.select().from(balls)
+      .where(eq(balls.inningsId, inningsId))
+      .where(eq(balls.overNumber, overNumber));
+
+    // Count valid balls (exclude wides and no-balls)
+    const validBalls = overBalls.filter(b => 
+      !b.extraType || !['wide', 'noball'].includes(b.extraType)
+    );
+
+    // ICC Rule 17.1: Over is complete after 6 valid balls
+    if (validBalls.length === 6) {
+      console.log(`Over ${overNumber} completed with 6 valid balls`);
+      
+      // Check for maiden over
+      await this.checkMaidenOver(inningsId, overNumber);
+      
+      // Apply end-of-over strike rotation
+      await this.applyEndOfOverStrikeRotation(inningsId);
+    }
+  }
+
+  /**
+   * ICC Rule: Check if over is a maiden over
+   */
+  async checkMaidenOver(inningsId: number, overNumber: number): Promise<void> {
+    const overBalls = await db.select().from(balls)
+      .where(eq(balls.inningsId, inningsId))
+      .where(eq(balls.overNumber, overNumber));
+
+    // Count total runs scored in the over (excluding penalty runs)
+    const totalRuns = overBalls.reduce((sum, ball) => sum + (ball.runs || 0), 0);
+    
+    if (totalRuns === 0 && overBalls.length > 0) {
+      // This is a maiden over
+      const bowlerId = overBalls[0].bowlerId;
+      const bowlerStats = await this.getPlayerStatsByInnings(inningsId);
+      const bowlerStat = bowlerStats.find(s => s.playerId === bowlerId);
+      
+      if (bowlerStat) {
+        await this.updatePlayerStats(bowlerStat.id, {
+          maidenOvers: (bowlerStat.maidenOvers || 0) + 1
+        });
+        console.log(`Maiden over! Bowler ${bowlerStat.player.name} bowled a maiden over ${overNumber}`);
+      }
     }
   }
 
@@ -993,6 +1058,70 @@ export class DatabaseStorage implements IStorage {
     return bowlingTeamPlayers.find(s => (s.ballsBowled ?? 0) > 0 && (s.ballsBowled ?? 0) % 6 !== 0) ||
            bowlingTeamPlayers.find(s => (s.ballsBowled ?? 0) > 0) ||
            bowlingTeamPlayers[0]; // Default to first bowler if no one has bowled yet
+  }
+
+  // ICC-Compliant Statistics Updates
+  async updateBatsmanStatsWithICCRules(inningsId: number, batsmanId: number, runs: number, isValidBall: boolean, isWicket: boolean, extraType?: string | null): Promise<void> {
+    const inningsStats = await this.getPlayerStatsByInnings(inningsId);
+    const batsmanStats = inningsStats.find(s => s.playerId === batsmanId);
+    
+    if (batsmanStats) {
+      const updates: Partial<PlayerStats> = {};
+      
+      // Only credit runs to batsman if not extras (bye/leg-bye don't count)
+      if (extraType !== 'bye' && extraType !== 'legbye' && extraType !== 'wide') {
+        updates.runs = (batsmanStats.runs || 0) + runs;
+        
+        // Update boundary counts
+        if (runs === 4) updates.fours = (batsmanStats.fours || 0) + 1;
+        if (runs === 6) updates.sixes = (batsmanStats.sixes || 0) + 1;
+      }
+      
+      // ICC Rule: Batsman faces ball only if it's not a wide
+      if (isValidBall && extraType !== 'wide') {
+        updates.ballsFaced = Math.max(0, (batsmanStats.ballsFaced || 0) + 1);
+      }
+      
+      // Handle dismissal
+      if (isWicket) {
+        updates.isOut = true;
+      }
+      
+      await this.updatePlayerStats(batsmanStats.id, updates);
+    }
+  }
+
+  async updateBowlerStatsWithICCRules(inningsId: number, bowlerId: number, totalRuns: number, isValidBall: boolean, isWicket: boolean, extraType?: string | null): Promise<void> {
+    const inningsStats = await this.getPlayerStatsByInnings(inningsId);
+    const bowlerStats = inningsStats.find(s => s.playerId === bowlerId);
+    
+    if (bowlerStats) {
+      const updates: Partial<PlayerStats> = {
+        runsConceded: (bowlerStats.runsConceded || 0) + totalRuns
+      };
+      
+      // ICC Rule: Only valid balls count towards balls bowled
+      if (isValidBall) {
+        const newBallsBowled = (bowlerStats.ballsBowled || 0) + 1;
+        updates.ballsBowled = newBallsBowled;
+        updates.oversBowled = Math.floor(newBallsBowled / 6);
+      }
+      
+      // Update wicket count
+      if (isWicket) {
+        updates.wicketsTaken = (bowlerStats.wicketsTaken || 0) + 1;
+      }
+      
+      // ICC Rule: Count wide balls and no balls separately
+      if (extraType === 'wide') {
+        updates.wideBalls = (bowlerStats.wideBalls || 0) + 1;
+      }
+      if (extraType === 'noball') {
+        updates.noBalls = (bowlerStats.noBalls || 0) + 1;
+      }
+      
+      await this.updatePlayerStats(bowlerStats.id, updates);
+    }
   }
 
   // Clear Match Data

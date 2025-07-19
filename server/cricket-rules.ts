@@ -25,6 +25,9 @@ export interface CricketRuleEngine {
   // ICC Rule 22: Wide Ball  
   validateWideBall(ball: InsertBall): CricketRuleValidation;
   
+  // ICC Rule 23: Bye and Leg-bye
+  validateByeAndLegBye(ball: InsertBall): CricketRuleValidation;
+  
   // ICC Rule 18.4/18.5: Short Runs
   validateShortRuns(ball: InsertBall): CricketRuleValidation;
   
@@ -44,31 +47,40 @@ export class ICCRuleEngine implements CricketRuleEngine {
    * ICC Rule 17: The Over - 6 valid balls per over
    */
   validateOver(balls: Ball[], newBall: InsertBall): CricketRuleValidation {
-    const overBalls = balls.filter(b => 
+    // Count only valid balls (exclude wides, no-balls)
+    const validBalls = balls.filter(b => 
       b.overNumber === newBall.overNumber && 
-      !b.extraType // Only count valid balls (not wides/no-balls)
+      (!b.extraType || (b.extraType && !['wide', 'noball'].includes(b.extraType)))
     );
     
-    if (overBalls.length >= 6) {
+    // ICC Rule 17.1: An over consists of 6 valid balls
+    if (validBalls.length >= 6) {
       return {
         isValid: false,
         errorMessage: "ICC Rule 17: Over is complete. Maximum 6 valid balls per over."
       };
     }
     
-    // Auto-adjust ball number for extras
+    // ICC Rule 17.2: Wide balls and no-balls are additional to the 6 balls of an over
     if (newBall.extraType === 'wide' || newBall.extraType === 'noball') {
-      // Extras don't advance ball number
+      // Extras don't advance ball number - repeat the same ball
       return {
         isValid: true,
         adjustedBall: {
           ...newBall,
-          ballNumber: overBalls.length + 1 // Keep same ball number
+          ballNumber: validBalls.length + 1 // Keep current ball number
         }
       };
     }
     
-    return { isValid: true };
+    // Valid ball - advance ball number
+    return {
+      isValid: true,
+      adjustedBall: {
+        ...newBall,
+        ballNumber: validBalls.length + 1
+      }
+    };
   }
   
   /**
@@ -106,15 +118,35 @@ export class ICCRuleEngine implements CricketRuleEngine {
    */
   validateNoBall(ball: InsertBall): CricketRuleValidation {
     if (ball.extraType === 'noball') {
-      // ICC Rule 21: No ball gives 1 penalty run + any runs scored
+      // ICC Rule 21.1: No ball penalty is 1 run + any runs scored
+      const totalRuns = 1 + (ball.runs || 0);
       return {
         isValid: true,
         adjustedBall: {
           ...ball,
           extraRuns: 1, // Automatic 1 penalty run
-          commentary: `No ball! ${1 + (ball.runs || 0)} total runs`
+          commentary: `No ball! ${totalRuns} total run${totalRuns === 1 ? '' : 's'}`
         },
         penaltyRuns: 1
+      };
+    }
+    return { isValid: true };
+  }
+  
+  /**
+   * ICC Rule 23: Bye and Leg-bye
+   */
+  validateByeAndLegBye(ball: InsertBall): CricketRuleValidation {
+    if (ball.extraType === 'bye' || ball.extraType === 'legbye') {
+      // ICC Rule 23: Byes and leg-byes are runs scored but not credited to batsman
+      return {
+        isValid: true,
+        adjustedBall: {
+          ...ball,
+          commentary: ball.extraType === 'bye' 
+            ? `Bye! ${ball.runs || 0} run${(ball.runs || 0) === 1 ? '' : 's'}`
+            : `Leg bye! ${ball.runs || 0} run${(ball.runs || 0) === 1 ? '' : 's'}`
+        }
       };
     }
     return { isValid: true };
@@ -125,13 +157,14 @@ export class ICCRuleEngine implements CricketRuleEngine {
    */
   validateWideBall(ball: InsertBall): CricketRuleValidation {
     if (ball.extraType === 'wide') {
-      // ICC Rule 22: Wide ball gives 1 penalty run + any runs scored by running
+      // ICC Rule 22.1: Wide ball penalty is 1 run + any runs scored
+      const totalRuns = 1 + (ball.runs || 0);
       return {
         isValid: true,
         adjustedBall: {
           ...ball,
           extraRuns: 1, // Automatic 1 penalty run
-          commentary: `Wide ball! ${1 + (ball.runs || 0)} total runs`
+          commentary: `Wide ball! ${totalRuns} total run${totalRuns === 1 ? '' : 's'}`
         },
         penaltyRuns: 1
       };
