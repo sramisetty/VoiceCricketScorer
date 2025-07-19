@@ -73,6 +73,116 @@
 }
 
 @layer components {
+  /* Mobile-specific styles */
+  .mobile-friendly {
+    @apply touch-manipulation;
+  }
+  
+  .mobile-button {
+    @apply min-h-[44px] min-w-[44px] touch-manipulation;
+  }
+  
+  .mobile-input {
+    @apply min-h-[44px] text-[16px] touch-manipulation;
+  }
+  
+  .mobile-card {
+    @apply mx-2 sm:mx-4 rounded-lg shadow-sm;
+  }
+  
+  .mobile-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4;
+  }
+  
+  .mobile-flex {
+    @apply flex flex-col sm:flex-row gap-2 sm:gap-4;
+  }
+  
+  .mobile-text {
+    @apply text-sm sm:text-base;
+  }
+  
+  .mobile-header {
+    @apply text-lg sm:text-xl lg:text-2xl font-bold;
+  }
+  
+  .mobile-padding {
+    @apply px-3 py-2 sm:px-4 sm:py-3;
+  }
+  
+  .mobile-scrollable {
+    @apply overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100;
+  }
+  
+  /* Voice input mobile styles */
+  .voice-input-mobile {
+    @apply w-full max-w-none sm:max-w-md mx-auto;
+  }
+  
+  .voice-button-mobile {
+    @apply w-16 h-16 sm:w-20 sm:h-20 rounded-full touch-manipulation;
+  }
+  
+  /* Scorer interface mobile layout */
+  .scorer-mobile-layout {
+    @apply flex flex-col lg:flex-row gap-4 min-h-screen;
+  }
+  
+  .scorer-main-mobile {
+    @apply flex-1 order-2 lg:order-1;
+  }
+  
+  .scorer-sidebar-mobile {
+    @apply w-full lg:w-80 order-1 lg:order-2;
+  }
+  
+  /* Scoreboard mobile layout */
+  .scoreboard-mobile {
+    @apply px-2 sm:px-4 py-4 space-y-4;
+  }
+  
+  .score-display-mobile {
+    @apply text-2xl sm:text-3xl lg:text-4xl font-bold;
+  }
+  
+  .batsman-info-mobile {
+    @apply flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2;
+  }
+  
+  /* Advanced scorer mobile tabs */
+  .scorer-tabs-mobile {
+    @apply grid grid-cols-2 sm:grid-cols-4 gap-1 w-full;
+  }
+  
+  .scorer-tab-mobile {
+    @apply px-2 py-2 text-xs sm:text-sm text-center;
+  }
+  
+  /* Mobile-specific utilities */
+  .hide-mobile {
+    @apply hidden sm:block;
+  }
+  
+  .show-mobile {
+    @apply block sm:hidden;
+  }
+  
+  .mobile-safe-area {
+    @apply pb-safe-bottom pt-safe-top;
+  }
+  
+  /* Touch feedback */
+  .touch-feedback {
+    @apply active:scale-95 transition-transform duration-75;
+  }
+  
+  /* Mobile viewport fixes */
+  .mobile-full-height {
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height */
+  }
+
+  /* Cricket-specific utility classes */
   .bg-cricket-primary {
     background-color: var(--cricket-primary);
   }

@@ -89,33 +89,33 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl font-bold text-gray-800">Voice Input</CardTitle>
+    <Card className="mobile-card">
+      <CardHeader className="mobile-padding">
+        <CardTitle className="mobile-header text-gray-800">Voice Input</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="mobile-padding">
         {/* Voice Status */}
         <div className="flex items-center justify-center mb-6">
           <div className="relative">
             <Button
               onClick={handleMicClick}
               className={cn(
-                "w-24 h-24 rounded-full shadow-lg transition-all duration-200 transform hover:scale-105",
+                "voice-button-mobile shadow-lg transition-all duration-200 transform hover:scale-105 touch-feedback",
                 isListening 
-                  ? "bg-red-500 hover:bg-red-600" 
-                  : "bg-cricket-primary hover:bg-cricket-secondary"
+                  ? "bg-red-500 hover:bg-red-600 active:bg-red-700" 
+                  : "bg-cricket-primary hover:bg-cricket-secondary active:bg-cricket-dark"
               )}
               disabled={isProcessing}
             >
               {isListening ? (
-                <MicOff className="text-white text-2xl" />
+                <MicOff className="text-white w-6 h-6 sm:w-8 sm:h-8" />
               ) : (
-                <Mic className="text-white text-2xl" />
+                <Mic className="text-white w-6 h-6 sm:w-8 sm:h-8" />
               )}
             </Button>
             {isListening && (
-              <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded-full flex items-center justify-center">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse" />
               </div>
             )}
           </div>
@@ -183,44 +183,32 @@ export function VoiceInput({ onCommand, currentBatsman, currentBowler }: VoiceIn
         )}
 
         {/* Quick Commands */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
+        <div className="mobile-grid mb-6">
           <Button
             variant="outline"
-            size="sm"
+            className="mobile-button touch-feedback bg-cricket-light hover:bg-cricket-primary hover:text-white mobile-text"
             onClick={() => onCommand({ type: 'runs', runs: 1, confidence: 1.0 })}
-            className="bg-cricket-light hover:bg-cricket-primary hover:text-white"
           >
             Single
           </Button>
           <Button
             variant="outline"
-            size="sm"
+            className="mobile-button touch-feedback bg-cricket-light hover:bg-cricket-primary hover:text-white mobile-text"
             onClick={() => onCommand({ type: 'runs', runs: 4, confidence: 1.0 })}
-            className="bg-cricket-light hover:bg-cricket-primary hover:text-white"
           >
             Four
           </Button>
           <Button
             variant="outline"
-            size="sm"
+            className="mobile-button touch-feedback bg-green-100 hover:bg-green-500 hover:text-white mobile-text"
             onClick={() => onCommand({ type: 'runs', runs: 6, confidence: 1.0 })}
-            className="bg-green-100 hover:bg-green-500 hover:text-white"
           >
             Six
           </Button>
           <Button
             variant="outline"
-            size="sm"
-            onClick={() => onCommand({ type: 'extra', extraType: 'wide', extraRuns: 1, confidence: 1.0 })}
-            className="bg-yellow-100 hover:bg-yellow-500 hover:text-white"
-          >
-            Wide
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+            className="mobile-button touch-feedback bg-gray-100 hover:bg-gray-500 hover:text-white mobile-text"
             onClick={() => onCommand({ type: 'runs', runs: 0, confidence: 1.0 })}
-            className="bg-gray-100 hover:bg-gray-500 hover:text-white"
           >
             Dot Ball
           </Button>

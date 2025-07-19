@@ -629,34 +629,39 @@ export default function Scorer() {
   const nonStriker = currentBatsmen.find(b => !b.isOnStrike);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="mobile-full-height bg-gray-50">
       {/* Header */}
       <header className="bg-cricket-primary text-white shadow-lg">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+        <div className="container mx-auto mobile-padding">
+          <div className="mobile-flex items-center justify-between">
+            <div className="flex items-center space-x-2 sm:space-x-3">
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
               <div>
-                <h1 className="text-xl font-bold">Cricket Voice Scorer</h1>
+                <h1 className="mobile-header">Cricket Voice Scorer</h1>
                 {currentData && (
-                  <div className="text-sm text-cricket-light">
+                  <div className="text-xs sm:text-sm text-cricket-light">
                     {currentData.currentInnings.inningsNumber === 1 ? "1st" : "2nd"} Innings - {currentData.currentInnings.battingTeam.name} Batting
                   </div>
                 )}
               </div>
               {!isConnected && (
-                <span className="text-sm bg-red-500 px-2 py-1 rounded">Offline</span>
+                <span className="text-xs sm:text-sm bg-red-500 px-2 py-1 rounded">Offline</span>
               )}
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="mobile-flex items-center space-x-2 sm:space-x-4">
               <Button
                 onClick={handleShareScoreboard}
-                className="bg-cricket-accent hover:bg-orange-600"
+                className="mobile-button bg-cricket-accent hover:bg-orange-600 touch-feedback"
+                size="sm"
               >
-                <Share className="h-4 w-4 mr-2" />
-                Share Scoreboard
+                <Share className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hide-mobile">Share Scoreboard</span>
+                <span className="show-mobile">Share</span>
               </Button>
-              <Button className="bg-cricket-secondary hover:bg-green-900">
+              <Button 
+                className="mobile-button bg-cricket-secondary hover:bg-green-900 touch-feedback hide-mobile"
+                size="sm"
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Export Match
               </Button>
@@ -665,7 +670,7 @@ export default function Scorer() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto scoreboard-mobile">
         {/* Match Header */}
         <Card className="mb-6">
           <CardContent className="pt-6">
@@ -753,9 +758,9 @@ export default function Scorer() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="scorer-mobile-layout gap-4">
           {/* Voice Input Panel */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="scorer-main-mobile space-y-4">
             <VoiceInput
               onCommand={handleCommand}
               currentBatsman={striker?.player.name}
@@ -768,11 +773,11 @@ export default function Scorer() {
             />
 
             {/* Batting Figures */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-gray-800">Batting Figures</CardTitle>
+            <Card className="mobile-card">
+              <CardHeader className="mobile-padding">
+                <CardTitle className="mobile-header text-gray-800">Batting Figures</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="mobile-padding">
                 <div className="space-y-3">
                   {currentData.currentInnings.playerStats
                     .filter(stat => stat.player.teamId === currentData.currentInnings.battingTeam.id && stat.ballsFaced > 0)
@@ -840,7 +845,7 @@ export default function Scorer() {
           </div>
 
           {/* Live Scoreboard */}
-          <div className="space-y-6">
+          <div className="scorer-sidebar-mobile space-y-4">
             <CurrentOver
               balls={currentData.currentInnings.balls}
               bowlerName={currentData.currentBowler?.player.name || 'Unknown'}
@@ -860,20 +865,20 @@ export default function Scorer() {
             />
 
             {/* Quick Actions */}
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
+            <Card className="mobile-card">
+              <CardContent className="mobile-padding">
+                <h3 className="mobile-header text-gray-800 mb-4">Quick Actions</h3>
                 <div className="space-y-3">
                   {/* Change Bowler Dialog */}
                   <Dialog open={changeBowlerDialogOpen} onOpenChange={setChangeBowlerDialogOpen}>
                     <DialogTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full bg-cricket-primary hover:bg-cricket-secondary text-white"
+                        className="mobile-button w-full bg-cricket-primary hover:bg-cricket-secondary text-white touch-feedback"
                         disabled={!isMatchStarted}
                       >
                         <User className="h-4 w-4 mr-2" />
-                        Change Bowler
+                        <span className="mobile-text">Change Bowler</span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
@@ -926,11 +931,11 @@ export default function Scorer() {
                     <DialogTrigger asChild>
                       <Button
                         variant="outline" 
-                        className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                        className="mobile-button w-full bg-blue-500 hover:bg-blue-600 text-white touch-feedback"
                         disabled={!isMatchStarted}
                       >
                         <Clock className="h-4 w-4 mr-2" />
-                        Timeout
+                        <span className="mobile-text">Timeout</span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">

@@ -66,10 +66,10 @@ export default function Scoreboard() {
   const bowlingStats = currentData.currentInnings.playerStats.filter(s => s.ballsBowled > 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="mobile-full-height bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-gradient-to-r from-cricket-primary to-cricket-secondary text-white shadow-lg">
-        <div className="container mx-auto px-4 py-4 sm:py-6">
+        <div className="container mx-auto mobile-padding">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div className="mb-4 sm:mb-0">
               <h1 className="text-2xl sm:text-3xl font-bold mb-2">Live Cricket Scoreboard</h1>
@@ -92,7 +92,7 @@ export default function Scoreboard() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto scoreboard-mobile">
         {/* Main Score Display */}
         <Card className="mb-6 shadow-lg">
           <CardContent className="pt-6">
