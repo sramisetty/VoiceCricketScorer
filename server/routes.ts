@@ -754,6 +754,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/matches/:id/switch-strike', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      
+      // Get current match data
+      const liveData = await storage.getLiveMatchData(matchId);
+      if (!liveData) {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+      
+      const currentBatsmen = liveData.currentBatsmen;
+      if (currentBatsmen.length < 2) {
+        return res.status(400).json({ error: 'Need at least 2 batsmen to switch strike' });
+      }
+      
+      // Find current striker and non-striker
+      const currentStriker = currentBatsmen.find(b => b.isOnStrike);
+      const currentNonStriker = currentBatsmen.find(b => !b.isOnStrike);
+      
+      if (!currentStriker || !currentNonStriker) {
+        return res.status(400).json({ error: 'Could not identify current batsmen for strike switch' });
+      }
+      
+      // Switch the strike
+      await storage.updatePlayerStats(currentStriker.id, { isOnStrike: false });
+      await storage.updatePlayerStats(currentNonStriker.id, { isOnStrike: true });
+      
+      console.log(`Manual strike switch: ${currentNonStriker.player.name} is now on strike (was ${currentStriker.player.name})`);
+      
+      const updatedLiveData = await storage.getLiveMatchData(matchId);
+      broadcastToMatch(matchId, { type: 'strike_switched', data: updatedLiveData });
+      
+      res.json({ 
+        success: true, 
+        previousStriker: currentStriker.player.name,
+        newStriker: currentNonStriker.player.name
+      });
+    } catch (error) {
+      console.error('Error switching strike:', error);
+      res.status(500).json({ error: 'Failed to switch strike' });
+    }
+  });
+
   app.post('/api/matches/:id/new-batsman', async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);

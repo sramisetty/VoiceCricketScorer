@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Share, Download, Settings, Pause, Play, Clock, User, Undo, Trash } from 'lucide-react';
+import { Share, Download, Settings, Pause, Play, Clock, User, Undo, Trash, ArrowLeftRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useToast } from '@/hooks/use-toast';
@@ -284,6 +284,27 @@ export default function Scorer() {
       toast({
         title: "Error",
         description: "Failed to clear match data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const switchStrikeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', `/api/matches/${matchId}/switch-strike`, {});
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Strike Switched",
+        description: `${data.newStriker} is now on strike (was ${data.previousStriker})`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to switch strike. Please try again.",
         variant: "destructive",
       });
     }
@@ -1142,17 +1163,32 @@ export default function Scorer() {
                     </Button>
                   )}
 
-                  {/* Undo Last Ball - Always visible in Quick Actions */}
-                  <Button
-                    variant="outline"
-                    className="w-full bg-red-500 hover:bg-red-600 text-white disabled:bg-gray-400 disabled:text-gray-600"
-                    onClick={() => undoBallMutation.mutate()}
-                    disabled={undoBallMutation.isPending || !isMatchStarted || currentData.recentBalls.length === 0}
-                  >
-                    <Undo className="h-4 w-4 mr-2" />
-                    {undoBallMutation.isPending ? 'Undoing...' : 
-                     currentData.recentBalls.length === 0 ? 'No Balls to Undo' : 'Undo Last Ball'}
-                  </Button>
+                  {/* Quick Actions Row 1 */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Undo Last Ball */}
+                    <Button
+                      variant="outline"
+                      className="w-full bg-red-500 hover:bg-red-600 text-white disabled:bg-gray-400 disabled:text-gray-600"
+                      onClick={() => undoBallMutation.mutate()}
+                      disabled={undoBallMutation.isPending || !isMatchStarted || currentData.recentBalls.length === 0}
+                    >
+                      <Undo className="h-4 w-4 mr-2" />
+                      {undoBallMutation.isPending ? 'Undoing...' : 
+                       currentData.recentBalls.length === 0 ? 'No Balls to Undo' : 'Undo Last Ball'}
+                    </Button>
+
+                    {/* Switch Strike */}
+                    <Button
+                      variant="outline"
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-400 disabled:text-gray-600"
+                      onClick={() => switchStrikeMutation.mutate()}
+                      disabled={switchStrikeMutation.isPending || !isMatchStarted || currentData.currentBatsmen.length < 2}
+                    >
+                      <ArrowLeftRight className="h-4 w-4 mr-2" />
+                      {switchStrikeMutation.isPending ? 'Switching...' : 
+                       currentData.currentBatsmen.length < 2 ? 'Need 2 Batsmen' : 'Switch Strike'}
+                    </Button>
+                  </div>
 
                   {/* Match Settings */}
                   <Button
