@@ -603,7 +603,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const totalBalls = currentInnings.totalBalls ?? 0;
         const currentOver = Math.floor(totalBalls / 6) + 1;
         
-        await storage.validateNonConsecutiveBowling(currentInnings.id, newBowlerId, currentOver);
+        // Validate consecutive bowling rule using ICC rules engine
+        const validation = await storage.validateBallWithICCRules({
+          inningsId: currentInnings.id,
+          bowlerId: newBowlerId,
+          overNumber: currentOver,
+          ballNumber: 1,
+          batsmanId: 0, // Placeholder for validation
+          runs: 0
+        }, currentInnings.id);
+        
+        if (!validation.isValid) {
+          throw new Error(validation.errorMessage || "ICC Cricket Rule Violation");
+        }
       } catch (error) {
         if (error.message.includes('Cricket Rule Violation')) {
           return res.status(400).json({ error: error.message });
