@@ -624,8 +624,9 @@ export class DatabaseStorage implements IStorage {
 
     if (!lastBall) return false;
 
-    // Check if this is the first ball of an over (ball number 1)
+    // Check if this is the first ball of an over (ball number 1) or last ball of an over (ball number 6)
     const isFirstBallOfOver = lastBall.ballNumber === 1;
+    const isLastBallOfOver = lastBall.ballNumber === 6;
     let previousBowlerId: number | null = null;
 
     // If undoing the first ball of an over, we need to find the previous bowler
@@ -640,6 +641,14 @@ export class DatabaseStorage implements IStorage {
       if (previousOverLastBall) {
         previousBowlerId = previousOverLastBall.bowlerId;
       }
+    }
+    
+    // If undoing the last ball of an over, we need to keep the current bowler as this bowler
+    // (since they bowled this entire over)
+    if (isLastBallOfOver) {
+      // The current bowler should remain the same (the one who bowled this ball)
+      // Don't change currentBowlerId in this case
+      previousBowlerId = lastBall.bowlerId;
     }
 
     // Get the player stats for batsman and bowler to reverse their statistics
@@ -696,14 +705,18 @@ export class DatabaseStorage implements IStorage {
       }).where(eq(innings.id, inningsId));
     }
 
-    // Handle bowler change reversal for first ball of over
-    if (isFirstBallOfOver && previousBowlerId !== null) {
-      // Revert the current bowler to the previous bowler
+    // Handle bowler change reversal
+    if ((isFirstBallOfOver || isLastBallOfOver) && previousBowlerId !== null) {
+      // Revert the current bowler to the appropriate bowler
       await db.update(innings).set({
         currentBowlerId: previousBowlerId
       }).where(eq(innings.id, inningsId));
       
-      console.log(`Undo: Reverted current bowler back to previous bowler (ID: ${previousBowlerId})`);
+      if (isFirstBallOfOver) {
+        console.log(`Undo: Reverted current bowler back to previous bowler (ID: ${previousBowlerId})`);
+      } else if (isLastBallOfOver) {
+        console.log(`Undo: Set current bowler to the bowler who bowled this over (ID: ${previousBowlerId})`);
+      }
     }
 
     // Handle strike rotation reversal
