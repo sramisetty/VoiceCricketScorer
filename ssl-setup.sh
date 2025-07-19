@@ -10,6 +10,20 @@ DOMAIN=""
 EMAIL=""
 APP_NAME="cricket-scorer"
 
+# Detect package manager
+if command -v apt-get &> /dev/null; then
+    PKG_MANAGER="apt"
+    PKG_INSTALL="apt-get install -y"
+elif command -v yum &> /dev/null; then
+    PKG_MANAGER="yum"
+    PKG_INSTALL="yum install -y"
+elif command -v dnf &> /dev/null; then
+    PKG_MANAGER="dnf"
+    PKG_INSTALL="dnf install -y"
+else
+    PKG_MANAGER="unknown"
+fi
+
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -101,6 +115,18 @@ update_nginx_for_domain() {
 # Obtain SSL certificate
 obtain_ssl_certificate() {
     log "Obtaining SSL certificate from Let's Encrypt..."
+    
+    # Install certbot if not available
+    if ! command -v certbot &> /dev/null; then
+        log "Installing certbot..."
+        if [ "$PKG_MANAGER" = "apt" ]; then
+            $PKG_INSTALL certbot python3-certbot-nginx
+        elif [ "$PKG_MANAGER" = "yum" ]; then
+            $PKG_INSTALL certbot python3-certbot-nginx
+        elif [ "$PKG_MANAGER" = "dnf" ]; then
+            $PKG_INSTALL certbot python3-certbot-nginx
+        fi
+    fi
     
     # Stop nginx temporarily to allow certbot to bind to port 80
     systemctl stop nginx

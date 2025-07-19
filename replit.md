@@ -131,6 +131,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 ### January 19, 2025
+- **✓ Multi-Platform Deployment System**: Updated deployment scripts to support Ubuntu/Debian (apt), CentOS/RHEL (yum), and Fedora (dnf)
 - **✓ Comprehensive Production Deployment System**: Created complete Linux deployment scripts similar to poker ledger project
 - **✓ Main Deployment Script**: Full production setup with Node.js, PostgreSQL, Nginx, security, and automated backups
 - **✓ Update Script**: Safe application updates preserving data and configuration

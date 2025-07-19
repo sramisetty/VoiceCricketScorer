@@ -14,10 +14,17 @@ sudo ./deploy.sh
 
 ## Prerequisites
 
-- Ubuntu 20.04+ or Debian 11+ Linux server
+- Linux server (Ubuntu 20.04+, Debian 11+, CentOS 8+, RHEL 8+, or Fedora 35+)
 - Minimum 1GB RAM, 2GB disk space
 - Root access (sudo)
 - Domain name (optional, for SSL)
+
+## Supported Operating Systems
+
+The deployment scripts automatically detect and support:
+- **Ubuntu/Debian**: Uses `apt-get` package manager
+- **CentOS/RHEL**: Uses `yum` package manager
+- **Fedora**: Uses `dnf` package manager
 
 ## Deployment Scripts
 

@@ -10,6 +10,17 @@ APP_URL="http://localhost:3000"
 LOG_DIR="/var/log/cricket-scorer"
 ALERT_EMAIL=""  # Set this to receive email alerts
 
+# Detect package manager
+if command -v apt-get &> /dev/null; then
+    PKG_MANAGER="apt"
+elif command -v yum &> /dev/null; then
+    PKG_MANAGER="yum"
+elif command -v dnf &> /dev/null; then
+    PKG_MANAGER="dnf"
+else
+    PKG_MANAGER="unknown"
+fi
+
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -99,9 +110,12 @@ check_memory() {
 check_cpu_load() {
     local load=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
     local cpu_count=$(nproc)
-    local load_normalized=$(echo "scale=2; $load / $cpu_count" | bc)
     
-    if (( $(echo "$load_normalized < 1.0" | bc -l) )); then
+    # Use awk for floating point arithmetic (bc might not be available)
+    local load_normalized=$(awk "BEGIN {printf \"%.2f\", $load / $cpu_count}")
+    local load_check=$(awk "BEGIN {print ($load_normalized < 1.0) ? 1 : 0}")
+    
+    if [ "$load_check" -eq 1 ]; then
         log "✓ CPU load: $load (normalized: $load_normalized)"
         return 0
     else
@@ -227,7 +241,18 @@ show_performance() {
     
     # Disk I/O
     echo -e "${YELLOW}Disk I/O:${NC}"
-    iostat -x 1 1 2>/dev/null || echo "iostat not available (install sysstat)"
+    if command -v iostat &> /dev/null; then
+        iostat -x 1 1 2>/dev/null
+    else
+        echo "iostat not available. Install sysstat package:"
+        if [ "$PKG_MANAGER" = "apt" ]; then
+            echo "  sudo apt-get install sysstat"
+        elif [ "$PKG_MANAGER" = "yum" ]; then
+            echo "  sudo yum install sysstat"
+        elif [ "$PKG_MANAGER" = "dnf" ]; then
+            echo "  sudo dnf install sysstat"
+        fi
+    fi
     echo ""
     
     # Network statistics

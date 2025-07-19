@@ -42,14 +42,42 @@ check_root() {
     fi
 }
 
+# Detect package manager and set variables
+detect_package_manager() {
+    if command -v apt-get &> /dev/null; then
+        PKG_MANAGER="apt"
+        PKG_UPDATE="apt-get update -y"
+        PKG_UPGRADE="apt-get upgrade -y"
+        PKG_INSTALL="apt-get install -y"
+        NGINX_SERVICE="nginx"
+        POSTGRES_SERVICE="postgresql"
+        log "Detected Debian/Ubuntu system (apt)"
+    elif command -v yum &> /dev/null; then
+        PKG_MANAGER="yum"
+        PKG_UPDATE="yum update -y"
+        PKG_UPGRADE="yum upgrade -y"
+        PKG_INSTALL="yum install -y"
+        NGINX_SERVICE="nginx"
+        POSTGRES_SERVICE="postgresql"
+        log "Detected CentOS/RHEL system (yum)"
+    elif command -v dnf &> /dev/null; then
+        PKG_MANAGER="dnf"
+        PKG_UPDATE="dnf update -y"
+        PKG_UPGRADE="dnf upgrade -y"
+        PKG_INSTALL="dnf install -y"
+        NGINX_SERVICE="nginx"
+        POSTGRES_SERVICE="postgresql"
+        log "Detected Fedora system (dnf)"
+    else
+        error "Unsupported package manager. This script requires apt-get, yum, or dnf"
+    fi
+}
+
 # System requirements check
 check_system() {
     log "Checking system requirements..."
     
-    # Check Ubuntu/Debian
-    if ! command -v apt-get &> /dev/null; then
-        error "This script requires Ubuntu/Debian (apt-get not found)"
-    fi
+    detect_package_manager
     
     # Check available disk space (minimum 2GB)
     AVAILABLE_SPACE=$(df / | awk 'NR==2 {print $4}')
@@ -69,8 +97,8 @@ check_system() {
 # Update system packages
 update_system() {
     log "Updating system packages..."
-    apt-get update -y
-    apt-get upgrade -y
+    $PKG_UPDATE
+    $PKG_UPGRADE
     log "System packages updated"
 }
 
@@ -78,22 +106,66 @@ update_system() {
 install_dependencies() {
     log "Installing system dependencies..."
     
-    # Install essential packages
-    apt-get install -y \
-        curl \
-        wget \
-        git \
-        build-essential \
-        nginx \
-        postgresql \
-        postgresql-contrib \
-        ufw \
-        fail2ban \
-        htop \
-        unzip \
-        supervisor \
-        certbot \
-        python3-certbot-nginx
+    if [ "$PKG_MANAGER" = "apt" ]; then
+        # Ubuntu/Debian packages
+        $PKG_INSTALL \
+            curl \
+            wget \
+            git \
+            build-essential \
+            nginx \
+            postgresql \
+            postgresql-contrib \
+            ufw \
+            fail2ban \
+            htop \
+            unzip \
+            supervisor \
+            certbot \
+            python3-certbot-nginx
+    elif [ "$PKG_MANAGER" = "yum" ]; then
+        # CentOS/RHEL packages
+        # Enable EPEL repository for additional packages
+        $PKG_INSTALL epel-release
+        $PKG_INSTALL \
+            curl \
+            wget \
+            git \
+            gcc \
+            gcc-c++ \
+            make \
+            nginx \
+            postgresql \
+            postgresql-server \
+            postgresql-contrib \
+            firewalld \
+            fail2ban \
+            htop \
+            unzip \
+            supervisor \
+            certbot \
+            python3-certbot-nginx
+    elif [ "$PKG_MANAGER" = "dnf" ]; then
+        # Fedora packages
+        $PKG_INSTALL \
+            curl \
+            wget \
+            git \
+            gcc \
+            gcc-c++ \
+            make \
+            nginx \
+            postgresql \
+            postgresql-server \
+            postgresql-contrib \
+            firewalld \
+            fail2ban \
+            htop \
+            unzip \
+            supervisor \
+            certbot \
+            python3-certbot-nginx
+    fi
     
     log "System dependencies installed"
 }
@@ -102,12 +174,17 @@ install_dependencies() {
 install_nodejs() {
     log "Installing Node.js 20..."
     
-    # Remove any existing Node.js
-    apt-get remove -y nodejs npm 2>/dev/null || true
-    
-    # Install Node.js 20 from NodeSource repository
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-    apt-get install -y nodejs
+    if [ "$PKG_MANAGER" = "apt" ]; then
+        # Ubuntu/Debian Node.js installation
+        $PKG_INSTALL nodejs npm 2>/dev/null || true
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+        $PKG_INSTALL nodejs
+    elif [ "$PKG_MANAGER" = "yum" ] || [ "$PKG_MANAGER" = "dnf" ]; then
+        # CentOS/RHEL/Fedora Node.js installation
+        $PKG_INSTALL nodejs npm 2>/dev/null || true
+        curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+        $PKG_INSTALL nodejs
+    fi
     
     # Verify installation
     NODE_VERSION=$(node --version)
@@ -144,9 +221,16 @@ create_app_user() {
 setup_database() {
     log "Setting up PostgreSQL database..."
     
+    if [ "$PKG_MANAGER" = "yum" ] || [ "$PKG_MANAGER" = "dnf" ]; then
+        # Initialize PostgreSQL on CentOS/RHEL/Fedora
+        if [ ! -f /var/lib/pgsql/data/postgresql.conf ]; then
+            postgresql-setup initdb 2>/dev/null || postgresql-setup --initdb 2>/dev/null || true
+        fi
+    fi
+    
     # Start and enable PostgreSQL
-    systemctl start postgresql
-    systemctl enable postgresql
+    systemctl start $POSTGRES_SERVICE
+    systemctl enable $POSTGRES_SERVICE
     
     # Create database and user
     sudo -u postgres psql -c "CREATE DATABASE cricket_scorer;" 2>/dev/null || log "Database already exists"
@@ -156,16 +240,23 @@ setup_database() {
     
     # Configure PostgreSQL for network connections
     PG_VERSION=$(sudo -u postgres psql -t -c "SELECT version();" | grep -oP '\d+\.\d+' | head -1)
-    PG_CONFIG_DIR="/etc/postgresql/$PG_VERSION/main"
+    
+    if [ "$PKG_MANAGER" = "apt" ]; then
+        PG_CONFIG_DIR="/etc/postgresql/$PG_VERSION/main"
+    else
+        PG_CONFIG_DIR="/var/lib/pgsql/data"
+    fi
     
     # Update postgresql.conf
-    sed -i "s/#listen_addresses = 'localhost'/listen_addresses = 'localhost'/" "$PG_CONFIG_DIR/postgresql.conf"
-    
-    # Update pg_hba.conf
-    echo "local   cricket_scorer   cricket_user                md5" >> "$PG_CONFIG_DIR/pg_hba.conf"
+    if [ -f "$PG_CONFIG_DIR/postgresql.conf" ]; then
+        sed -i "s/#listen_addresses = 'localhost'/listen_addresses = 'localhost'/" "$PG_CONFIG_DIR/postgresql.conf"
+        
+        # Update pg_hba.conf
+        echo "local   cricket_scorer   cricket_user                md5" >> "$PG_CONFIG_DIR/pg_hba.conf"
+    fi
     
     # Restart PostgreSQL
-    systemctl restart postgresql
+    systemctl restart $POSTGRES_SERVICE
     
     log "PostgreSQL database setup completed"
 }
@@ -370,22 +461,26 @@ EOF
 configure_firewall() {
     log "Configuring firewall..."
     
-    # Reset UFW to defaults
-    ufw --force reset
-    
-    # Default policies
-    ufw default deny incoming
-    ufw default allow outgoing
-    
-    # Allow SSH (be careful with this)
-    ufw allow ssh
-    
-    # Allow HTTP and HTTPS
-    ufw allow 80/tcp
-    ufw allow 443/tcp
-    
-    # Enable firewall
-    ufw --force enable
+    if [ "$PKG_MANAGER" = "apt" ]; then
+        # Ubuntu/Debian - use UFW
+        ufw --force reset
+        ufw default deny incoming
+        ufw default allow outgoing
+        ufw allow ssh
+        ufw allow 80/tcp
+        ufw allow 443/tcp
+        ufw --force enable
+    else
+        # CentOS/RHEL/Fedora - use firewalld
+        systemctl start firewalld
+        systemctl enable firewalld
+        
+        # Configure firewall rules
+        firewall-cmd --permanent --add-service=ssh
+        firewall-cmd --permanent --add-service=http
+        firewall-cmd --permanent --add-service=https
+        firewall-cmd --reload
+    fi
     
     log "Firewall configured"
 }
