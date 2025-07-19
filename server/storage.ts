@@ -839,6 +839,74 @@ export class DatabaseStorage implements IStorage {
            bowlingTeamPlayers[0]; // Default to first bowler if no one has bowled yet
   }
 
+  // Clear Match Data
+  async clearMatchData(matchId: number): Promise<boolean> {
+    try {
+      // Get all innings for this match
+      const matchInnings = await db.select().from(innings).where(eq(innings.matchId, matchId));
+      
+      if (matchInnings.length === 0) {
+        console.log('No innings found for match', matchId);
+        return true; // Already clear
+      }
+
+      // Delete all balls for all innings in this match
+      for (const inning of matchInnings) {
+        await db.delete(balls).where(eq(balls.inningsId, inning.id));
+        console.log(`Cleared balls for innings ${inning.id}`);
+      }
+
+      // Reset all player statistics to initial state
+      for (const inning of matchInnings) {
+        const inningsStats = await db.select().from(playerStats).where(eq(playerStats.inningsId, inning.id));
+        
+        for (const stats of inningsStats) {
+          await db.update(playerStats).set({
+            runs: 0,
+            ballsFaced: 0,
+            fours: 0,
+            sixes: 0,
+            ballsBowled: 0,
+            runsConceded: 0,
+            wicketsTaken: 0,
+            oversBowled: 0,
+            isOut: false,
+            isOnStrike: false,
+            dismissalType: null,
+            dismissalBall: null,
+            fielderId: null
+          }).where(eq(playerStats.id, stats.id));
+        }
+        console.log(`Reset player stats for innings ${inning.id}`);
+      }
+
+      // Reset innings totals
+      for (const inning of matchInnings) {
+        await db.update(innings).set({
+          totalRuns: 0,
+          totalBalls: 0,
+          totalWickets: 0,
+          totalOvers: 0,
+          currentBowlerId: null,
+          isCompleted: false
+        }).where(eq(innings.id, inning.id));
+        console.log(`Reset innings totals for innings ${inning.id}`);
+      }
+
+      // Reset match status to not started
+      await db.update(matches).set({
+        status: 'not_started',
+        currentInningsId: null
+      }).where(eq(matches.id, matchId));
+
+      console.log(`Successfully cleared all data for match ${matchId}`);
+      return true;
+    } catch (error) {
+      console.error('Error clearing match data:', error);
+      return false;
+    }
+  }
+
   // Live Match Data
   async getLiveMatchData(matchId: number): Promise<LiveMatchData | undefined> {
     const matchWithTeams = await this.getMatchWithTeams(matchId);

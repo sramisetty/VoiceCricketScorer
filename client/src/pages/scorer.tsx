@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Share, Download, Settings, Pause, Play, Clock, User, Undo } from 'lucide-react';
+import { Share, Download, Settings, Pause, Play, Clock, User, Undo, Trash } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useToast } from '@/hooks/use-toast';
@@ -262,6 +262,28 @@ export default function Scorer() {
       toast({
         title: "Error",
         description: "Failed to undo ball. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const clearMatchMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', `/api/matches/${matchId}/clear`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Match Cleared",
+        description: "All balls and runs have been cleared. Match reset to initial state.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      setIsMatchStarted(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to clear match data. Please try again.",
         variant: "destructive",
       });
     }
@@ -1128,6 +1150,17 @@ export default function Scorer() {
                     <Undo className="h-4 w-4 mr-2" />
                     {undoBallMutation.isPending ? 'Undoing...' : 
                      currentData.recentBalls.length === 0 ? 'No Balls to Undo' : 'Undo Last Ball'}
+                  </Button>
+
+                  {/* Clear Match Data */}
+                  <Button
+                    variant="outline"
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                    onClick={() => clearMatchMutation.mutate()}
+                    disabled={clearMatchMutation.isPending}
+                  >
+                    <Trash className="h-4 w-4 mr-2" />
+                    {clearMatchMutation.isPending ? 'Clearing...' : 'Clear Match Data'}
                   </Button>
 
                   {/* Match Settings */}

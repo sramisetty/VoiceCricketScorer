@@ -522,6 +522,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear all balls and runs for a match
+  app.post('/api/matches/:id/clear', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      const success = await storage.clearMatchData(matchId);
+      
+      if (success) {
+        const liveData = await storage.getLiveMatchData(matchId);
+        broadcastToMatch(matchId, { type: 'match_cleared', data: liveData });
+        res.json({ success: true, message: 'Match data cleared successfully' });
+      } else {
+        res.status(400).json({ error: 'Failed to clear match data' });
+      }
+    } catch (error) {
+      console.error('Clear match error:', error);
+      res.status(500).json({ error: 'Failed to clear match data' });
+    }
+  });
+
   // Advanced scoring endpoints
   app.post('/api/matches/:id/over-complete', async (req, res) => {
     try {
