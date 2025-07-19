@@ -131,6 +131,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 ### January 19, 2025
+- **✓ Comprehensive Production Deployment System**: Created complete Linux deployment scripts similar to poker ledger project
+- **✓ Main Deployment Script**: Full production setup with Node.js, PostgreSQL, Nginx, security, and automated backups
+- **✓ Update Script**: Safe application updates preserving data and configuration
+- **✓ Monitoring System**: Health checks, log management, performance metrics, and automated monitoring
+- **✓ SSL Automation**: Let's Encrypt SSL certificate setup with automatic renewal
+- **✓ Security Hardening**: Firewall, fail2ban, security headers, and system protection
+- **✓ Backup System**: Automated daily backups with 7-day retention
+- **✓ Complete Documentation**: Comprehensive deployment guide with troubleshooting
 - **✓ Complete ICC Cricket Rules Implementation**: Implemented comprehensive ICC Playing Conditions 2019-20 with full rule validation engine
 - **✓ Enhanced Database Schema**: Added ICC-compliant fields (isShortRun, isDeadBall, penaltyRuns, batsmanCrossed, dismissalType, maidenOvers, wideBalls, noBalls)
 - **✓ Cricket Rules Engine**: Created dedicated cricket-rules.ts module with complete ICC rule validation for all scenarios
