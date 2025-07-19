@@ -98,8 +98,11 @@ export default function Scorer() {
       const isOverCompleted = ballsInCurrentOver === 0 && currentData.currentInnings.totalBalls > 0;
       const currentOverNumber = Math.floor(currentData.currentInnings.totalBalls / 6);
       
+      console.log(`Over check: balls=${currentData.currentInnings.totalBalls}, ballsInOver=${ballsInCurrentOver}, overNumber=${currentOverNumber}, lastChange=${lastBowlerChangeOverNumber}, isCompleted=${isOverCompleted}, dialogOpen=${overCompletedDialogOpen}`);
+      
       // Only show dialog if over is completed AND dialog is not already open AND we haven't just changed bowler for this over
       if (isOverCompleted && !overCompletedDialogOpen && lastBowlerChangeOverNumber !== currentOverNumber) {
+        console.log(`Showing bowler change dialog for over ${currentOverNumber}`);
         setOverCompletedDialogOpen(true);
       }
     }
@@ -328,6 +331,7 @@ export default function Scorer() {
       if (currentData?.currentInnings) {
         const currentOverNumber = Math.floor(currentData.currentInnings.totalBalls / 6);
         setLastBowlerChangeOverNumber(currentOverNumber);
+        console.log(`Bowler changed for over ${currentOverNumber}, updating lastBowlerChangeOverNumber`);
       }
       
       // Show success message

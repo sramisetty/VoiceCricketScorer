@@ -156,6 +156,8 @@ Preferred communication style: Simple, everyday language.
 - **✓ Comprehensive Ball Counting**: Fixed over management to properly count only valid balls toward 6-ball limit, extras repeat ball numbers
 - **✓ Automatic Over Completion**: Implemented end-of-over detection with automatic strike rotation and maiden over tracking
 - **✓ Bye/Leg-bye Implementation**: Added complete ICC Rule 23 support for bye and leg-bye runs with proper run attribution
+- **✓ Bowler Change Dialog Fix**: Enhanced logic to prevent repeated bowler change popups after bowler is already changed for an over
+- **✓ Over Tracking Improvement**: Added debugging and tracking to ensure bowler change dialogs only appear once per over completion
 
 ### January 18, 2025
 - **✓ Innings Completion Logic**: Implemented automatic detection when 10 wickets fall or overs complete
