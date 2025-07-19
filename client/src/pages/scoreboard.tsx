@@ -67,37 +67,37 @@ export default function Scoreboard() {
 
   return (
     <div className="mobile-full-height bg-gray-50 dark:bg-gray-900">
-      {/* Enhanced Header */}
+      {/* Enhanced Header - Mobile Responsive */}
       <header className="bg-gradient-to-r from-green-700 to-green-800 text-white shadow-xl border-b-4 border-green-600">
-        <div className="container mx-auto px-3 py-4 sm:px-6 sm:py-6">
+        <div className="container mx-auto px-3 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col space-y-3">
             {/* Main Title */}
-            <div className="text-center sm:text-left">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent">
+            <div className="text-center">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent">
                 🏏 Live Cricket Scoreboard
               </h1>
-              <div className="flex items-center justify-center sm:justify-start space-x-2 mt-2">
+              <div className="flex items-center justify-center space-x-2 mt-2">
                 <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
-                <span className="text-sm font-medium text-green-100">
+                <span className="text-xs sm:text-sm font-medium text-green-100">
                   {isConnected ? '🔴 LIVE' : '📡 Offline'}
                 </span>
               </div>
             </div>
 
-            {/* Match Info */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
+            {/* Match Info - Compact Mobile Layout */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
               <div className="text-center">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-1">
+                <div className="text-base sm:text-lg lg:text-xl font-bold text-white mb-1">
                   {currentData.match.team1.name} vs {currentData.match.team2.name}
                 </div>
-                <div className="text-sm sm:text-base text-green-100 mb-2">
-                  {currentData.match.matchType} Match • {currentData.currentInnings.inningsNumber === 1 ? '1️⃣ First' : '2️⃣ Second'} Innings
+                <div className="text-xs sm:text-sm text-green-100 mb-2">
+                  {currentData.match.matchType} • {currentData.currentInnings.inningsNumber === 1 ? '1st' : '2nd'} Innings
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-2 text-xs sm:text-sm">
-                  <span className="bg-green-600 px-2 py-1 rounded-full font-medium">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-xs">
+                  <span className="bg-green-600 px-2 py-1 rounded-full font-medium whitespace-nowrap">
                     🏏 {currentData.currentInnings.battingTeam.name} Batting
                   </span>
-                  <span className="bg-red-600 px-2 py-1 rounded-full font-medium">
+                  <span className="bg-red-600 px-2 py-1 rounded-full font-medium whitespace-nowrap">
                     ⚾ {currentData.currentInnings.bowlingTeam.name} Bowling
                   </span>
                 </div>
@@ -109,10 +109,12 @@ export default function Scoreboard() {
               <Button
                 onClick={handleCopyLink}
                 variant="outline"
-                className="bg-white/20 border-white/30 text-white hover:bg-white/30 hover:text-white backdrop-blur-sm"
+                className="bg-white/20 border-white/30 text-white hover:bg-white/30 hover:text-white backdrop-blur-sm text-xs sm:text-sm px-3 py-2 h-8 sm:h-9"
                 size="sm"
               >
-                📋 Copy Scoreboard Link
+                <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Copy Scoreboard Link</span>
+                <span className="sm:hidden">Copy Link</span>
               </Button>
             </div>
           </div>

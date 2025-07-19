@@ -585,22 +585,24 @@ export default function Scorer() {
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <header className="bg-cricket-primary text-white shadow-lg">
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse" />
-                <div>
-                  <h1 className="text-xl font-bold">Cricket Voice Scorer</h1>
-                  <div className="text-sm text-cricket-light">Match Ready to Start</div>
+          <div className="container mx-auto px-3 py-3 sm:px-6 sm:py-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
+              <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
+                <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-lg sm:text-xl font-bold truncate">Cricket Voice Scorer</h1>
+                  <div className="text-xs sm:text-sm text-cricket-light">Match Ready to Start</div>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
                 <Button
                   onClick={() => setLocation(`/match-settings/${matchId}`)}
-                  className="bg-cricket-accent hover:bg-orange-600"
+                  className="bg-cricket-accent hover:bg-orange-600 text-xs sm:text-sm px-3 py-2 h-8 sm:h-9"
+                  size="sm"
                 >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Match Settings
+                  <Settings className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Match Settings</span>
+                  <span className="sm:hidden">Settings</span>
                 </Button>
               </div>
             </div>
@@ -689,12 +691,12 @@ export default function Scorer() {
     <div className="mobile-full-height bg-gray-50">
       {/* Header */}
       <header className="bg-cricket-primary text-white shadow-lg">
-        <div className="container mx-auto mobile-padding">
-          <div className="mobile-flex items-center justify-between">
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
-              <div>
-                <h1 className="mobile-header">Cricket Voice Scorer</h1>
+        <div className="container mx-auto px-3 py-3 sm:px-6 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
+            <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
+              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-xl font-bold truncate">Cricket Voice Scorer</h1>
                 {currentData && (
                   <div className="text-xs sm:text-sm text-cricket-light">
                     {currentData.currentInnings.inningsNumber === 1 ? "1st" : "2nd"} Innings - {currentData.currentInnings.battingTeam.name} Batting
@@ -702,25 +704,25 @@ export default function Scorer() {
                 )}
               </div>
               {!isConnected && (
-                <span className="text-xs sm:text-sm bg-red-500 px-2 py-1 rounded">Offline</span>
+                <span className="text-xs bg-red-500 px-2 py-1 rounded flex-shrink-0">Offline</span>
               )}
             </div>
-            <div className="mobile-flex items-center space-x-2 sm:space-x-4">
+            <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
               <Button
                 onClick={handleShareScoreboard}
-                className="mobile-button bg-cricket-accent hover:bg-orange-600 touch-feedback"
+                className="bg-cricket-accent hover:bg-orange-600 text-xs sm:text-sm px-3 py-2 h-8 sm:h-9"
                 size="sm"
               >
-                <Share className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hide-mobile">Share Scoreboard</span>
-                <span className="show-mobile">Share</span>
+                <Share className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Share Scoreboard</span>
+                <span className="sm:hidden">Share</span>
               </Button>
               <Button 
-                className="mobile-button bg-cricket-secondary hover:bg-green-900 touch-feedback hide-mobile"
+                className="bg-cricket-secondary hover:bg-green-900 text-xs sm:text-sm px-3 py-2 h-8 sm:h-9 hidden md:flex"
                 size="sm"
               >
-                <Download className="h-4 w-4 mr-2" />
-                Export Match
+                <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                Export
               </Button>
             </div>
           </div>
