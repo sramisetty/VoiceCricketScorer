@@ -738,15 +738,15 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Handle strike rotation reversal
-    if (lastBall.runs && lastBall.runs % 2 === 1) {
+    if (lastBall.runs && lastBall.runs % 2 === 1 && !lastBall.extraType) {
       // If the last ball had odd runs, reverse the strike rotation
-      await this.updateStrikeRotation(inningsId, lastBall.batsmanId, lastBall.runs, lastBall.extraType ? true : false);
+      await this.reverseStrikeRotation(inningsId);
     }
 
     // Handle end-of-over strike rotation reversal
     if (lastBall.ballNumber === 6 && !lastBall.extraType) {
       // If undoing the last ball of an over, reverse the automatic strike rotation that happens at over end
-      await this.updateStrikeRotation(inningsId, lastBall.batsmanId, 1, false); // Force strike rotation reversal
+      await this.reverseStrikeRotation(inningsId);
     }
 
     // Finally, delete the ball record
@@ -1031,6 +1031,24 @@ export class DatabaseStorage implements IStorage {
           
           console.log(`Strike rotation: ${nonStriker.player.name} is now on strike (after ${runs} run${runs === 1 ? '' : 's'})`);
         }
+      }
+    }
+  }
+
+  async reverseStrikeRotation(inningsId: number): Promise<void> {
+    // Reverse the current strike rotation by swapping the strike status
+    const currentBatsmen = await this.getCurrentBatsmen(inningsId);
+    
+    if (currentBatsmen.length >= 2) {
+      const striker = currentBatsmen.find(b => b.isOnStrike);
+      const nonStriker = currentBatsmen.find(b => !b.isOnStrike);
+      
+      if (striker && nonStriker) {
+        // Switch their strike status back
+        await this.updatePlayerStats(striker.id, { isOnStrike: false });
+        await this.updatePlayerStats(nonStriker.id, { isOnStrike: true });
+        
+        console.log(`Strike rotation reversed: ${nonStriker.player.name} is now on strike (undo)`);
       }
     }
   }

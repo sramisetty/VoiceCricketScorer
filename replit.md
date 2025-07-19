@@ -128,6 +128,8 @@ Preferred communication style: Simple, everyday language.
 - **✓ Clear Match Button**: Added and then removed Clear Match Data button from Quick Actions panel per user request
 - **✓ Current Over Display Fix**: Resolved inconsistency between Current Over widget and Advanced Scorer ball counts by using same calculation method
 - **✓ Enhanced Undo Functionality**: Fixed undo to properly revert current bowler when undoing first ball of an over with enhanced strike rotation reversal
+- **✓ Cricket Rule Enforcement**: Implemented validation preventing same bowler from bowling consecutive overs with comprehensive error handling
+- **✓ Strike Rotation Reversal**: Fixed undo functionality to properly reverse batsman strike rotation when odd runs are undone
 
 ### January 18, 2025
 - **✓ Innings Completion Logic**: Implemented automatic detection when 10 wickets fall or overs complete
