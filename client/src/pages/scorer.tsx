@@ -93,26 +93,27 @@ export default function Scorer() {
 
   // Check if over is completed and prompt for next bowler
   useEffect(() => {
-    if (currentData?.currentInnings) {
+    if (currentData?.currentInnings && !overCompletedDialogOpen) {
       const ballsInCurrentOver = currentData.currentInnings.totalBalls % 6;
       const isOverCompleted = ballsInCurrentOver === 0 && currentData.currentInnings.totalBalls > 0;
       const currentOverNumber = Math.floor(currentData.currentInnings.totalBalls / 6);
       
-      // Check if the current bowler already bowled at least one ball in this over
-      // If so, it means bowler was already changed and no dialog needed
-      const currentBowlerHasBowledThisOver = currentData.recentBalls.some(ball => 
-        ball.overNumber === currentOverNumber && ball.bowlerId === currentData.currentBowler?.playerId
-      );
-      
-      console.log(`Over check: balls=${currentData.currentInnings.totalBalls}, ballsInOver=${ballsInCurrentOver}, overNumber=${currentOverNumber}, isCompleted=${isOverCompleted}, dialogOpen=${overCompletedDialogOpen}, bowlerBowledThisOver=${currentBowlerHasBowledThisOver}`);
-      
-      // Only show dialog if:
-      // 1. Over is completed
-      // 2. Dialog is not already open  
-      // 3. Current bowler hasn't bowled any balls in this over (meaning no bowler change happened yet)
-      if (isOverCompleted && !overCompletedDialogOpen && !currentBowlerHasBowledThisOver) {
-        console.log(`Showing bowler change dialog for over ${currentOverNumber}`);
-        setOverCompletedDialogOpen(true);
+      // If over is completed, check if we need to change bowler
+      if (isOverCompleted && currentOverNumber > 0) {
+        // Get the last over's bowler
+        const lastOverBalls = currentData.recentBalls.filter(ball => ball.overNumber === currentOverNumber - 1);
+        const lastOverBowlerId = lastOverBalls.length > 0 ? lastOverBalls[0].bowlerId : null;
+        
+        // Check if current bowler is same as last over's bowler (ICC Rule 17.6 violation)
+        const isSameBowlerAsLastOver = lastOverBowlerId === currentData.currentBowler?.playerId;
+        
+        console.log(`Over ${currentOverNumber} completed. Last over bowler: ${lastOverBowlerId}, Current bowler: ${currentData.currentBowler?.playerId}, Same bowler: ${isSameBowlerAsLastOver}`);
+        
+        // Only show dialog if current bowler is same as last over's bowler
+        if (isSameBowlerAsLastOver) {
+          console.log(`ICC Rule 17.6: Must change bowler for over ${currentOverNumber}`);
+          setOverCompletedDialogOpen(true);
+        }
       }
     }
   }, [currentData?.currentInnings.totalBalls, currentData?.recentBalls, currentData?.currentBowler?.playerId, overCompletedDialogOpen]);
@@ -330,17 +331,13 @@ export default function Scorer() {
       return response.json();
     },
     onSuccess: () => {
-      // Close dialogs immediately
+      console.log('Bowler change successful - closing all dialogs');
+      
+      // Force close all bowler-related dialogs
       setChangeBowlerDialogOpen(false);
       setSelectedNewBowler('');
       setOverCompletedDialogOpen(false);
       setNextBowlerId('');
-      
-      // Log bowler change (no longer need to track state since we check ball history)
-      if (currentData?.currentInnings) {
-        const currentOverNumber = Math.floor(currentData.currentInnings.totalBalls / 6);
-        console.log(`Bowler changed for over ${currentOverNumber}`);
-      }
       
       // Show success message
       toast({
@@ -350,6 +347,12 @@ export default function Scorer() {
       
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+      
+      // Small delay to ensure state updates
+      setTimeout(() => {
+        setOverCompletedDialogOpen(false);
+        setChangeBowlerDialogOpen(false);
+      }, 100);
     },
     onError: () => {
       toast({
@@ -1219,14 +1222,23 @@ export default function Scorer() {
       </div>
 
       {/* Over Completed Dialog */}
-      <Dialog open={overCompletedDialogOpen} onOpenChange={setOverCompletedDialogOpen}>
+      <Dialog 
+        open={overCompletedDialogOpen} 
+        onOpenChange={(open) => {
+          console.log(`Over completed dialog onOpenChange: ${open}`);
+          setOverCompletedDialogOpen(open);
+          if (!open) {
+            setNextBowlerId('');
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Over Completed - Select Next Bowler</DialogTitle>
+            <DialogTitle>ICC Rule 17.6 - Change Bowler Required</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              The over has been completed. Please select the bowler for the next over.
+              The over has been completed. ICC rules require a different bowler for the next over (same bowler cannot bowl consecutive overs).
             </p>
             <div>
               <Label htmlFor="next-bowler">Next Bowler</Label>
@@ -1246,15 +1258,18 @@ export default function Scorer() {
               </Select>
             </div>
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setOverCompletedDialogOpen(false)}>
-                Cancel
-              </Button>
               <Button 
-                onClick={() => changeBowlerMutation.mutate(nextBowlerId)}
+                onClick={() => {
+                  console.log('Change bowler button clicked');
+                  if (nextBowlerId) {
+                    changeBowlerMutation.mutate(nextBowlerId);
+                  }
+                }}
                 disabled={!nextBowlerId || changeBowlerMutation.isPending}
+                className="w-full"
               >
                 <User className="w-4 h-4 mr-2" />
-                {changeBowlerMutation.isPending ? 'Changing...' : 'Change Bowler'}
+                {changeBowlerMutation.isPending ? 'Changing Bowler...' : 'Change Bowler'}
               </Button>
             </div>
           </div>

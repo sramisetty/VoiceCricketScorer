@@ -156,9 +156,10 @@ Preferred communication style: Simple, everyday language.
 - **✓ Comprehensive Ball Counting**: Fixed over management to properly count only valid balls toward 6-ball limit, extras repeat ball numbers
 - **✓ Automatic Over Completion**: Implemented end-of-over detection with automatic strike rotation and maiden over tracking
 - **✓ Bye/Leg-bye Implementation**: Added complete ICC Rule 23 support for bye and leg-bye runs with proper run attribution
-- **✓ Bowler Change Dialog Fix**: Enhanced logic to prevent repeated bowler change popups by checking ball history instead of state
-- **✓ Persistent Over Tracking**: Fixed dialog logic to work after page refresh by checking if current bowler has already bowled in the over
-- **✓ Robust Dialog Prevention**: Dialog now only appears if current bowler hasn't bowled any balls in the completed over
+- **✓ Comprehensive Bowler Dialog Fix**: Complete redesign of bowler change logic with ICC Rule 17.6 compliance
+- **✓ Smart Dialog Triggering**: Dialog only appears when same bowler tries to bowl consecutive overs (ICC violation)
+- **✓ Force Dialog Closure**: Added multiple mechanisms to ensure dialog closes after successful bowler change
+- **✓ Improved UX**: Clearer messaging about ICC Rule 17.6 requirement for bowler changes
 
 ### January 18, 2025
 - **✓ Innings Completion Logic**: Implemented automatic detection when 10 wickets fall or overs complete
