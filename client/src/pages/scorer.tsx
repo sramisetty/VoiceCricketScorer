@@ -68,8 +68,8 @@ export default function Scorer() {
     retry: false,
   });
 
-  // Debug: Force no loading state to see actual data
-  const isLoading = false;
+  // Proper loading state management
+  const isLoading = liveDataLoading || basicDataLoading;
 
   const currentData = liveData || matchData;
 
@@ -532,9 +532,26 @@ export default function Scorer() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-xl font-semibold text-gray-700">Loading match...</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center p-8">
+          <div className="relative mb-6">
+            {/* Cricket-themed loading spinner */}
+            <div className="w-16 h-16 mx-auto relative">
+              <div className="absolute inset-0 border-4 border-green-200 rounded-full animate-spin border-t-green-600"></div>
+              <div className="absolute inset-2 flex items-center justify-center text-2xl">🏏</div>
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+            Loading Cricket Match
+          </h2>
+          <div className="text-gray-600 dark:text-gray-400 space-y-1">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+            </div>
+            <p className="mt-3">Setting up the scoreboard...</p>
+          </div>
         </div>
       </div>
     );
@@ -606,20 +623,38 @@ export default function Scorer() {
 
   if (error || !currentData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-red-600 mb-4">Match Not Found</h1>
-              <p className="text-gray-600 mb-4">
-                The requested match could not be found or loaded.
-              </p>
-              <Button onClick={() => setLocation('/')}>
-                Go Back
-              </Button>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center p-8">
+          <div className="relative mb-6">
+            {/* Error state with cricket theme */}
+            <div className="w-16 h-16 mx-auto relative">
+              <div className="absolute inset-0 border-4 border-red-200 rounded-full"></div>
+              <div className="absolute inset-2 flex items-center justify-center text-2xl">⚠️</div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <h2 className="text-2xl font-bold text-red-600 mb-2">
+            Unable to Load Match
+          </h2>
+          <div className="text-gray-600 dark:text-gray-400 mb-6">
+            <p>Please check your connection and try again.</p>
+            <p className="text-sm mt-2">The match data might be temporarily unavailable.</p>
+          </div>
+          <div className="space-y-3">
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              🔄 Retry Loading
+            </Button>
+            <Button 
+              onClick={() => setLocation('/')} 
+              variant="outline"
+              className="block mx-auto"
+            >
+              🏠 Go to Matches
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -758,26 +793,48 @@ export default function Scorer() {
           </CardContent>
         </Card>
 
-        <div className="scorer-mobile-layout gap-4">
-          {/* Voice Input Panel */}
-          <div className="scorer-main-mobile space-y-4">
-            <VoiceInput
-              onCommand={handleCommand}
-              currentBatsman={striker?.player.name}
-              currentBowler={currentData.currentBowler?.player.name}
-            />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Main Scoring Column */}
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            {/* Voice Input Panel */}
+            <Card className="shadow-lg border-2 border-green-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-green-800 flex items-center">
+                  🎤 Voice Input & Quick Scoring
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VoiceInput
+                  onCommand={handleCommand}
+                  currentBatsman={striker?.player.name}
+                  currentBowler={currentData.currentBowler?.player.name}
+                />
+              </CardContent>
+            </Card>
 
-            <AdvancedScorer 
-              matchData={currentData}
-              matchId={matchId!}
-            />
+            {/* Advanced Scorer */}
+            <Card className="shadow-lg border-2 border-blue-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-blue-800 flex items-center">
+                  📊 Advanced Scorer
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AdvancedScorer 
+                  matchData={currentData}
+                  matchId={matchId!}
+                />
+              </CardContent>
+            </Card>
 
             {/* Batting Figures */}
-            <Card className="mobile-card">
-              <CardHeader className="mobile-padding">
-                <CardTitle className="mobile-header text-gray-800">Batting Figures</CardTitle>
+            <Card className="shadow-lg border-2 border-orange-200 min-h-[400px]">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-orange-800 flex items-center">
+                  🏏 Batting Figures
+                </CardTitle>
               </CardHeader>
-              <CardContent className="mobile-padding">
+              <CardContent className="max-h-[350px] overflow-y-auto">
                 <div className="space-y-3">
                   {currentData.currentInnings.playerStats
                     .filter(stat => stat.player.teamId === currentData.currentInnings.battingTeam.id && stat.ballsFaced > 0)
@@ -839,35 +896,89 @@ export default function Scorer() {
               </CardContent>
             </Card>
 
-            <MatchStatistics matchData={currentData} />
+            {/* Match Statistics */}
+            <Card className="shadow-lg border-2 border-indigo-200 min-h-[400px]">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-indigo-800 flex items-center">
+                  📊 Match Statistics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MatchStatistics matchData={currentData} />
+              </CardContent>
+            </Card>
 
-            <Commentary balls={currentData.recentBalls} />
+            {/* Commentary */}
+            <Card className="shadow-lg border-2 border-teal-200 min-h-[400px]">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-teal-800 flex items-center">
+                  📝 Live Commentary
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="max-h-[350px] overflow-y-auto">
+                <Commentary balls={currentData.recentBalls} />
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Live Scoreboard */}
-          <div className="scorer-sidebar-mobile space-y-4">
-            <CurrentOver
-              balls={currentData.currentInnings.balls}
-              bowlerName={currentData.currentBowler?.player.name || 'Unknown'}
-              overNumber={Math.floor(currentData.currentInnings.totalBalls / 6) + 1}
-              totalBalls={currentData.currentInnings.totalBalls}
-            />
+          {/* Sidebar Column */}
+          <div className="lg:col-span-1 space-y-4 sm:space-y-6">
+            {/* Current Over */}
+            <Card className="shadow-lg border-2 border-purple-200 min-h-[250px]">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-purple-800 flex items-center">
+                  ⚾ Current Over
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CurrentOver
+                  balls={currentData.currentInnings.balls}
+                  bowlerName={currentData.currentBowler?.player.name || 'Unknown'}
+                  overNumber={Math.floor(currentData.currentInnings.totalBalls / 6) + 1}
+                  totalBalls={currentData.currentInnings.totalBalls}
+                />
+              </CardContent>
+            </Card>
 
-            <TeamStats
-              innings={currentData.currentInnings}
-              targetRuns={undefined} // TODO: Add target for 2nd innings
-              targetOvers={currentData.match.overs}
-            />
+            {/* Team Stats */}
+            <Card className="shadow-lg border-2 border-cyan-200 min-h-[250px]">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-cyan-800 flex items-center">
+                  📈 Team Statistics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TeamStats
+                  innings={currentData.currentInnings}
+                  targetRuns={undefined}
+                  targetOvers={currentData.match.overs}
+                />
+              </CardContent>
+            </Card>
 
-            <BowlingFigures
-              bowlingStats={currentData.currentInnings.playerStats.filter(s => s.ballsBowled > 0)}
-              currentBowlerId={currentData.currentBowler?.playerId}
-            />
+            {/* Bowling Figures */}
+            <Card className="shadow-lg border-2 border-red-200 min-h-[250px]">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-red-800 flex items-center">
+                  🎯 Bowling Figures
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="max-h-[200px] overflow-y-auto">
+                <BowlingFigures
+                  bowlingStats={currentData.currentInnings.playerStats.filter(s => s.ballsBowled > 0)}
+                  currentBowlerId={currentData.currentBowler?.playerId}
+                />
+              </CardContent>
+            </Card>
 
             {/* Quick Actions */}
-            <Card className="mobile-card">
-              <CardContent className="mobile-padding">
-                <h3 className="mobile-header text-gray-800 mb-4">Quick Actions</h3>
+            <Card className="shadow-lg border-2 border-gray-200 min-h-[300px]">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-gray-800 flex items-center">
+                  ⚡ Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-3">
                   {/* Change Bowler Dialog */}
                   <Dialog open={changeBowlerDialogOpen} onOpenChange={setChangeBowlerDialogOpen}>
