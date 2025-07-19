@@ -239,7 +239,7 @@ EOF
 create_pm2_config() {
     log "Creating PM2 ecosystem configuration..."
     
-    cat > "$APP_DIR/current/ecosystem.config.js" << EOF
+    cat > "$APP_DIR/current/ecosystem.config.cjs" << EOF
 module.exports = {
   apps: [{
     name: 'cricket-scorer',
@@ -265,7 +265,7 @@ module.exports = {
 };
 EOF
     
-    chown $APP_USER:$APP_USER "$APP_DIR/current/ecosystem.config.js"
+    chown $APP_USER:$APP_USER "$APP_DIR/current/ecosystem.config.cjs"
     
     log "✓ PM2 configuration created"
 }
@@ -449,7 +449,7 @@ start_pm2_app() {
     sudo -u $APP_USER pm2 delete cricket-scorer 2>/dev/null || true
     
     # Start application
-    sudo -u $APP_USER pm2 start ecosystem.config.js
+    sudo -u $APP_USER pm2 start ecosystem.config.cjs
     
     # Save PM2 configuration
     sudo -u $APP_USER pm2 save
