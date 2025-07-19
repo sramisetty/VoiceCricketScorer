@@ -120,7 +120,6 @@ install_dependencies() {
             fail2ban \
             htop \
             unzip \
-            supervisor \
             certbot \
             python3-certbot-nginx
     elif [ "$PKG_MANAGER" = "yum" ]; then
@@ -142,7 +141,6 @@ install_dependencies() {
             fail2ban \
             htop \
             unzip \
-            supervisor \
             certbot \
             python3-certbot-nginx
     elif [ "$PKG_MANAGER" = "dnf" ]; then
@@ -162,7 +160,6 @@ install_dependencies() {
             fail2ban \
             htop \
             unzip \
-            supervisor \
             certbot \
             python3-certbot-nginx
     fi
@@ -215,6 +212,25 @@ install_nodejs() {
     else
         error "Failed to install Node.js 20. Current version: $NODE_VERSION"
     fi
+}
+
+# Install PM2 globally
+install_pm2() {
+    log "Installing PM2 process manager..."
+    
+    # Install PM2 globally
+    npm install -g pm2
+    
+    # Setup PM2 startup script
+    pm2 startup systemd -u $APP_USER --hp /home/$APP_USER
+    
+    # Install PM2 log rotation
+    pm2 install pm2-logrotate
+    pm2 set pm2-logrotate:max_size 10M
+    pm2 set pm2-logrotate:retain 7
+    pm2 set pm2-logrotate:compress true
+    
+    log "✓ PM2 installed and configured"
 }
 
 # Create application user
@@ -363,56 +379,88 @@ EOF
     warn "Remember to update OPENAI_API_KEY in $APP_DIR/current/.env"
 }
 
-# Create systemd service
-create_systemd_service() {
-    log "Creating systemd service..."
+# Create PM2 ecosystem file and start application
+create_pm2_config() {
+    log "Creating PM2 configuration..."
     
-    cat > "$SERVICE_FILE" << EOF
-[Unit]
-Description=Cricket Scorer Application
-After=network.target postgresql.service
-Wants=postgresql.service
-
-[Service]
-Type=simple
-User=$APP_USER
-Group=$APP_USER
-WorkingDirectory=$APP_DIR/current
-Environment=NODE_ENV=production
-EnvironmentFile=$APP_DIR/current/.env
-ExecStart=/usr/bin/node dist/index.js
-Restart=always
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=cricket-scorer
-
-# Security settings
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=$APP_DIR $LOG_DIR
-
-[Install]
-WantedBy=multi-user.target
+    # Create PM2 ecosystem file
+    cat > "$APP_DIR/current/ecosystem.config.js" << EOF
+module.exports = {
+  apps: [{
+    name: 'cricket-scorer',
+    script: './dist/index.js',
+    cwd: '$APP_DIR/current',
+    instances: 'max',
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    },
+    error_file: '$APP_DIR/logs/error.log',
+    out_file: '$APP_DIR/logs/out.log',
+    log_file: '$APP_DIR/logs/combined.log',
+    time: true,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    restart_delay: 5000,
+    max_restarts: 10,
+    min_uptime: '10s'
+  }]
+};
 EOF
+
+    # Set ownership
+    chown $APP_USER:$APP_USER "$APP_DIR/current/ecosystem.config.js"
     
-    # Reload systemd and enable service
-    systemctl daemon-reload
-    systemctl enable cricket-scorer
+    # Create log directory
+    mkdir -p "$APP_DIR/logs"
+    chown $APP_USER:$APP_USER "$APP_DIR/logs"
     
-    log "Systemd service created and enabled"
+    log "PM2 configuration created"
 }
 
-# Configure Nginx
+# Start application with PM2
+start_application() {
+    log "Starting application with PM2..."
+    
+    # Stop any existing PM2 processes
+    sudo -u $APP_USER pm2 delete cricket-scorer 2>/dev/null || true
+    
+    # Start application
+    cd "$APP_DIR/current"
+    sudo -u $APP_USER pm2 start ecosystem.config.js
+    
+    # Save PM2 configuration
+    sudo -u $APP_USER pm2 save
+    
+    # Enable PM2 startup
+    sudo -u $APP_USER pm2 startup systemd -u $APP_USER --hp /home/$APP_USER
+    
+    log "✓ Application started with PM2"
+}
+
+# Configure Nginx with SSL-ready setup
 configure_nginx() {
-    log "Configuring Nginx..."
+    log "Configuring Nginx with SSL-ready setup..."
     
     cat > "$NGINX_SITE" << EOF
+# HTTP server block (will redirect to HTTPS when SSL is configured)
 server {
     listen 80;
     server_name _;
+    
+    # Health check endpoint (allow HTTP for monitoring)
+    location /health {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+    
+    # Let's Encrypt challenge (for SSL setup)
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
     
     # Security headers
     add_header X-Frame-Options DENY;
@@ -422,7 +470,9 @@ server {
     
     # Gzip compression
     gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript application/x-font-ttf font/opentype image/svg+xml image/x-icon;
     
     # Main application
     location / {
@@ -436,6 +486,10 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_cache_bypass \$http_upgrade;
         proxy_read_timeout 86400;
+        
+        # Additional headers for security
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Server \$host;
     }
     
     # WebSocket support
@@ -448,15 +502,15 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 86400;
     }
     
-    # Static files
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+    # Static files with long cache
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
+        add_header X-Content-Type-Options nosniff;
     }
-    
-    # Health check endpoint
     location /health {
         access_log off;
         return 200 "healthy\n";
@@ -629,29 +683,80 @@ show_summary() {
     echo ""
 }
 
+# Start Nginx service
+start_nginx() {
+    log "Starting Nginx service..."
+    
+    # Enable and start Nginx
+    systemctl enable nginx
+    systemctl start nginx
+    
+    log "✓ Nginx service started"
+}
+
+# Show completion summary with PM2 information
+show_completion_info() {
+    echo ""
+    echo -e "${BLUE}=================================================================================${NC}"
+    echo -e "${BLUE}                    CRICKET SCORER DEPLOYMENT COMPLETE${NC}"
+    echo -e "${BLUE}=================================================================================${NC}"
+    echo ""
+    echo -e "${GREEN}Application URL:${NC} http://$(hostname -I | awk '{print $1}')"
+    echo -e "${GREEN}Application Directory:${NC} $APP_DIR/current"
+    echo -e "${GREEN}PM2 Logs Directory:${NC} $APP_DIR/logs"
+    echo -e "${GREEN}Backup Directory:${NC} $BACKUP_DIR"
+    echo ""
+    echo -e "${YELLOW}PM2 Management Commands:${NC}"
+    echo "  - View status: sudo -u $APP_USER pm2 status"
+    echo "  - View logs: sudo -u $APP_USER pm2 logs cricket-scorer"
+    echo "  - Restart app: sudo -u $APP_USER pm2 restart cricket-scorer"
+    echo "  - Stop app: sudo -u $APP_USER pm2 stop cricket-scorer"
+    echo "  - Monitor: sudo -u $APP_USER pm2 monit"
+    echo ""
+    echo -e "${YELLOW}System Management:${NC}"
+    echo "  - Nginx logs: tail -f /var/log/nginx/access.log"
+    echo "  - Restart Nginx: systemctl restart nginx"
+    echo "  - Run backup: /usr/local/bin/cricket-scorer-backup"
+    echo ""
+    echo -e "${YELLOW}SSL Setup (Optional):${NC}"
+    echo "  - Configure domain in Nginx"
+    echo "  - Run: sudo ./ssl-setup.sh"
+    echo ""
+    echo -e "${RED}Action Required:${NC}"
+    echo "  - Update OPENAI_API_KEY in $APP_DIR/current/.env"
+    echo "  - Configure your domain name for SSL"
+    echo ""
+    echo -e "${GREEN}PM2 Application Status:${NC}"
+    sudo -u $APP_USER pm2 status || echo "PM2 status unavailable"
+    echo ""
+}
+
 # Main deployment function
 main() {
-    log "Starting Cricket Scorer deployment..."
+    log "Starting Cricket Scorer deployment with PM2..."
     
     check_root
     check_system
     update_system
     install_dependencies
     install_nodejs
+    install_pm2
     create_app_user
+    create_directories
     setup_database
     deploy_application
     create_env_config
-    run_migrations
-    create_systemd_service
+    create_pm2_config
     configure_nginx
     configure_firewall
     configure_fail2ban
     create_backup_script
+    run_migrations
     start_application
-    show_summary
+    start_nginx
+    show_completion_info
     
-    log "Deployment completed successfully!"
+    log "Cricket Scorer deployment with PM2 completed successfully!"
 }
 
 # Run main function

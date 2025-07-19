@@ -284,8 +284,8 @@ update_app_environment() {
     # Update APP_URL in .env file
     sed -i "s|APP_URL=.*|APP_URL=https://$DOMAIN|" /opt/cricket-scorer/current/.env
     
-    # Restart application to pick up new environment
-    systemctl restart cricket-scorer
+    # Restart application using PM2
+    sudo -u cricketapp pm2 restart cricket-scorer
     
     log "✓ Application environment updated"
 }

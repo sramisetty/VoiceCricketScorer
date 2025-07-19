@@ -4,6 +4,16 @@ This guide provides comprehensive instructions for deploying the Cricket Scorer 
 
 ## Quick Start
 
+### Production Deployment with PM2
+```bash
+# Make scripts executable
+chmod +x deploy-pm2.sh
+
+# Run production deployment with PM2
+sudo ./deploy-pm2.sh
+```
+
+### Standard Deployment
 ```bash
 # Make scripts executable
 chmod +x deploy.sh update.sh monitoring.sh ssl-setup.sh
@@ -28,7 +38,34 @@ The deployment scripts automatically detect and support:
 
 ## Deployment Scripts
 
-### 1. `deploy.sh` - Initial Deployment
+### 1. `deploy-pm2.sh` - Production Deployment with PM2 (Recommended)
+
+Complete production deployment script with PM2 process management:
+
+**Usage:**
+```bash
+sudo ./deploy-pm2.sh
+```
+
+**What it does:**
+1. Installs Node.js 20, PostgreSQL, Nginx
+2. Installs PM2 process manager with log rotation
+3. Creates application user and directories
+4. Deploys and builds application
+5. Configures PM2 ecosystem for clustering
+6. Sets up Nginx reverse proxy (SSL-ready)
+7. Configures firewall and security
+8. Sets up automated backups
+9. Optionally configures SSL with Let's Encrypt
+
+**PM2 Benefits:**
+- **Process clustering**: Runs multiple instances for better performance
+- **Automatic restarts**: Application restarts on crashes
+- **Memory monitoring**: Restarts on memory leaks
+- **Log management**: Automated log rotation
+- **Zero-downtime deployments**: Reload without stopping service
+
+### 2. `deploy.sh` - Standard Deployment
 
 Complete production deployment script that sets up:
 
@@ -52,13 +89,13 @@ sudo ./deploy.sh
 3. Creates application user and directories
 4. Sets up database with secure credentials
 5. Deploys and builds application
-6. Configures systemd service
+6. Configures systemd service (single process)
 7. Sets up Nginx reverse proxy
 8. Configures firewall (UFW)
 9. Sets up fail2ban security
 10. Creates automated backup system
 
-### 2. `update.sh` - Application Updates
+### 3. `update.sh` - Application Updates
 
 Safe update script that preserves data and configuration:
 
@@ -75,7 +112,7 @@ sudo ./update.sh
 5. Runs database migrations
 6. Restarts application
 
-### 3. `monitoring.sh` - System Monitoring
+### 4. `monitoring.sh` - System Monitoring
 
 Comprehensive monitoring and management script:
 
@@ -103,7 +140,7 @@ sudo ./monitoring.sh performance
 sudo ./monitoring.sh setup-monitoring
 ```
 
-### 4. `ssl-setup.sh` - SSL/HTTPS Configuration
+### 5. `ssl-setup.sh` - SSL/HTTPS Configuration
 
 Automated SSL certificate setup using Let's Encrypt:
 
@@ -117,7 +154,7 @@ sudo ./ssl-setup.sh
 - Valid email address
 - Ports 80 and 443 open
 
-### 5. `fix-nodejs.sh` - Node.js Conflict Resolution
+### 6. `fix-nodejs.sh` - Node.js Conflict Resolution
 
 Fixes Node.js version conflicts on CentOS/RHEL/Fedora systems:
 
