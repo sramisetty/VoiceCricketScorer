@@ -931,7 +931,6 @@ module.exports = {
     name: 'cricket-scorer',
     script: 'dist/index.js',
     cwd: '${APP_DIR}',
-    user: '${APP_USER}',
     instances: 'max',
     exec_mode: 'cluster',
     env: {
@@ -946,7 +945,8 @@ module.exports = {
     autorestart: true,
     max_restarts: 10,
     min_uptime: '10s',
-    max_memory_restart: '1G'
+    max_memory_restart: '1G',
+    node_args: '--experimental-specifier-resolution=node'
   }]
 };
 EOF
@@ -955,15 +955,25 @@ EOF
 mkdir -p $APP_DIR/logs
 chown -R $APP_USER:$APP_USER $APP_DIR
 
-# Start application with PM2
-sudo -u $APP_USER pm2 delete cricket-scorer 2>/dev/null || true
-sudo -u $APP_USER pm2 start $APP_DIR/ecosystem.config.cjs
+# Switch to app user and start PM2
+cd $APP_DIR
+sudo -u $APP_USER bash << EOFPM2
+
+# Stop any existing PM2 processes
+pm2 delete cricket-scorer 2>/dev/null || true
+
+# Start the application
+pm2 start ecosystem.config.cjs
 
 # Save PM2 configuration
-sudo -u $APP_USER pm2 save
+pm2 save
 
-# Setup PM2 startup script
-env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $APP_USER --hp $APP_DIR
+# Setup startup script (run as root after this block)
+EOFPM2
+
+# Setup PM2 startup script as root
+pm2 startup systemd -u $APP_USER --hp $APP_DIR
+systemctl enable pm2-$APP_USER
 
 log "PM2 configured and application started"
 
