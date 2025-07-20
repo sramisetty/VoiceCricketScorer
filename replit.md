@@ -143,6 +143,7 @@ Preferred communication style: Simple, everyday language.
 - **✓ Production-Ready Configuration**: Complete infrastructure setup for score.ramisetty.net (67.227.251.94) with firewall, Nginx reverse proxy, and automatic SSL certificate generation
 - **✓ Deployment Scripts Cleanup**: Removed all shell scripts per user request to eliminate deployment complexity
 - **✓ Project Structure Cleanup**: Removed duplicate cricket-scorer-deploy folder to maintain clean project structure
+- **→ Static Asset 404 Fix**: Identified and addressing React app loading issue where built CSS/JS assets return 404 errors - HTML shell loads but JavaScript bundle fails to execute due to Express server not serving static files from correct dist/public directory
 
 ### January 19, 2025
 - **✓ Production PM2 Deployment System**: Created comprehensive deploy-pm2.sh with PM2 process management, clustering, and SSL automation
