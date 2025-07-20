@@ -1,0 +1,50 @@
+ sudo ./check-app-status.sh
+=== Cricket Scorer Status Check ===
+
+1. PM2 Process Status:
+┌────┬───────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name              │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ cricket-scorer    │ default     │ 1.0.0   │ cluster │ 12147    │ 39s    │ 0    │ online    │ 0%       │ 78.2mb   │ cri… │ disabled │
+└────┴───────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+
+2. Port 5000 Status:
+Port 5000 not listening
+
+3. Port 3000 Status:
+Port 3000 not listening
+
+4. Direct App Test (port 5000):
+
+5. Direct App Test (port 3000):
+
+6. Current Nginx Configuration:
+/etc/nginx/conf.d/cricket-scorer.conf:        proxy_pass http://127.0.0.1:5000;
+/etc/nginx/conf.d/cricket-scorer.conf:        proxy_pass http://127.0.0.1:5000;
+/etc/nginx/conf.d/cricket-scorer.conf:        proxy_pass http://127.0.0.1:5000;
+/etc/nginx/conf.d/cricket-scorer.conf:        proxy_pass http://127.0.0.1:5000;
+/etc/nginx/conf.d/cricket-scorer.conf:        proxy_pass http://127.0.0.1:5000;
+
+7. Nginx Status:
+● nginx.service - The nginx HTTP and reverse proxy server
+     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: disabled)
+     Active: active (running) since Sun 2025-07-20 04:17:57 EDT; 14min ago
+    Process: 12397 ExecReload=/usr/sbin/nginx -s reload (code=exited, status=0/SUCCESS)
+   Main PID: 8987 (nginx)
+      Tasks: 2 (limit: 4327)
+     Memory: 2.9M
+        CPU: 156ms
+     CGroup: /system.slice/nginx.service
+             ├─ 8987 "nginx: master process /usr/sbin/nginx"
+             └─12398 "nginx: worker process"
+
+Jul 20 04:26:37 luminous-potato.metalseed.net systemd[1]: Reloading The nginx HTTP and reverse proxy server...
+Jul 20 04:26:37 luminous-potato.metalseed.net systemd[1]: Reloaded The nginx HTTP and reverse proxy server.
+Jul 20 04:31:46 luminous-potato.metalseed.net systemd[1]: Reloading The nginx HTTP and reverse proxy server...
+Jul 20 04:31:46 luminous-potato.metalseed.net systemd[1]: Reloaded The nginx HTTP and reverse proxy server.
+Jul 20 04:31:52 luminous-potato.metalseed.net systemd[1]: Reloading The nginx HTTP and reverse proxy server...
+Jul 20 04:31:52 luminous-potato.metalseed.net systemd[1]: Reloaded The nginx HTTP and reverse proxy server.
+Jul 20 04:31:54 luminous-potato.metalseed.net systemd[1]: Reloading The nginx HTTP and reverse proxy server...
+Jul 20 04:31:54 luminous-potato.metalseed.net systemd[1]: Reloaded The nginx HTTP and reverse proxy server.
+Jul 20 04:32:00 luminous-potato.metalseed.net systemd[1]: Reloading The nginx HTTP and reverse proxy server...
+Jul 20 04:32:00 luminous-potato.metalseed.net systemd[1]: Reloaded The nginx HTTP and reverse proxy server.
