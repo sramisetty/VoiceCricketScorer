@@ -188,8 +188,8 @@ cat > $TEMP_DIR/package.json << 'EOF'
     "dev": "tsx watch server/index.ts",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
-    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:pg-native --external:lightningcss --external:@tailwindcss/* --packages=external --format=esm --banner:js='import { createRequire } from \"module\"; const require = createRequire(import.meta.url);'",
-    "start": "node dist/index.js",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:pg-native --external:lightningcss --external:@tailwindcss/* --packages=external --format=esm",
+    "start": "node --experimental-specifier-resolution=node dist/index.js",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
@@ -902,8 +902,8 @@ sudo -u $APP_USER NODE_ENV=production npm run build:client || {
 
 log "Building server application..."
 sudo -u $APP_USER npm run build:server || {
-    error "Server build failed. Trying simpler build..."
-    sudo -u $APP_USER npx esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --packages=external --format=esm
+    error "Server build failed. Trying alternative build with CommonJS..."
+    sudo -u $APP_USER npx esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --packages=external --format=cjs
 }
 
 # =============================================================================
