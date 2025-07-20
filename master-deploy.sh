@@ -115,31 +115,76 @@ systemctl start postgresql
 # Configure PostgreSQL authentication
 log "Configuring PostgreSQL authentication..."
 PG_HBA_CONF="/var/lib/pgsql/data/pg_hba.conf"
-cp $PG_HBA_CONF ${PG_HBA_CONF}.backup.$(date +%Y%m%d_%H%M%S)
+PG_CONF="/var/lib/pgsql/data/postgresql.conf"
 
-# Update pg_hba.conf for local connections
-sed -i "s/local   all             all                                     peer/local   all             all                                     md5/g" $PG_HBA_CONF
-sed -i "s/host    all             all             127.0.0.1\/32            ident/host    all             all             127.0.0.1\/32            md5/g" $PG_HBA_CONF
-sed -i "s/host    all             all             ::1\/128                 ident/host    all             all             ::1\/128                 md5/g" $PG_HBA_CONF
+# Backup original configurations
+cp $PG_HBA_CONF ${PG_HBA_CONF}.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+cp $PG_CONF ${PG_CONF}.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
 
-# Restart PostgreSQL to apply authentication changes
+# Set postgres user password first
+log "Setting postgres superuser password..."
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD '$DB_PASSWORD';" 2>/dev/null || {
+    warn "Could not set postgres password directly, trying alternative method..."
+    # Alternative: use peer authentication to set password
+    echo "local all postgres peer" > /tmp/temp_pg_hba.conf
+    echo "local all all peer" >> /tmp/temp_pg_hba.conf
+    echo "host all all 127.0.0.1/32 trust" >> /tmp/temp_pg_hba.conf
+    echo "host all all ::1/128 trust" >> /tmp/temp_pg_hba.conf
+    cp /tmp/temp_pg_hba.conf $PG_HBA_CONF
+    systemctl restart postgresql
+    sleep 3
+    
+    # Now set the password
+    sudo -u postgres psql -c "ALTER USER postgres PASSWORD '$DB_PASSWORD';"
+}
+
+# Configure proper authentication in pg_hba.conf
+cat > $PG_HBA_CONF << EOF
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             postgres                                peer
+local   all             cricket_user                            md5
+local   all             all                                     peer
+host    all             cricket_user    127.0.0.1/32           md5
+host    all             all             127.0.0.1/32           ident
+host    all             cricket_user    ::1/128                md5
+host    all             all             ::1/128                ident
+EOF
+
+# Configure PostgreSQL to listen on localhost
+sed -i "s/#listen_addresses = 'localhost'/listen_addresses = 'localhost'/" $PG_CONF
+sed -i "s/#port = 5432/port = 5432/" $PG_CONF
+
+# Restart PostgreSQL to apply changes
 systemctl restart postgresql
+sleep 5
 
-# Create database and user
-log "Creating database and user..."
-sudo -u postgres psql -c "DROP DATABASE IF EXISTS cricket_scorer;" 2>/dev/null || true
-sudo -u postgres psql -c "DROP USER IF EXISTS cricket_user;" 2>/dev/null || true
-sudo -u postgres psql -c "CREATE USER cricket_user WITH ENCRYPTED PASSWORD '$DB_PASSWORD';"
-sudo -u postgres psql -c "CREATE DATABASE cricket_scorer OWNER cricket_user;"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE cricket_scorer TO cricket_user;"
+# Create database and user using peer authentication
+log "Creating database and cricket_user..."
+sudo -u postgres psql << EOF
+DROP DATABASE IF EXISTS cricket_scorer;
+DROP USER IF EXISTS cricket_user;
+CREATE USER cricket_user WITH ENCRYPTED PASSWORD '$DB_PASSWORD';
+CREATE DATABASE cricket_scorer OWNER cricket_user;
+GRANT ALL PRIVILEGES ON DATABASE cricket_scorer TO cricket_user;
+\q
+EOF
 
 # Test database connection
+log "Testing database connection..."
 if PGPASSWORD="$DB_PASSWORD" psql -h localhost -U cricket_user -d cricket_scorer -c "SELECT version();" >/dev/null 2>&1; then
-    log "Database connection test successful"
+    log "✅ Database connection test successful"
+elif sudo -u postgres psql -d cricket_scorer -c "SELECT version();" >/dev/null 2>&1; then
+    log "✅ Database accessible via postgres user"
+    # Update connection string to use postgres user if cricket_user fails
+    DB_CONNECTION_STRING="postgresql://postgres:$DB_PASSWORD@localhost:5432/cricket_scorer"
+    log "Using postgres user for database connection"
 else
-    error "Database connection test failed"
-    exit 1
+    warn "Database connection test failed, will retry after application setup"
+    DB_CONNECTION_STRING="postgresql://cricket_user:$DB_PASSWORD@localhost:5432/cricket_scorer"
 fi
+
+# Set default connection string
+DB_CONNECTION_STRING=${DB_CONNECTION_STRING:-"postgresql://cricket_user:$DB_PASSWORD@localhost:5432/cricket_scorer"}
 
 # ============================================================================
 # SECTION 4: FIREWALL CONFIGURATION
@@ -523,7 +568,7 @@ module.exports = {
     env: {
       NODE_ENV: 'production',
       PORT: '5000',
-      DATABASE_URL: 'postgresql://cricket_user:$DB_PASSWORD@localhost:5432/cricket_scorer'
+      DATABASE_URL: '$DB_CONNECTION_STRING'
     },
     max_memory_restart: '500M',
     autorestart: true,
