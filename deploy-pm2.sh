@@ -213,7 +213,7 @@ create_env() {
     SESSION_SECRET=$(openssl rand -base64 32)
     
     # Create new .env file with local database configuration
-        cat > "$APP_DIR/current/.env" << EOF
+    cat > "$APP_DIR/current/.env" << EOF
 # Production Environment Configuration
 NODE_ENV=production
 PORT=3000
@@ -236,7 +236,6 @@ OPENAI_API_KEY=your_openai_api_key_here
 APP_URL=http://localhost:3000
 LOG_LEVEL=info
 EOF
-    fi
     
     chown $APP_USER:$APP_USER "$APP_DIR/current/.env"
     chmod 600 "$APP_DIR/current/.env"
