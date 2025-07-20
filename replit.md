@@ -130,6 +130,13 @@ Preferred communication style: Simple, everyday language.
 - **Cricket-Specific**: Tailored for cricket scoring terminology and rules
 
 ## Recent Changes (January 2025)
+### January 20, 2025
+- **✓ PostgreSQL Authentication Fix**: Created comprehensive PostgreSQL setup script to resolve "ident authentication failed" error
+- **✓ Complete Database Setup**: Complete-postgres-setup.sh handles PostgreSQL installation, user creation, and authentication configuration
+- **✓ PM2 Configuration Fix**: Fixed ecosystem.config.js to .cjs format to resolve ES modules conflict with PM2
+- **✓ Production Deployment Scripts**: Enhanced deploy-pm2.sh with better database detection and external database support
+- **✓ Database Authentication Resolution**: Fixed pg_hba.conf configuration to use md5 authentication instead of ident for cricket_user
+
 ### January 19, 2025
 - **✓ Production PM2 Deployment System**: Created comprehensive deploy-pm2.sh with PM2 process management, clustering, and SSL automation
 - **✓ Node.js Conflict Resolution**: Fixed Node.js version conflicts on CentOS/RHEL systems with proper package removal and --allowerasing
