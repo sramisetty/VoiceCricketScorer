@@ -1,0 +1,398 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(120, 10%, 95%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(120, 5%, 85%);
+  --input: hsl(120, 5%, 85%);
+  --primary: hsl(123, 46%, 34%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(120, 10%, 95%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(120, 10%, 95%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(123, 46%, 34%);
+  --radius: 0.5rem;
+  
+  /* Cricket-specific colors */
+  --cricket-primary: hsl(123, 46%, 34%);
+  --cricket-secondary: hsl(123, 77%, 19%);
+  --cricket-accent: hsl(33, 100%, 50%);
+  --cricket-light: hsl(122, 39%, 78%);
+  --cricket-dark: hsl(123, 77%, 19%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(123, 46%, 34%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+  
+  /* Cricket-specific colors for dark mode */
+  --cricket-primary: hsl(123, 46%, 34%);
+  --cricket-secondary: hsl(123, 77%, 19%);
+  --cricket-accent: hsl(33, 100%, 50%);
+  --cricket-light: hsl(122, 20%, 25%);
+  --cricket-dark: hsl(123, 77%, 19%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Mobile-specific styles */
+  .mobile-friendly {
+    @apply touch-manipulation;
+  }
+  
+  .mobile-button {
+    @apply min-h-[44px] min-w-[44px] touch-manipulation;
+  }
+  
+  .mobile-input {
+    @apply min-h-[44px] text-[16px] touch-manipulation;
+  }
+  
+  .mobile-card {
+    @apply mx-2 sm:mx-4 rounded-lg shadow-sm;
+  }
+  
+  .mobile-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4;
+  }
+  
+  .mobile-flex {
+    @apply flex flex-col sm:flex-row gap-2 sm:gap-4;
+  }
+  
+  .mobile-text {
+    @apply text-sm sm:text-base;
+  }
+  
+  .mobile-header {
+    @apply text-lg sm:text-xl lg:text-2xl font-bold;
+  }
+  
+  .mobile-padding {
+    @apply px-3 py-2 sm:px-4 sm:py-3;
+  }
+  
+  .mobile-scrollable {
+    @apply overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100;
+  }
+  
+  /* Voice input mobile styles */
+  .voice-input-mobile {
+    @apply w-full max-w-none sm:max-w-md mx-auto;
+  }
+  
+  .voice-button-mobile {
+    @apply w-16 h-16 sm:w-20 sm:h-20 rounded-full touch-manipulation;
+  }
+  
+  /* Scorer interface mobile layout */
+  .scorer-mobile-layout {
+    @apply flex flex-col lg:flex-row gap-4 min-h-screen;
+  }
+  
+  .scorer-main-mobile {
+    @apply flex-1 order-2 lg:order-1;
+  }
+  
+  .scorer-sidebar-mobile {
+    @apply w-full lg:w-80 order-1 lg:order-2;
+  }
+  
+  /* Scoreboard mobile layout */
+  .scoreboard-mobile {
+    @apply px-2 sm:px-4 py-4 space-y-4;
+  }
+  
+  .score-display-mobile {
+    @apply text-2xl sm:text-3xl lg:text-4xl font-bold;
+  }
+  
+  .batsman-info-mobile {
+    @apply flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2;
+  }
+  
+  /* Advanced scorer mobile tabs */
+  .scorer-tabs-mobile {
+    @apply grid grid-cols-2 sm:grid-cols-4 gap-1 w-full;
+  }
+  
+  .scorer-tab-mobile {
+    @apply px-2 py-2 text-xs sm:text-sm text-center;
+  }
+  
+  /* Mobile-specific utilities */
+  .hide-mobile {
+    @apply hidden sm:block;
+  }
+  
+  .show-mobile {
+    @apply block sm:hidden;
+  }
+  
+  .mobile-safe-area {
+    @apply pb-safe-bottom pt-safe-top;
+  }
+  
+  /* Touch feedback */
+  .touch-feedback {
+    @apply active:scale-95 transition-transform duration-75;
+  }
+  
+  /* Mobile viewport fixes */
+  .mobile-full-height {
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height */
+  }
+
+  /* Cricket-specific utility classes */
+  .bg-cricket-primary {
+    background-color: var(--cricket-primary);
+  }
+  
+  .bg-cricket-secondary {
+    background-color: var(--cricket-secondary);
+  }
+  
+  .bg-cricket-accent {
+    background-color: var(--cricket-accent);
+  }
+  
+  .bg-cricket-light {
+    background-color: var(--cricket-light);
+  }
+  
+  .bg-cricket-dark {
+    background-color: var(--cricket-dark);
+  }
+  
+  .text-cricket-primary {
+    color: var(--cricket-primary);
+  }
+  
+  .text-cricket-secondary {
+    color: var(--cricket-secondary);
+  }
+  
+  .text-cricket-accent {
+    color: var(--cricket-accent);
+  }
+  
+  .text-cricket-light {
+    color: var(--cricket-light);
+  }
+  
+  .text-cricket-dark {
+    color: var(--cricket-dark);
+  }
+  
+  .border-cricket-primary {
+    border-color: var(--cricket-primary);
+  }
+  
+  .border-cricket-secondary {
+    border-color: var(--cricket-secondary);
+  }
+  
+  .border-cricket-accent {
+    border-color: var(--cricket-accent);
+  }
+  
+  .hover\:bg-cricket-primary:hover {
+    background-color: var(--cricket-primary);
+  }
+  
+  .hover\:bg-cricket-secondary:hover {
+    background-color: var(--cricket-secondary);
+  }
+  
+  .hover\:text-cricket-primary:hover {
+    color: var(--cricket-primary);
+  }
+  
+  .hover\:text-cricket-secondary:hover {
+    color: var(--cricket-secondary);
+  }
+}
+
+@layer utilities {
+  /* Pulse animation for live indicators */
+  .pulse-cricket {
+    animation: pulse-cricket 2s infinite;
+  }
+  
+  @keyframes pulse-cricket {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+  
+  /* Custom scrollbar styling */
+  .scrollbar-cricket::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-cricket::-webkit-scrollbar-track {
+    background: hsl(120, 10%, 95%);
+    border-radius: 10px;
+  }
+  
+  .scrollbar-cricket::-webkit-scrollbar-thumb {
+    background: var(--cricket-primary);
+    border-radius: 10px;
+  }
+  
+  .scrollbar-cricket::-webkit-scrollbar-thumb:hover {
+    background: var(--cricket-secondary);
+  }
+  
+  /* Cricket-specific gradients */
+  .gradient-cricket-primary {
+    background: linear-gradient(135deg, var(--cricket-primary), var(--cricket-secondary));
+  }
+  
+  .gradient-cricket-light {
+    background: linear-gradient(135deg, var(--cricket-light), var(--cricket-primary));
+  }
+  
+  /* Ball tracking animations */
+  .ball-bounce {
+    animation: ball-bounce 0.6s ease-in-out;
+  }
+  
+  @keyframes ball-bounce {
+    0% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.1) rotate(180deg); }
+    100% { transform: scale(1) rotate(360deg); }
+  }
+  
+  /* Score update animations */
+  .score-update {
+    animation: score-update 0.5s ease-out;
+  }
+  
+  @keyframes score-update {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); color: var(--cricket-accent); }
+    100% { transform: scale(1); }
+  }
+  
+  /* Voice input visual feedback */
+  .voice-listening {
+    animation: voice-listening 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes voice-listening {
+    0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(46, 125, 50, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
+  }
+  
+  /* Wicket celebration effect */
+  .wicket-celebration {
+    animation: wicket-celebration 0.8s ease-out;
+  }
+  
+  @keyframes wicket-celebration {
+    0% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.1) rotate(-5deg); }
+    75% { transform: scale(1.1) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+  
+  /* Boundary celebration effect */
+  .boundary-celebration {
+    animation: boundary-celebration 1s ease-out;
+  }
+  
+  @keyframes boundary-celebration {
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.05); filter: brightness(1.2); }
+    100% { transform: scale(1); filter: brightness(1); }
+  }
+}
+
+/* Global cricket styling enhancements */
+.cricket-card {
+  @apply bg-white rounded-xl shadow-lg border border-gray-200;
+}
+
+.cricket-card:hover {
+  @apply shadow-xl border-cricket-primary;
+}
+
+.cricket-button-primary {
+  @apply bg-cricket-primary hover:bg-cricket-secondary text-white font-medium px-4 py-2 rounded-lg transition-all duration-200;
+}
+
+.cricket-button-secondary {
+  @apply bg-cricket-light hover:bg-cricket-primary hover:text-white text-cricket-primary font-medium px-4 py-2 rounded-lg transition-all duration-200;
+}
+
+.cricket-input {
+  @apply border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent;
+}
+
+.cricket-score-display {
+  @apply text-4xl font-bold text-cricket-primary;
+}
+
+.cricket-commentary {
+  @apply bg-green-50 rounded-lg p-3 border-l-4 border-green-600;
+}
+
+.cricket-over-ball {
+  @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold;
+}
+
+.cricket-stat-card {
+  @apply bg-green-100 rounded-lg p-4 text-center;
+}
+
+/* Responsive design for cricket scoreboard */
+@media (max-width: 768px) {
+  .cricket-score-display {
+    @apply text-3xl;
+  }
+  
+  .cricket-over-ball {
+    @apply w-6 h-6 text-xs;
+  }
+}
