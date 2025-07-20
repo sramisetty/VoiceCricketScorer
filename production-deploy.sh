@@ -897,25 +897,31 @@ cd $APP_DIR
 log "Building client application..."
 sudo -u $APP_USER NODE_ENV=production npm run build:client || {
     error "Client build failed. Trying alternative build method..."
-    sudo -u $APP_USER npx vite build --force
+    sudo -u $APP_USER npx vite build --outDir dist/public --emptyOutDir
 }
 
-# Ensure dist/public directory exists and has proper structure
-log "Verifying build output..."
+# Ensure build output is correct
+log "Verifying build output structure..."
 if [ ! -d "$APP_DIR/dist/public" ]; then
-    error "Build output directory not found. Creating structure..."
+    error "Build output directory missing. Creating and rebuilding..."
     mkdir -p $APP_DIR/dist/public
     chown -R $APP_USER:$APP_USER $APP_DIR/dist
-fi
-
-# Copy any missing static files
-if [ ! -f "$APP_DIR/dist/public/index.html" ]; then
-    error "index.html not found in build output. Checking for files..."
-    ls -la $APP_DIR/dist/ || true
-    
-    # Try building again with explicit output directory
     sudo -u $APP_USER npx vite build --outDir dist/public --emptyOutDir
 fi
+
+# Verify critical files exist
+if [ ! -f "$APP_DIR/dist/public/index.html" ]; then
+    error "Critical files missing after build. Directory contents:"
+    ls -la $APP_DIR/dist/ || true
+    ls -la $APP_DIR/ | grep -E "(index\.html|vite\.config)" || true
+    exit 1
+fi
+
+# Set proper permissions for static files
+chmod -R 755 $APP_DIR/dist/public/
+chown -R $APP_USER:$APP_USER $APP_DIR/dist/
+
+log "Static files built and permissions set successfully"
 
 log "Building server application..."
 sudo -u $APP_USER npm run build:server || {
