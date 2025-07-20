@@ -212,24 +212,7 @@ create_env() {
     
     SESSION_SECRET=$(openssl rand -base64 32)
     
-    # Check if .env already exists and has DATABASE_URL (preserve existing database config)
-    if [ -f "$APP_DIR/current/.env" ] && grep -q "DATABASE_URL" "$APP_DIR/current/.env"; then
-        log "Existing .env file found - preserving database configuration"
-        # Update only non-database settings
-        sed -i "s/^NODE_ENV=.*/NODE_ENV=production/" "$APP_DIR/current/.env"
-        sed -i "s/^PORT=.*/PORT=3000/" "$APP_DIR/current/.env"
-        
-        # Add SESSION_SECRET if not present
-        if ! grep -q "SESSION_SECRET" "$APP_DIR/current/.env"; then
-            echo "SESSION_SECRET=$SESSION_SECRET" >> "$APP_DIR/current/.env"
-        fi
-        
-        # Add OPENAI_API_KEY if not present
-        if ! grep -q "OPENAI_API_KEY" "$APP_DIR/current/.env"; then
-            echo "OPENAI_API_KEY=your_openai_api_key_here" >> "$APP_DIR/current/.env"
-        fi
-    else
-        # Create new .env file with local database configuration
+    # Create new .env file with local database configuration
         cat > "$APP_DIR/current/.env" << EOF
 # Production Environment Configuration
 NODE_ENV=production

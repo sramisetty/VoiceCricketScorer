@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Fix Database Configuration Script
-# This script fixes the database configuration to use Neon instead of local PostgreSQL
+# This script fixes the database configuration to use local PostgreSQL
 
 set -euo pipefail
 
@@ -34,8 +34,22 @@ fi
 
 log "Fixing database configuration for Cricket Scorer..."
 
+# Check if directory exists, if not try alternative paths
+if [ ! -d "$APP_DIR/current" ]; then
+    if [ -d "$APP_DIR" ]; then
+        WORK_DIR="$APP_DIR"
+    elif [ -d "/home/cricketapp/cricket-scorer" ]; then
+        WORK_DIR="/home/cricketapp/cricket-scorer"
+    else
+        error "Cricket scorer app directory not found. Please check installation."
+    fi
+else
+    WORK_DIR="$APP_DIR/current"
+fi
+
 # Navigate to app directory
-cd "$APP_DIR/current" || error "App directory not found"
+cd "$WORK_DIR" || error "Cannot access app directory"
+log "Working in directory: $WORK_DIR"
 
 # Backup current .env
 if [ -f .env ]; then
@@ -43,23 +57,25 @@ if [ -f .env ]; then
     log "Backed up current .env file"
 fi
 
-# Create new .env with Neon database configuration
+# Create new .env with local PostgreSQL configuration (from deploy-pm2.sh)
 SESSION_SECRET=$(openssl rand -base64 32)
+DB_PASSWORD="cricket_secure_password_2025"
 
-cat > .env << 'EOF'
+cat > .env << EOF
 # Production Environment Configuration
 NODE_ENV=production
 PORT=3000
 
-# Neon Database Configuration (using your actual Neon URL)
-DATABASE_URL=postgresql://neondb_owner:npg_7PBLTn0pDhWQ@ep-crimson-forest-advtwxi1.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+# Database Configuration
+DATABASE_URL=postgresql://cricket_user:${DB_PASSWORD}@localhost:5432/cricket_scorer
+PGUSER=cricket_user
+PGPASSWORD=${DB_PASSWORD}
+PGDATABASE=cricket_scorer
+PGHOST=localhost
+PGPORT=5432
 
 # Session Configuration
-EOF
-
-echo "SESSION_SECRET=$SESSION_SECRET" >> .env
-
-cat >> .env << 'EOF'
+SESSION_SECRET=${SESSION_SECRET}
 
 # OpenAI Configuration (update with your API key)
 OPENAI_API_KEY=your_openai_api_key_here
@@ -73,7 +89,7 @@ EOF
 chown $APP_USER:$APP_USER .env
 chmod 600 .env
 
-log "Updated .env file with Neon database configuration"
+log "Updated .env file with local PostgreSQL database configuration"
 
 # Test database connection
 log "Testing database connection..."
@@ -88,8 +104,7 @@ sudo -u $APP_USER pm2 restart cricket-scorer || {
 }
 
 log "✓ Database configuration fixed successfully!"
-log "Your Cricket Scorer app should now be running with Neon database"
+log "Your Cricket Scorer app should now be running with local PostgreSQL database"
 
 # Show PM2 status
 sudo -u $APP_USER pm2 status
-EOF
