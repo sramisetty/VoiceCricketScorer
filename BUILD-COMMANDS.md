@@ -32,18 +32,28 @@ npx vite build --outDir server/public --emptyOutDir && npx esbuild server/index.
 # 1. Navigate to application directory
 cd /opt/cricket-scorer
 
-# 2. Build both client and server
+# 2. Install dependencies (if needed)
+npm install
+
+# 3. Build both client and server
 npx vite build --outDir server/public --emptyOutDir
 npx esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --packages=external --format=esm
 
-# 3. Set permissions
+# 4. Set permissions
 chmod -R 755 server/public/
 chmod -R 755 dist/
 
-# 4. Start with PM2
+# 5. Ensure .env file exists with proper configuration
+cp .env.production .env  # If needed
+nano .env  # Edit with actual values
+
+# 6. Test the build
+node dist/index.js  # Should start without DATABASE_URL error
+
+# 7. Start with PM2
 pm2 start ecosystem.config.cjs
 
-# 5. Restart web server
+# 8. Restart web server (if using nginx)
 systemctl restart nginx
 ```
 
