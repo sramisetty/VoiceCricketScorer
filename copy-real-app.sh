@@ -6,7 +6,9 @@
 set -euo pipefail
 
 APP_DIR="/opt/cricket-scorer"
-SOURCE_DIR="."
+# Get the actual project directory from where the script is running
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_DIR="$SCRIPT_DIR"
 APP_USER="cricketapp"
 
 log() {
@@ -36,18 +38,36 @@ if [ -d "shared" ] && [ ! -f "shared/schema.ts" ] || [ "$(wc -l < shared/schema.
     mv shared shared.placeholder.backup.$(date +%Y%m%d_%H%M%S)
 fi
 
-# Copy real source files from current development directory
-log "Copying client source files..."
-cp -r $SOURCE_DIR/client .
-chown -R $APP_USER:$APP_USER client
+# Copy real source files from the development project
+log "Copying client source files from $SOURCE_DIR..."
+if [ -d "$SOURCE_DIR/client" ]; then
+    cp -r $SOURCE_DIR/client .
+    chown -R $APP_USER:$APP_USER client
+    log "✅ Client files copied successfully"
+else
+    log "❌ Client directory not found at $SOURCE_DIR/client"
+    exit 1
+fi
 
 log "Copying server source files..."
-cp -r $SOURCE_DIR/server .
-chown -R $APP_USER:$APP_USER server
+if [ -d "$SOURCE_DIR/server" ]; then
+    cp -r $SOURCE_DIR/server .
+    chown -R $APP_USER:$APP_USER server
+    log "✅ Server files copied successfully"
+else
+    log "❌ Server directory not found at $SOURCE_DIR/server"
+    exit 1
+fi
 
 log "Copying shared schema..."
-cp -r $SOURCE_DIR/shared .
-chown -R $APP_USER:$APP_USER shared
+if [ -d "$SOURCE_DIR/shared" ]; then
+    cp -r $SOURCE_DIR/shared .
+    chown -R $APP_USER:$APP_USER shared
+    log "✅ Shared files copied successfully"
+else
+    log "❌ Shared directory not found at $SOURCE_DIR/shared"
+    exit 1
+fi
 
 # Copy configuration files if they exist
 if [ -f "$SOURCE_DIR/components.json" ]; then
