@@ -15,11 +15,11 @@ sudo -u cricketapp pm2 logs cricket-scorer --lines 20
 echo ""
 
 echo "3. Application Directory Check:"
-ls -la /home/cricketapp/cricket-scorer/ 2>/dev/null || echo "Directory not found"
+ls -la /opt/cricket-scorer/ 2>/dev/null || echo "Directory not found"
 echo ""
 
 echo "4. Built Application Check:"
-ls -la /home/cricketapp/cricket-scorer/dist/ 2>/dev/null || echo "Dist directory not found"
+ls -la /opt/cricket-scorer/dist/ 2>/dev/null || echo "Dist directory not found"
 echo ""
 
 echo "5. Environment Variables:"

@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-APP_DIR="/home/cricketapp/cricket-scorer"
+APP_DIR="/opt/cricket-scorer"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -278,7 +278,7 @@ module.exports = {
   apps: [{
     name: 'cricket-scorer',
     script: 'dist/index.js',
-    cwd: '/home/cricketapp/cricket-scorer',
+    cwd: '/opt/cricket-scorer',
     instances: 1,
     exec_mode: 'cluster',
     env: {
@@ -295,17 +295,17 @@ module.exports = {
     min_uptime: '10s',
     watch: false,
     merge_logs: true,
-    error_file: '/home/cricketapp/logs/error.log',
-    out_file: '/home/cricketapp/logs/out.log',
-    log_file: '/home/cricketapp/logs/combined.log',
+    error_file: '/opt/logs/error.log',
+    out_file: '/opt/logs/out.log',
+    log_file: '/opt/logs/combined.log',
     time: true
   }]
 }
 EOF
 
 # Create log directory
-mkdir -p /home/cricketapp/logs
-chown -R cricketapp:cricketapp /home/cricketapp/logs
+mkdir -p /opt/logs
+chown -R cricketapp:cricketapp /opt/logs
 
 # Set ownership
 chown -R cricketapp:cricketapp $APP_DIR

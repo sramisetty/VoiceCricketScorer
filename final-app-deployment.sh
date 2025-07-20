@@ -6,7 +6,7 @@
 set -euo pipefail
 
 DOMAIN="score.ramisetty.net"
-APP_DIR="/home/cricketapp/cricket-scorer"
+APP_DIR="/opt/cricket-scorer"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -281,7 +281,7 @@ module.exports = {
   apps: [{
     name: 'cricket-scorer',
     script: 'dist/index.js',
-    cwd: '/home/cricketapp/cricket-scorer',
+    cwd: '/opt/cricket-scorer',
     instances: 1,
     exec_mode: 'cluster',
     env: {

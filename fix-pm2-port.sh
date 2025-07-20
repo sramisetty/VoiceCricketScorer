@@ -40,9 +40,9 @@ sudo -u cricketapp pm2 stop cricket-scorer || warn "Process already stopped"
 sudo -u cricketapp pm2 delete cricket-scorer || warn "Process already deleted"
 
 # Find the correct application directory
-APP_DIR="/home/cricketapp/cricket-scorer"
+APP_DIR="/opt/cricket-scorer"
 if [ ! -d "$APP_DIR" ]; then
-    APP_DIR="/opt/cricket-scorer"
+    APP_DIR="/home/cricketapp/cricket-scorer"
     if [ ! -d "$APP_DIR" ]; then
         log "Looking for cricket-scorer directory..."
         APP_DIR=$(find / -name "cricket-scorer" -type d 2>/dev/null | head -1)
@@ -61,7 +61,7 @@ module.exports = {
   apps: [{
     name: 'cricket-scorer',
     script: 'dist/index.js',
-    cwd: '/home/cricketapp/cricket-scorer',
+    cwd: '/opt/cricket-scorer',
     instances: 1,
     exec_mode: 'cluster',
     env: {

@@ -34,7 +34,7 @@ module.exports = {
   apps: [{
     name: 'cricket-scorer',
     script: 'dist/index.js',
-    cwd: '/home/cricketapp/cricket-scorer',
+    cwd: '/opt/cricket-scorer',
     instances: 1,
     exec_mode: 'cluster',
     env: {
@@ -60,7 +60,7 @@ cat > deploy-on-production.sh << 'EOF'
 
 set -euo pipefail
 
-APP_DIR="/home/cricketapp/cricket-scorer"
+APP_DIR="/opt/cricket-scorer"
 
 echo "Setting up Cricket Scorer on production server..."
 
@@ -97,5 +97,5 @@ log ""
 log "Commands to run on production server:"
 log "1. scp cricket-scorer-production.tar.gz root@67.227.251.94:/tmp/"
 log "2. ssh root@67.227.251.94"
-log "3. cd /home/cricketapp && tar -xzf /tmp/cricket-scorer-production.tar.gz"
+log "3. cd /opt && tar -xzf /tmp/cricket-scorer-production.tar.gz"
 log "4. cd cricket-scorer-deploy && sudo ./deploy-on-production.sh"

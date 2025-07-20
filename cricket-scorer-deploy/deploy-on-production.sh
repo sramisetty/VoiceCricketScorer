@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-APP_DIR="/home/cricketapp/cricket-scorer"
+APP_DIR="/opt/cricket-scorer"
 
 echo "Setting up Cricket Scorer on production server..."
 

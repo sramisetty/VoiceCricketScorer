@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-APP_DIR="/home/cricketapp/cricket-scorer"
+APP_DIR="/opt/cricket-scorer"
 
 # Colors for output
 GREEN='\033[0;32m'
