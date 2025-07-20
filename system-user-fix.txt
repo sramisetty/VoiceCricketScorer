@@ -1,0 +1,45 @@
+SYSTEM USER FIX - Cricket Scorer Production
+
+The error shows that the 'cricket-scorer' user doesn't exist on your system.
+Let's fix this by using the correct user account.
+
+=== STEP 1: Check Current User and Directory ===
+whoami
+ls -la /opt/cricket-scorer/
+ps aux | grep node | grep -v grep
+
+=== STEP 2: Emergency Recovery with Root User ===
+Since cricket-scorer user doesn't exist, use root for emergency recovery:
+
+cd /opt/cricket-scorer
+
+# Stop any existing processes
+pkill -f "node.*cricket"
+pkill -f "pm2"
+
+# Rebuild server
+npx esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --packages=external --format=esm
+
+# Rebuild client to correct location
+NODE_ENV=production npx vite build --outDir server/public --emptyOutDir
+
+# Set permissions for web server
+chmod -R 755 /opt/cricket-scorer/server/public/
+chmod -R 755 /opt/cricket-scorer/dist/
+
+# Start with PM2 as root (temporary fix)
+cd /opt/cricket-scorer
+pm2 start ecosystem.config.cjs
+pm2 save
+
+# Restart nginx
+systemctl restart nginx
+
+=== STEP 3: Test Recovery ===
+curl -I http://localhost:3000/
+curl -I https://score.ramisetty.net/
+
+=== STEP 4: Create Proper User (Optional) ===
+If you want to create the cricket-scorer user:
+useradd -r -s /bin/bash cricket-scorer
+chown -R cricket-scorer:cricket-scorer /opt/cricket-scorer/
