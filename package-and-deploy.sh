@@ -15,6 +15,15 @@ log() {
 
 log "Creating Cricket Scorer production deployment package..."
 
+# Check if required directories exist
+if [ ! -d "client" ] || [ ! -d "server" ] || [ ! -d "shared" ]; then
+    log "❌ Required directories not found in current location"
+    log "Current directory: $(pwd)"
+    log "Available files:"
+    ls -la
+    exit 1
+fi
+
 # Create deployment package
 tar -czf $PACKAGE_NAME \
     --exclude=node_modules \
@@ -23,10 +32,15 @@ tar -czf $PACKAGE_NAME \
     --exclude='*.log' \
     --exclude='*.backup.*' \
     client/ server/ shared/ \
-    package.json tsconfig.json tsconfig.node.json \
+    package*.json tsconfig*.json \
     vite.config.ts tailwind.config.ts postcss.config.js \
     components.json drizzle.config.ts \
-    master-deploy.sh
+    master-deploy.sh 2>/dev/null || {
+        log "❌ Failed to create package - checking what files exist..."
+        log "Available files and directories:"
+        find . -maxdepth 2 -type d -o -name "*.json" -o -name "*.ts" -o -name "*.js" | head -20
+        exit 1
+    }
 
 log "✅ Package created: $PACKAGE_NAME ($(du -h $PACKAGE_NAME | cut -f1))"
 
