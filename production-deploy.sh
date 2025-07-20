@@ -895,36 +895,46 @@ chown $APP_USER:$APP_USER .env
 # Build application with proper error handling
 cd $APP_DIR
 log "Building client application..."
-sudo -u $APP_USER NODE_ENV=production npm run build:client || {
-    error "Client build failed. Trying alternative build method..."
+# The Express server expects static files in server/public/, not dist/public/
+sudo -u $APP_USER NODE_ENV=production npx vite build --outDir server/public --emptyOutDir || {
+    error "Client build to server/public failed. Trying dist/public and copying..."
     sudo -u $APP_USER npx vite build --outDir dist/public --emptyOutDir
+    mkdir -p $APP_DIR/server/public
+    cp -r $APP_DIR/dist/public/* $APP_DIR/server/public/
 }
 
-# Ensure build output is correct
+# Ensure build output is in the correct location for Express server
 log "Verifying build output structure..."
-if [ ! -d "$APP_DIR/dist/public" ]; then
-    error "Build output directory missing. Creating and rebuilding..."
-    mkdir -p $APP_DIR/dist/public
-    chown -R $APP_USER:$APP_USER $APP_DIR/dist
-    sudo -u $APP_USER npx vite build --outDir dist/public --emptyOutDir
+if [ ! -d "$APP_DIR/server/public" ]; then
+    error "Build output directory missing in server/public. Creating and rebuilding..."
+    mkdir -p $APP_DIR/server/public
+    chown -R $APP_USER:$APP_USER $APP_DIR/server/public
+    sudo -u $APP_USER npx vite build --outDir server/public --emptyOutDir
 fi
 
-# Verify critical files exist
-if [ ! -f "$APP_DIR/dist/public/index.html" ]; then
-    error "Critical files missing after build. Directory contents:"
-    ls -la $APP_DIR/dist/ || true
-    ls -la $APP_DIR/ | grep -E "(index\.html|vite\.config)" || true
-    exit 1
+# Verify critical files exist where Express server expects them
+if [ ! -f "$APP_DIR/server/public/index.html" ]; then
+    error "Critical files missing in server/public. Checking fallback locations..."
+    
+    if [ -f "$APP_DIR/dist/public/index.html" ]; then
+        log "Found files in dist/public, copying to server/public..."
+        cp -r $APP_DIR/dist/public/* $APP_DIR/server/public/
+    else
+        error "No build files found anywhere. Directory contents:"
+        ls -la $APP_DIR/dist/ 2>/dev/null || echo "dist/ not found"
+        ls -la $APP_DIR/server/ 2>/dev/null || echo "server/ not found"
+        exit 1
+    fi
 fi
 
-# Set proper permissions for static files
-chmod -R 755 $APP_DIR/dist/public/
-chown -R $APP_USER:$APP_USER $APP_DIR/dist/
+# Set proper permissions for static files in the correct location
+chmod -R 755 $APP_DIR/server/public/
+chown -R $APP_USER:$APP_USER $APP_DIR/server/public/
 
-log "Static files built and permissions set successfully"
+log "Static files built and permissions set successfully in server/public/"
 
 log "Building server application..."
-sudo -u $APP_USER npm run build:server || {
+sudo -u $APP_USER npx esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --packages=external --format=esm || {
     error "Server build failed. Trying alternative build with CommonJS..."
     sudo -u $APP_USER npx esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --packages=external --format=cjs
 }

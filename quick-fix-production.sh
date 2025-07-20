@@ -24,26 +24,38 @@ ls -la $APP_DIR/dist/public/assets/ 2>/dev/null || echo "assets directory missin
 echo "2. Stopping PM2..."
 sudo -u $APP_USER pm2 stop cricket-scorer || true
 
-echo "3. Rebuilding client with explicit output..."
+echo "3. Rebuilding client to correct location..."
 cd $APP_DIR
+# The server expects static files in server/public, not dist/public
+sudo -u $APP_USER NODE_ENV=production npx vite build --outDir server/public --emptyOutDir
+
+echo "3b. Also building to dist/public as fallback..."
 sudo -u $APP_USER NODE_ENV=production npx vite build --outDir dist/public --emptyOutDir
 
-echo "4. Verifying assets exist..."
-if [ ! -d "$APP_DIR/dist/public/assets" ]; then
-    echo "ERROR: Assets directory still missing after build!"
-    exit 1
+echo "4. Verifying assets exist in server/public..."
+if [ ! -d "$APP_DIR/server/public/assets" ]; then
+    echo "ERROR: Assets directory missing in server/public!"
+    if [ ! -d "$APP_DIR/dist/public/assets" ]; then
+        echo "ERROR: Assets also missing in dist/public!"
+        exit 1
+    else
+        echo "Assets found in dist/public, copying to server/public..."
+        cp -r $APP_DIR/dist/public/* $APP_DIR/server/public/
+    fi
 fi
 
-echo "Assets created:"
-ls -la $APP_DIR/dist/public/assets/
+echo "Assets in server/public:"
+ls -la $APP_DIR/server/public/assets/
 
 echo "5. Setting permissions..."
-chown -R $APP_USER:$APP_USER $APP_DIR/dist/
-chmod -R 755 $APP_DIR/dist/
+chown -R $APP_USER:$APP_USER $APP_DIR/server/public/
+chmod -R 755 $APP_DIR/server/public/
+chown -R $APP_USER:$APP_USER $APP_DIR/dist/ 2>/dev/null || true
+chmod -R 755 $APP_DIR/dist/ 2>/dev/null || true
 
 echo "6. Testing asset accessibility..."
-# Check if we can read the assets
-for asset in $APP_DIR/dist/public/assets/*; do
+# Check if we can read the assets from server/public (where Express expects them)
+for asset in $APP_DIR/server/public/assets/*; do
     if [ -f "$asset" ]; then
         echo "Asset found: $(basename $asset) - $(ls -lh $asset | awk '{print $5}')"
     fi
