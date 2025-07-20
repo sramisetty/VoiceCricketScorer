@@ -42,7 +42,7 @@ sudo -u cricketapp pm2 delete cricket-scorer || warn "Process already deleted"
 # Find the correct application directory
 APP_DIR="/opt/cricket-scorer"
 if [ ! -d "$APP_DIR" ]; then
-    APP_DIR="/home/cricketapp/cricket-scorer"
+    APP_DIR="/opt/cricket-scorer"
     if [ ! -d "$APP_DIR" ]; then
         log "Looking for cricket-scorer directory..."
         APP_DIR=$(find / -name "cricket-scorer" -type d 2>/dev/null | head -1)

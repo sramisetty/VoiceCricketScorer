@@ -38,8 +38,8 @@ log "Fixing database configuration for Cricket Scorer..."
 if [ ! -d "$APP_DIR/current" ]; then
     if [ -d "$APP_DIR" ]; then
         WORK_DIR="$APP_DIR"
-    elif [ -d "/home/cricketapp/cricket-scorer" ]; then
-        WORK_DIR="/home/cricketapp/cricket-scorer"
+    elif [ -d "/opt/cricket-scorer" ]; then
+        WORK_DIR="/opt/cricket-scorer"
     else
         error "Cricket scorer app directory not found. Please check installation."
     fi
