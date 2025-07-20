@@ -519,9 +519,8 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./client/src"),
-      "@shared": path.resolve(__dirname, "./shared"),
-      "@assets": path.resolve(__dirname, "./attached_assets")
+      "@": path.resolve(__dirname, "./src"),
+      "@shared": path.resolve(__dirname, "./shared")
     }
   },
   build: {
@@ -537,7 +536,8 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    "./client/src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./index.html",
   ],
   theme: {
     extend: {},
@@ -577,16 +577,16 @@ cat > $TEMP_DIR/tsconfig.json << 'EOF'
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./client/src/*"],
+      "@/*": ["./src/*"],
       "@shared/*": ["./shared/*"]
     }
   },
-  "include": ["client/src", "shared", "server"]
+  "include": ["src", "shared", "server"]
 }
 EOF
 
-# Create client files
-mkdir -p $TEMP_DIR/client/src
+# Create client files with correct structure
+mkdir -p $TEMP_DIR/src
 cat > $TEMP_DIR/index.html << 'EOF'
 <!DOCTYPE html>
 <html lang="en">
@@ -594,21 +594,6 @@ cat > $TEMP_DIR/index.html << 'EOF'
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cricket Scorer - Voice Enabled</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .voice-button {
-            background: linear-gradient(45deg, #10B981, #059669);
-            transition: all 0.3s ease;
-        }
-        .voice-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
-        }
-        .score-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            border: 1px solid #e2e8f0;
-        }
-    </style>
 </head>
 <body class="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
     <div id="root"></div>
@@ -617,7 +602,7 @@ cat > $TEMP_DIR/index.html << 'EOF'
 </html>
 EOF
 
-cat > $TEMP_DIR/client/src/main.tsx << 'EOF'
+cat > $TEMP_DIR/src/main.tsx << 'EOF'
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -635,7 +620,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 EOF
 
-cat > $TEMP_DIR/client/src/App.tsx << 'EOF'
+cat > $TEMP_DIR/src/App.tsx << 'EOF'
 import React from 'react';
 
 function App() {
@@ -682,7 +667,7 @@ function App() {
 export default App;
 EOF
 
-cat > $TEMP_DIR/client/src/index.css << 'EOF'
+cat > $TEMP_DIR/src/index.css << 'EOF'
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
