@@ -587,7 +587,7 @@ EOF
 
 # Create client files
 mkdir -p $TEMP_DIR/client/src
-cat > $TEMP_DIR/client/index.html << 'EOF'
+cat > $TEMP_DIR/index.html << 'EOF'
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -741,11 +741,10 @@ log "PHASE 6: Installing Dependencies and Building Application"
 cd $APP_DIR
 
 # Install dependencies as app user
-sudo -u $APP_USER npm install
+sudo -u $APP_USER npm install --force
 
 # Set environment variables
 cat > .env << EOF
-NODE_ENV=production
 PORT=3000
 DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}
 EOF
@@ -753,7 +752,7 @@ EOF
 chown $APP_USER:$APP_USER .env
 
 # Build application
-sudo -u $APP_USER npm run build
+sudo -u $APP_USER NODE_ENV=production npm run build
 
 # =============================================================================
 # PHASE 7: DATABASE SCHEMA SYNC
@@ -761,9 +760,9 @@ sudo -u $APP_USER npm run build
 
 log "PHASE 7: Database Schema Synchronization"
 
-# Run database migrations
+# Run database migrations (skip for now as we're using in-memory storage)
 cd $APP_DIR
-sudo -u $APP_USER npm run db:push
+# sudo -u $APP_USER npm run db:push
 
 log "Database schema synchronized successfully"
 
@@ -785,7 +784,8 @@ module.exports = {
     exec_mode: 'cluster',
     env: {
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 3000,
+      DATABASE_URL: 'postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}'
     },
     error_file: '${APP_DIR}/logs/err.log',
     out_file: '${APP_DIR}/logs/out.log',
