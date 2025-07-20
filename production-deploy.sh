@@ -188,7 +188,7 @@ cat > $TEMP_DIR/package.json << 'EOF'
     "dev": "tsx watch server/index.ts",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
-    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:pg-native --external:lightningcss --format=esm --banner:js='import { createRequire } from \"module\"; const require = createRequire(import.meta.url);'",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:pg-native --external:lightningcss --external:@tailwindcss/* --packages=external --format=esm --banner:js='import { createRequire } from \"module\"; const require = createRequire(import.meta.url);'",
     "start": "node dist/index.js",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
@@ -260,13 +260,20 @@ cat > $TEMP_DIR/package.json << 'EOF'
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.15",
+    "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "^5.0.0",
+    "@types/express-session": "^1.18.0",
+    "@types/multer": "^1.4.12",
     "@types/node": "^22.10.2",
+    "@types/passport": "^1.0.16",
+    "@types/passport-local": "^1.0.38",
     "@types/react": "^18.3.13",
     "@types/react-dom": "^18.3.1",
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "drizzle-kit": "^0.30.0",
     "esbuild": "^0.24.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.16",
@@ -875,7 +882,7 @@ log "PHASE 6: Installing Dependencies and Building Application"
 cd $APP_DIR
 
 # Install dependencies as app user
-sudo -u $APP_USER npm install --force
+sudo -u $APP_USER npm install --force --legacy-peer-deps
 
 # Set environment variables
 cat > .env << EOF
@@ -885,8 +892,19 @@ EOF
 
 chown $APP_USER:$APP_USER .env
 
-# Build application
-sudo -u $APP_USER NODE_ENV=production npm run build
+# Build application with proper error handling
+cd $APP_DIR
+log "Building client application..."
+sudo -u $APP_USER NODE_ENV=production npm run build:client || {
+    error "Client build failed. Trying alternative build method..."
+    sudo -u $APP_USER npx vite build --force
+}
+
+log "Building server application..."
+sudo -u $APP_USER npm run build:server || {
+    error "Server build failed. Trying simpler build..."
+    sudo -u $APP_USER npx esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --packages=external --format=esm
+}
 
 # =============================================================================
 # PHASE 7: DATABASE SCHEMA SYNC
