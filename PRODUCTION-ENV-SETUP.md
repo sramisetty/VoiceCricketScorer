@@ -4,7 +4,33 @@
 
 For production deployment without dotenv dependency, use system environment variables or PM2 configuration.
 
-### Method 1: System Environment Variables (Recommended)
+### Method 1: Interactive Setup Script (Recommended)
+
+Run the interactive environment configuration script:
+
+```bash
+# Make script executable (if needed)
+chmod +x setup-production-env.sh
+
+# Run interactive setup
+./setup-production-env.sh
+```
+
+The script will prompt you for:
+- Database connection details (host, port, name, username, password)
+- OpenAI API key
+- SSL configuration (optional)
+- Automatic session secret generation
+
+Features:
+- ✅ Input validation and error checking
+- ✅ Secure password masking
+- ✅ Automatic session secret generation
+- ✅ Database connection testing
+- ✅ Secure file permissions (600)
+- ✅ Configuration summary and confirmation
+
+### Method 2: System Environment Variables
 
 ```bash
 # Set environment variables at system level
