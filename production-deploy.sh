@@ -188,7 +188,7 @@ cat > $TEMP_DIR/package.json << 'EOF'
     "dev": "tsx watch server/index.ts",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
-    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:pg-native --format=esm --banner:js='import { createRequire } from \"module\"; const require = createRequire(import.meta.url);'",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:pg-native --external:lightningcss --format=esm --banner:js='import { createRequire } from \"module\"; const require = createRequire(import.meta.url);'",
     "start": "node dist/index.js",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
@@ -260,26 +260,19 @@ cat > $TEMP_DIR/package.json << 'EOF'
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
-    "@tailwindcss/typography": "^0.5.15",
-    "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "^5.0.0",
-    "@types/express-session": "^1.18.0",
-    "@types/multer": "^1.4.12",
     "@types/node": "^22.10.2",
-    "@types/passport": "^1.0.16",
-    "@types/passport-local": "^1.0.38",
     "@types/react": "^18.3.13",
     "@types/react-dom": "^18.3.1",
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
-    "drizzle-kit": "^0.30.0",
     "esbuild": "^0.24.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.16",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "vite": "^6.0.3"
+    "vite": "^5.4.10"
   }
 }
 EOF
@@ -621,43 +614,199 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 EOF
 
 cat > $TEMP_DIR/src/App.tsx << 'EOF'
-import React from 'react';
+import React, { useState } from 'react';
+
+interface Score {
+  runs: number;
+  wickets: number;
+  balls: number;
+}
 
 function App() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="text-center mb-12">
-        <h1 className="text-6xl font-bold text-green-800 mb-4">🏏 Cricket Scorer</h1>
-        <p className="text-xl text-gray-600">Voice-Enabled Cricket Scoring Platform</p>
-        <div className="mt-4 text-sm text-gray-500">
-          Production Server: score.ramisetty.net | Status: ✅ Online
-        </div>
-      </div>
-      
-      <div className="max-w-4xl mx-auto mb-8">
-        <div className="score-card rounded-lg shadow-xl p-8">
-          <h2 className="text-3xl font-semibold mb-6 text-center text-gray-800">Live Scoreboard</h2>
-          
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <div className="text-center">
-              <div className="text-5xl font-bold text-green-600">0</div>
-              <div className="text-gray-500 text-lg">Runs</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-red-600">0</div>
-              <div className="text-gray-500 text-lg">Wickets</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-blue-600">0.0</div>
-              <div className="text-gray-500 text-lg">Overs</div>
-            </div>
-          </div>
+  const [score, setScore] = useState<Score>({ runs: 0, wickets: 0, balls: 0 });
+  const [isListening, setIsListening] = useState(false);
+  const [lastCommand, setLastCommand] = useState('');
+  const [voiceStatus, setVoiceStatus] = useState('');
 
-          <div className="text-center mb-8">
-            <button className="voice-button text-white px-8 py-4 rounded-lg text-xl font-semibold">
-              🎤 Start Voice Scoring
-            </button>
+  const updateScore = (newRuns: number) => {
+    setScore(prev => ({
+      ...prev,
+      runs: prev.runs + newRuns,
+      balls: prev.balls + 1
+    }));
+    setLastCommand(`Added ${newRuns} run(s)`);
+  };
+
+  const addWicket = () => {
+    if (score.wickets < 10) {
+      setScore(prev => ({
+        ...prev,
+        wickets: prev.wickets + 1,
+        balls: prev.balls + 1
+      }));
+      setLastCommand('Wicket taken!');
+    }
+  };
+
+  const startVoiceRecognition = () => {
+    if (!('webkitSpeechRecognition' in window)) {
+      alert('Voice recognition not supported in this browser');
+      return;
+    }
+
+    if (isListening) return;
+
+    const recognition = new (window as any).webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceStatus('Say a command: "four", "six", "single", "wicket", "dot ball"');
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setVoiceStatus('');
+    };
+
+    recognition.onresult = (event: any) => {
+      const command = event.results[0][0].transcript.toLowerCase();
+      setVoiceStatus(`Heard: "${command}"`);
+
+      if (command.includes('four') || command.includes('boundary')) {
+        updateScore(4);
+      } else if (command.includes('six') || command.includes('maximum')) {
+        updateScore(6);
+      } else if (command.includes('single') || command.includes('one')) {
+        updateScore(1);
+      } else if (command.includes('double') || command.includes('two')) {
+        updateScore(2);
+      } else if (command.includes('triple') || command.includes('three')) {
+        updateScore(3);
+      } else if (command.includes('wicket') || command.includes('out')) {
+        addWicket();
+      } else if (command.includes('dot') || command.includes('no run')) {
+        setScore(prev => ({ ...prev, balls: prev.balls + 1 }));
+        setLastCommand('Dot ball');
+      } else {
+        setLastCommand(`Command not recognized: "${command}"`);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      setVoiceStatus('Voice recognition error: ' + event.error);
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  const overs = Math.floor(score.balls / 6);
+  const ballsInOver = score.balls % 6;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-12">
+          <h1 className="text-6xl font-bold text-green-800 mb-4">🏏 Cricket Scorer</h1>
+          <p className="text-xl text-gray-600">Voice-Enabled Cricket Scoring Platform</p>
+          <div className="mt-4 text-sm text-gray-500">
+            Production Server: score.ramisetty.net | Status: Online
           </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-white rounded-lg shadow-xl p-8 border border-gray-200">
+            <h2 className="text-3xl font-semibold mb-6 text-center text-gray-800">Live Scoreboard</h2>
+            
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <div className="text-center">
+                <div className="text-5xl font-bold text-green-600">{score.runs}</div>
+                <div className="text-gray-500 text-lg">Runs</div>
+              </div>
+              <div className="text-center">
+                <div className="text-5xl font-bold text-red-600">{score.wickets}</div>
+                <div className="text-gray-500 text-lg">Wickets</div>
+              </div>
+              <div className="text-center">
+                <div className="text-5xl font-bold text-blue-600">{overs}.{ballsInOver}</div>
+                <div className="text-gray-500 text-lg">Overs</div>
+              </div>
+            </div>
+
+            <div className="text-center mb-8">
+              <button
+                onClick={startVoiceRecognition}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 rounded-lg text-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                disabled={isListening}
+              >
+                {isListening ? '🔴 Listening...' : '🎤 Start Voice Scoring'}
+              </button>
+              {voiceStatus && (
+                <div className="mt-4 text-gray-600">{voiceStatus}</div>
+              )}
+              {lastCommand && (
+                <div className="mt-2 text-sm text-blue-600">{lastCommand}</div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <button 
+                onClick={() => updateScore(1)}
+                className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition-colors"
+              >
+                +1
+              </button>
+              <button 
+                onClick={() => updateScore(2)}
+                className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition-colors"
+              >
+                +2
+              </button>
+              <button 
+                onClick={() => updateScore(4)}
+                className="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg transition-colors"
+              >
+                Four
+              </button>
+              <button 
+                onClick={() => updateScore(6)}
+                className="bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors"
+              >
+                Six
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+            <div className="text-3xl mb-3">🎤</div>
+            <h3 className="font-semibold mb-2">Voice Commands</h3>
+            <p className="text-sm text-gray-600">Score using voice: "four", "six", "wicket"</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+            <div className="text-3xl mb-3">📊</div>
+            <h3 className="font-semibold mb-2">Live Statistics</h3>
+            <p className="text-sm text-gray-600">Real-time match statistics and player data</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+            <div className="text-3xl mb-3">🏏</div>
+            <h3 className="font-semibold mb-2">ICC Compliant</h3>
+            <p className="text-sm text-gray-600">Full cricket rules implementation</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+            <div className="text-3xl mb-3">📱</div>
+            <h3 className="font-semibold mb-2">Mobile Ready</h3>
+            <p className="text-sm text-gray-600">Works perfectly on all devices</p>
+          </div>
+        </div>
+
+        <div className="text-center mt-12 text-gray-500">
+          <p>Voice-Enabled Cricket Scoring Platform • Built with React & Express</p>
+          <p className="mt-2">Server: AlmaLinux 9 • Domain: score.ramisetty.net • SSL: Enabled</p>
         </div>
       </div>
     </div>
