@@ -157,7 +157,7 @@ setup_postgresql() {
     log "Setting up database configuration..."
     
     # Check if DATABASE_URL is already provided (e.g., Neon, external DB)
-    if [ -f ".env" ] && grep -q "DATABASE_URL.*neon.tech" .env 2>/dev/null; then
+    if [ -f "$APP_DIR/current/.env" ] && grep -q "DATABASE_URL.*neon.tech" "$APP_DIR/current/.env" 2>/dev/null; then
         log "External database (Neon) detected - skipping local PostgreSQL installation"
         return 0
     fi
