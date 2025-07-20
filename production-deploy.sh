@@ -900,6 +900,23 @@ sudo -u $APP_USER NODE_ENV=production npm run build:client || {
     sudo -u $APP_USER npx vite build --force
 }
 
+# Ensure dist/public directory exists and has proper structure
+log "Verifying build output..."
+if [ ! -d "$APP_DIR/dist/public" ]; then
+    error "Build output directory not found. Creating structure..."
+    mkdir -p $APP_DIR/dist/public
+    chown -R $APP_USER:$APP_USER $APP_DIR/dist
+fi
+
+# Copy any missing static files
+if [ ! -f "$APP_DIR/dist/public/index.html" ]; then
+    error "index.html not found in build output. Checking for files..."
+    ls -la $APP_DIR/dist/ || true
+    
+    # Try building again with explicit output directory
+    sudo -u $APP_USER npx vite build --outDir dist/public --emptyOutDir
+fi
+
 log "Building server application..."
 sudo -u $APP_USER npm run build:server || {
     error "Server build failed. Trying alternative build with CommonJS..."
