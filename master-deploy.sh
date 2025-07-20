@@ -594,30 +594,17 @@ log "SECTION 6: Configuring Nginx and SSL..."
 systemctl enable nginx
 systemctl start nginx
 
-# Create Nginx configuration
+# Create initial HTTP-only Nginx configuration
 cat > /etc/nginx/conf.d/cricket-scorer.conf << EOF
 server {
     listen 80;
     server_name $DOMAIN $PUBLIC_IP;
     
-    # Redirect all HTTP traffic to HTTPS
-    return 301 https://\$server_name\$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name $DOMAIN $PUBLIC_IP;
-    
-    # SSL Configuration (will be updated by certbot)
-    ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;
-    ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
-    
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+    # Allow Let's Encrypt challenges
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+        try_files \$uri =404;
+    }
     
     # Proxy to Cricket Scorer app
     location / {
@@ -646,26 +633,86 @@ server {
 }
 EOF
 
+# Create web root for Let's Encrypt
+mkdir -p /var/www/html
+
 # Test Nginx configuration
 nginx -t || { error "Nginx configuration test failed"; exit 1; }
 
 # Reload Nginx
 systemctl reload nginx
 
+# Start application first so certbot can verify domain
+log "Starting Cricket Scorer application for SSL verification..."
+sudo -u $APP_USER pm2 start ecosystem.config.cjs 2>/dev/null || true
+sleep 5
+
 # Obtain SSL certificate
 log "Obtaining SSL certificate from Let's Encrypt..."
-certbot --nginx --non-interactive --agree-tos --register-unsafely-without-email -d $DOMAIN || {
-    warn "SSL certificate generation failed, continuing with HTTP only"
+if certbot --nginx --non-interactive --agree-tos --register-unsafely-without-email -d $DOMAIN; then
+    log "✅ SSL certificate obtained successfully"
+    
+    # Update Nginx config with HTTPS redirect
+    cat > /etc/nginx/conf.d/cricket-scorer.conf << EOF
+server {
+    listen 80;
+    server_name $DOMAIN $PUBLIC_IP;
+    return 301 https://\\\$server_name\\\$request_uri;
 }
 
+server {
+    listen 443 ssl http2;
+    server_name $DOMAIN $PUBLIC_IP;
+    
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+    
+    # Proxy to Cricket Scorer app
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \\\$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \\\$host;
+        proxy_set_header X-Real-IP \\\$remote_addr;
+        proxy_set_header X-Forwarded-For \\\$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \\\$scheme;
+        proxy_cache_bypass \\\$http_upgrade;
+    }
+    
+    # WebSocket support
+    location /ws {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \\\$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \\\$host;
+        proxy_set_header X-Real-IP \\\$remote_addr;
+        proxy_set_header X-Forwarded-For \\\$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \\\$scheme;
+    }
+}
+EOF
+    nginx -t && systemctl reload nginx
+else
+    warn "SSL certificate generation failed, continuing with HTTP only"
+fi
+
 # ============================================================================
-# SECTION 7: START APPLICATION
+# SECTION 7: FINALIZE APPLICATION STARTUP
 # ============================================================================
 
-log "SECTION 7: Starting Cricket Scorer application..."
+log "SECTION 7: Finalizing Cricket Scorer application startup..."
 
-# Start application with PM2
-sudo -u $APP_USER pm2 start ecosystem.config.cjs
+# Ensure application is running (it was started for SSL verification)
+sudo -u $APP_USER pm2 restart cricket-scorer 2>/dev/null || sudo -u $APP_USER pm2 start ecosystem.config.cjs
 sudo -u $APP_USER pm2 save
 sudo -u $APP_USER pm2 startup | grep -v "PM2" | bash || true
 
