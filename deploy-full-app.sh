@@ -824,6 +824,3 @@ else
 fi
 
 log "🏏 Full Cricket Scorer deployment completed!"
-EOF
-<invoke name="bash">
-<parameter name="command">chmod +x deploy-full-app.sh
