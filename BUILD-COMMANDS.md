@@ -43,10 +43,20 @@ npx esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=d
 chmod -R 755 server/public/
 chmod -R 755 dist/
 
-# 5. Set environment variables directly (recommended for production)
+# 5. Set environment variables for production (choose one method)
+
+# Method A: Direct export (recommended)
 export DATABASE_URL="your_actual_database_url"
-export OPENAI_API_KEY="your_actual_openai_key"
+export OPENAI_API_KEY="your_actual_openai_key"  
 export SESSION_SECRET="your_secure_session_secret"
+
+# Method B: Create local env file (copy template and edit)
+cp .env.production .env.local
+nano .env.local  # Edit with actual values
+source .env.local  # Load into environment
+
+# Method C: Edit PM2 ecosystem config directly
+nano ecosystem.config.cjs  # Add actual environment values
 
 # 6. Test the build
 node dist/index.js  # Should start without DATABASE_URL error

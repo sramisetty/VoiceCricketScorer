@@ -8,8 +8,11 @@ vite.config.ts.*
 # Environment files
 .env
 .env.local
-.env.production
 .env.staging
+
+# Keep .env.production in git as template, ignore actual env files
+.env.actual
+.env.prod
 
 # Logs
 logs
