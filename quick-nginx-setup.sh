@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Quick Nginx Setup for Cricket Scorer
-# Simple HTTP setup for immediate access
+# Fixes the 502 Bad Gateway by pointing to correct port
 
 set -euo pipefail
 
-PUBLIC_IP="67.227.251.94"
-APP_PORT="3000"
+DOMAIN="score.ramisetty.net"
+APP_PORT="5000"  # Correct port from your app
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -22,54 +22,101 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-log "Quick Nginx setup for Cricket Scorer..."
+log "Fixing Nginx configuration for Cricket Scorer..."
 
-# Install Nginx
-if command -v yum >/dev/null 2>&1; then
-    yum install -y nginx
-elif command -v dnf >/dev/null 2>&1; then
-    dnf install -y nginx
-elif command -v apt >/dev/null 2>&1; then
-    apt update && apt install -y nginx
-fi
+# Remove existing configurations
+rm -f /etc/nginx/conf.d/cricket-scorer.conf
+rm -f /etc/nginx/sites-available/cricket-scorer
+rm -f /etc/nginx/sites-enabled/cricket-scorer
 
-# Simple Nginx config
+# Create HTTP configuration with correct port
 cat > /etc/nginx/conf.d/cricket-scorer.conf << EOF
 server {
     listen 80;
-    server_name $PUBLIC_IP;
+    server_name $DOMAIN;
+
+    # Security headers
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
 
     location / {
-        proxy_pass http://localhost:$APP_PORT;
+        proxy_pass http://127.0.0.1:$APP_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        
+        # Timeout settings
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
+    }
+
+    # WebSocket support for live updates
+    location /ws {
+        proxy_pass http://127.0.0.1:$APP_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
-    location /ws {
-        proxy_pass http://localhost:$APP_PORT;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
+    # API endpoints
+    location /api/ {
+        proxy_pass http://127.0.0.1:$APP_PORT;
         proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Static assets caching
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        proxy_pass http://127.0.0.1:$APP_PORT;
+        proxy_set_header Host \$host;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Health check endpoint
+    location /health {
+        proxy_pass http://127.0.0.1:$APP_PORT;
+        access_log off;
     }
 }
 EOF
 
-# Start Nginx
-systemctl start nginx
-systemctl enable nginx
+# Test configuration
+log "Testing Nginx configuration..."
+nginx -t
 
-# Configure firewall
-if command -v firewall-cmd >/dev/null 2>&1; then
-    firewall-cmd --permanent --add-service=http
-    firewall-cmd --reload
-elif command -v ufw >/dev/null 2>&1; then
-    ufw allow 80/tcp
-fi
-
+# Reload Nginx
 systemctl reload nginx
+log "✓ Nginx reloaded with corrected configuration"
 
-log "✓ Nginx configured and running"
-log "✓ Cricket Scorer available at: http://$PUBLIC_IP"
+# Test the connection
+sleep 2
+if curl -s -I http://$DOMAIN | head -1 | grep -q "200\|301\|302"; then
+    log "✓ HTTP is working properly"
+    log "🏏 Cricket Scorer is now available at: http://$DOMAIN"
+    log ""
+    log "Next step: Run SSL setup"
+    log "sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email webmaster@$DOMAIN --redirect"
+else
+    log "⚠️  Connection test failed - check if your app is running on port $APP_PORT"
+    log "Check with: sudo netstat -tlnp | grep :$APP_PORT"
+fi
