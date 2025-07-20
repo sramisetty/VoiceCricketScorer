@@ -7,11 +7,18 @@ module.exports = {
       exec_mode: 'cluster',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        // Add your actual environment variables here
+        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://user:password@host:port/database',
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+        SESSION_SECRET: process.env.SESSION_SECRET || 'secure_session_secret'
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://user:password@host:port/database',
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+        SESSION_SECRET: process.env.SESSION_SECRET || 'secure_session_secret'
       },
       // PM2 Configuration
       autorestart: true,
@@ -30,8 +37,8 @@ module.exports = {
       kill_timeout: 5000,
       listen_timeout: 8000,
       
-      // Environment Variables
-      env_file: '.env'
+      // Environment Variables loaded from system or PM2 config
+      // No env_file dependency for production security
     }
   ],
 
