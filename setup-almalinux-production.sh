@@ -779,38 +779,30 @@ setup_database() {
     # Now restore proper authentication in pg_hba.conf
     log "Restoring proper PostgreSQL authentication..."
     PG_HBA="/var/lib/pgsql/data/pg_hba.conf"
+    if [ -f "$PG_HBA.backup.$(date +%Y%m%d)*" ]; then
+        # Restore from backup and add our TCP entries
+        cp "$PG_HBA.backup."* "$PG_HBA" 2>/dev/null || true
+    fi
     
-    # Create a new pg_hba.conf with proper settings
-    cat > "$PG_HBA" << 'EOF'
-# PostgreSQL Client Authentication Configuration File
-# ===================================================
-#
-# TYPE  DATABASE        USER            ADDRESS                 METHOD
-
-# "local" is for Unix domain socket connections only
-local   all             postgres                                peer
-local   all             all                                     peer
-
-# IPv4 local connections:
-host    all             all             127.0.0.1/32            md5
-
-# IPv6 local connections:
-host    all             all             ::1/128                 md5
-
-# Allow replication connections from localhost, by a user with the
-# replication privilege.
-local   replication     all                                     peer
-host    replication     all             127.0.0.1/32            md5
-host    replication     all             ::1/128                 md5
-EOF
+    # Ensure peer authentication for local postgres user and md5 for TCP
+    if ! grep -q "^local.*all.*postgres.*peer" "$PG_HBA"; then
+        echo "local   all             postgres                                peer" >> "$PG_HBA"
+    fi
     
-    # Set proper permissions
-    chown postgres:postgres "$PG_HBA"
-    chmod 600 "$PG_HBA"
+    if ! grep -q "^local.*all.*all.*peer" "$PG_HBA"; then
+        echo "local   all             all                                     peer" >> "$PG_HBA"
+    fi
+    
+    if ! grep -q "host.*all.*all.*127.0.0.1/32.*md5" "$PG_HBA"; then
+        echo "host    all             all             127.0.0.1/32            md5" >> "$PG_HBA"
+    fi
+    
+    if ! grep -q "host.*all.*all.*::1/128.*md5" "$PG_HBA"; then
+        echo "host    all             all             ::1/128                 md5" >> "$PG_HBA"
+    fi
     
     # Reload PostgreSQL configuration
     systemctl reload postgresql
-    sleep 2
     
     success "Database and user created successfully"
     
@@ -842,36 +834,15 @@ EOF
         log "Error details:"
         cat /tmp/db_error.log 2>/dev/null || echo "No error log available"
         
-        # Fix authentication configuration since connection failed
-        log "Fixing PostgreSQL authentication configuration..."
+        # Authentication should already be configured, but double-check
+        log "Verifying PostgreSQL authentication configuration..."
         PG_HBA="/var/lib/pgsql/data/pg_hba.conf"
-        
-        # Create proper pg_hba.conf configuration
-        cat > "$PG_HBA" << 'EOF'
-# PostgreSQL Client Authentication Configuration File
-# TYPE  DATABASE        USER            ADDRESS                 METHOD
-
-# "local" is for Unix domain socket connections only
-local   all             postgres                                peer
-local   all             all                                     peer
-
-# IPv4 local connections:
-host    all             all             127.0.0.1/32            md5
-
-# IPv6 local connections:
-host    all             all             ::1/128                 md5
-
-# Allow replication connections from localhost
-local   replication     all                                     peer
-host    replication     all             127.0.0.1/32            md5
-host    replication     all             ::1/128                 md5
-EOF
-        
-        # Set proper permissions and restart PostgreSQL
-        chown postgres:postgres "$PG_HBA"
-        chmod 600 "$PG_HBA"
-        systemctl restart postgresql
-        sleep 5
+        if [ -f "$PG_HBA" ] && ! grep -q "host.*all.*all.*127.0.0.1/32.*md5" "$PG_HBA"; then
+            log "Adding missing TCP authentication entries..."
+            echo "host    all             all             127.0.0.1/32            md5" >> "$PG_HBA"
+            echo "host    all             all             ::1/128                 md5" >> "$PG_HBA"
+            systemctl restart postgresql
+            sleep 3
             
             # Retry connection test
             log "Retrying database connection..."
