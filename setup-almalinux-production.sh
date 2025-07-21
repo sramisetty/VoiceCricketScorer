@@ -143,18 +143,55 @@ install_postgresql() {
     log "Installing PostgreSQL from AlmaLinux repositories for maximum stability..."
     install_postgresql_builtin
     
-    # Initialize database if not already done
-    if [ ! -f "$PG_DATA_DIR/postgresql.conf" ]; then
-        log "Initializing PostgreSQL database..."
-        $PG_SETUP initdb
-    fi
-    
-    # Enable and start PostgreSQL
+    # Enable PostgreSQL service
+    log "Enabling and starting PostgreSQL service..."
     systemctl enable $PG_SERVICE
-    systemctl start $PG_SERVICE
     
-    # Wait for PostgreSQL to start
-    sleep 5
+    # Start PostgreSQL with error checking
+    if systemctl start $PG_SERVICE; then
+        success "PostgreSQL service started successfully"
+        
+        # Wait for PostgreSQL to be ready
+        log "Waiting for PostgreSQL to be ready..."
+        for i in {1..30}; do
+            if sudo -u postgres psql -c "SELECT 1;" &>/dev/null; then
+                success "PostgreSQL is ready and accepting connections"
+                break
+            fi
+            sleep 2
+            if [ $i -eq 30 ]; then
+                error "PostgreSQL failed to start properly after 60 seconds"
+                log "Checking PostgreSQL status and logs..."
+                systemctl status $PG_SERVICE
+                journalctl -xeu $PG_SERVICE --no-pager -n 20
+                exit 1
+            fi
+        done
+    else
+        error "Failed to start PostgreSQL service"
+        log "Checking PostgreSQL status and logs..."
+        systemctl status $PG_SERVICE
+        journalctl -xeu $PG_SERVICE --no-pager -n 20
+        
+        log "Attempting to fix PostgreSQL configuration..."
+        
+        # Check if data directory exists and has correct permissions
+        if [ -d "$PG_DATA_DIR" ]; then
+            chown -R postgres:postgres "$PG_DATA_DIR"
+            chmod 700 "$PG_DATA_DIR"
+            
+            # Try starting again
+            if systemctl start $PG_SERVICE; then
+                success "PostgreSQL started after fixing permissions"
+            else
+                error "PostgreSQL service failed to start even after fixes"
+                exit 1
+            fi
+        else
+            error "PostgreSQL data directory does not exist: $PG_DATA_DIR"
+            exit 1
+        fi
+    fi
     
     # Configure PostgreSQL for application access
     log "Configuring PostgreSQL..."
@@ -192,28 +229,60 @@ install_postgresql_builtin() {
     # Enable PostgreSQL module (version may vary)
     if dnf module enable postgresql:15 -y 2>/dev/null; then
         log "Enabled PostgreSQL 15 module"
+        PG_VERSION="15"
     elif dnf module enable postgresql:13 -y 2>/dev/null; then
         log "Enabled PostgreSQL 13 module (15 not available)"
+        PG_VERSION="13"
     else
         log "Using default PostgreSQL version"
+        PG_VERSION="default"
     fi
     
     # Install PostgreSQL packages
-    if dnf install -y postgresql-server postgresql postgresql-contrib 2>/dev/null; then
+    if dnf install -y postgresql-server postgresql postgresql-contrib; then
         # Try to install development packages
         dnf install -y postgresql-devel 2>/dev/null || {
             warning "PostgreSQL development packages not available, skipping"
         }
         
         # Set variables for built-in PostgreSQL
-        PG_VERSION="builtin"
         PG_SETUP="postgresql-setup"
         PG_SERVICE="postgresql"
         PG_DATA_DIR="/var/lib/pgsql/data"
         
         success "PostgreSQL installed from AlmaLinux built-in repositories"
+        
+        # Initialize database immediately after installation
+        log "Initializing PostgreSQL database..."
+        if [ ! -d "$PG_DATA_DIR" ] || [ ! -f "$PG_DATA_DIR/postgresql.conf" ]; then
+            # Remove any existing incomplete data directory
+            rm -rf "$PG_DATA_DIR" 2>/dev/null || true
+            
+            # Initialize database
+            if $PG_SETUP --initdb; then
+                success "PostgreSQL database initialized successfully"
+            else
+                error "PostgreSQL database initialization failed"
+                log "Attempting alternative initialization method..."
+                
+                # Try alternative initialization
+                if sudo -u postgres /usr/bin/initdb -D "$PG_DATA_DIR"; then
+                    success "PostgreSQL database initialized with alternative method"
+                else
+                    error "All PostgreSQL initialization methods failed"
+                    exit 1
+                fi
+            fi
+        else
+            log "PostgreSQL database already initialized"
+        fi
+        
+        # Set proper ownership and permissions
+        chown -R postgres:postgres "$PG_DATA_DIR"
+        chmod 700 "$PG_DATA_DIR"
+        
     else
-        error "Failed to install PostgreSQL from both official and built-in repositories"
+        error "Failed to install PostgreSQL from AlmaLinux repositories"
         error "Please check your internet connection and try again"
         exit 1
     fi
