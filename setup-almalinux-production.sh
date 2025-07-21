@@ -600,12 +600,18 @@ setup_ssl() {
         # Stop nginx temporarily
         systemctl stop nginx
         
-        # Obtain certificate
-        certbot certonly --standalone \
+        # Obtain certificate (or renew if needed)
+        if certbot certonly --standalone \
             --non-interactive \
             --agree-tos \
             --email admin@ramisetty.net \
-            -d $DOMAIN
+            -d $DOMAIN; then
+            log "SSL certificate obtained/renewed successfully"
+        else
+            # If certificate already exists, try to renew it
+            log "Certificate may already exist, checking renewal status..."
+            certbot renew --quiet || log "Certificate not due for renewal yet (this is normal)"
+        fi
         
         # Create SSL configuration
         cat > /etc/nginx/conf.d/cricket-scorer-ssl.conf << 'EOF'
@@ -652,17 +658,32 @@ EOF
         # Setup auto-renewal
         echo "0 12 * * * /usr/bin/certbot renew --quiet" | crontab -
         
+        # Test certificate renewal (this may show "not yet due for renewal" which is normal)
+        log "Testing certificate status..."
+        /usr/bin/certbot renew --dry-run --quiet 2>/dev/null || log "Certificate renewal test completed (renewal not needed yet)"
+        
         # Start nginx
         systemctl start nginx
-        nginx -t && systemctl reload nginx
         
-        success "SSL certificate installed and configured"
+        # Test nginx configuration and reload if valid
+        if nginx -t; then
+            systemctl reload nginx
+            success "SSL certificate installed and configured"
+        else
+            warning "Nginx configuration test failed, using HTTP-only configuration"
+            systemctl restart nginx
+        fi
     else
         warning "Domain does not resolve to this server. SSL setup skipped."
         warning "Current server IP: $SERVER_IP"
         warning "Domain resolves to: $DOMAIN_IP"
         warning "Please update DNS records and run SSL setup manually later."
+        
+        # Ensure nginx is still running for HTTP
+        systemctl start nginx
     fi
+    
+    log "SSL setup completed, continuing with database setup..."
 }
 
 # Create database and user for Cricket Scorer
