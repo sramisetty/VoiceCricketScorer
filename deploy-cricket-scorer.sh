@@ -45,34 +45,156 @@ check_root() {
     fi
 }
 
+# Emergency production fix - completely eliminate Replit imports
+emergency_production_fix() {
+    log "Emergency fix: Completely eliminating Replit imports from production build..."
+    
+    cd "$APP_DIR"
+    
+    # Stop all PM2 processes
+    log "Stopping all PM2 processes..."
+    pm2 kill 2>/dev/null || true
+    
+    # Remove ALL build artifacts and caches
+    log "Removing all build artifacts and caches..."
+    rm -rf dist/ server/public/ node_modules/.cache/ node_modules/.vite/
+    find . -name "*.tsbuildinfo" -delete 2>/dev/null || true
+    
+    # Remove Replit packages completely
+    log "Removing Replit packages..."
+    npm uninstall @replit/vite-plugin-cartographer @replit/vite-plugin-runtime-error-modal 2>/dev/null || true
+    
+    # Clean reinstall
+    log "Clean package reinstall..."
+    rm -rf node_modules/
+    npm install --production=false
+    
+    # Create minimal production server without any Vite config imports
+    log "Creating production server without Vite config dependencies..."
+    cat > server/index.prod.ts << 'EOF'
+import express, { type Request, Response, NextFunction } from "express";
+import { registerRoutes } from "./routes";
+import path from "path";
+import fs from "fs";
+
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// Logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
+      const formattedTime = new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      });
+      console.log(`${formattedTime} [express] ${logLine}`);
+    }
+  });
+
+  next();
+});
+
+(async () => {
+  const server = await registerRoutes(app);
+
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message });
+    throw err;
+  });
+
+  // Serve static files from server/public
+  const distPath = path.resolve(import.meta.dirname, "public");
+  if (!fs.existsSync(distPath)) {
+    throw new Error(`Could not find the build directory: ${distPath}, make sure to build the client first`);
+  }
+
+  app.use(express.static(distPath));
+  app.use("*", (_req, res) => {
+    res.sendFile(path.resolve(distPath, "index.html"));
+  });
+
+  const PORT = Number(process.env.PORT) || 3000;
+  server.listen(PORT, "0.0.0.0", () => {
+    const formattedTime = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+    console.log(`${formattedTime} [express] serving on port ${PORT}`);
+  });
+})();
+EOF
+    
+    # Build client using production config only
+    log "Building client with production config..."
+    export NODE_ENV=production
+    npx vite build --config vite.config.production.ts
+    
+    # Build production server
+    log "Building production server..."
+    npx esbuild server/index.prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+    
+    # Verify no Replit imports in built files
+    log "Verifying no Replit imports remain..."
+    if grep -r "@replit" dist/ server/public/ 2>/dev/null; then
+        error "Replit imports still found! Build failed."
+        exit 1
+    fi
+    
+    success "Build completed successfully with no Replit imports"
+    
+    # Clean up temporary files
+    rm -f server/index.prod.ts
+}
+
 # Build application for production
 build_application() {
     log "Building application for production..."
     
     cd "$APP_DIR"
     
-    # Clean previous builds and remove Replit dependencies
-    rm -rf dist/ server/public/ 2>/dev/null || true
-    npm uninstall @replit/vite-plugin-cartographer @replit/vite-plugin-runtime-error-modal 2>/dev/null || true
-    
-    # Remove Replit script from HTML
-    sed -i '/<script.*replit-dev-banner\.js/d' client/index.html
+    # Use emergency production fix to eliminate Replit imports
+    emergency_production_fix
     
     # Create necessary directories
     mkdir -p server/public dist logs
     
-    # Use existing working build process
-    log "Building client with existing production config..."
-    NODE_ENV=production npx vite build --config vite.config.production.ts --mode production
-    
     # Check if build succeeded
     if [ ! -f "server/public/index.html" ]; then
-        # Fallback: copy from dist if built there
-        if [ -f "dist/index.html" ]; then
-            log "Copying build from dist/ to server/public/"
-            mkdir -p server/public
-            cp -r dist/* server/public/
-        else
+        error "Client build failed - no index.html found"
+        exit 1
+    fi
+    
+    if [ ! -f "dist/index.js" ]; then
+        error "Server build failed - no dist/index.js found"
+        exit 1
             error "Client build failed - no static files found"
             exit 1
         fi
