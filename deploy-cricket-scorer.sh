@@ -247,8 +247,12 @@ install_dependencies() {
     # Clean install
     rm -rf node_modules 2>/dev/null || true
     
-    # Install with Linux VPS production optimizations
-    npm install --production=false --ignore-scripts
+    # Install with production dependencies
+    npm install --production=false
+    
+    # Install terser for production build
+    log "Installing terser for production builds..."
+    npm install terser --save-dev
     
     # Generate package-lock.json for future deployments
     log "Generating package-lock.json for consistent deployments..."
@@ -304,7 +308,11 @@ build_application() {
     
 # Build client (React/Vite) - VPS Production Build
     log "Building client application for Linux VPS..."
-    NODE_ENV=production npx vite build --config vite.config.production.ts --outDir server/public --emptyOutDir --mode production
+    if [ -f "vite.config.production.ts" ]; then
+        NODE_ENV=production npx vite build --config vite.config.production.ts --outDir server/public --emptyOutDir --mode production
+    else
+        NODE_ENV=production npm run build
+    fi
     
     if [ ! -f "server/public/index.html" ]; then
         error "Client build failed - index.html not found"
