@@ -740,15 +740,15 @@ setup_database() {
         log "PostgreSQL authentication configured"
     fi
     
-    # First, set up postgres user without password prompts
-    log "Setting up postgres user authentication..."
+    # Set up PostgreSQL authentication to avoid password prompts completely
+    log "Configuring PostgreSQL for automated setup..."
     
     # Check if PostgreSQL is running, if not start it
     if ! systemctl is-active --quiet postgresql; then
         log "Starting PostgreSQL service..."
         systemctl enable postgresql
         systemctl start postgresql
-        sleep 3
+        sleep 5
         
         if ! systemctl is-active --quiet postgresql; then
             error "Failed to start PostgreSQL service"
@@ -756,26 +756,56 @@ setup_database() {
         fi
     fi
     
-    # Set a password for postgres user to avoid prompts (this uses peer authentication)
-    sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres123';" 2>/dev/null || {
-        warning "Could not set postgres password via peer authentication, trying alternative method..."
-        # Alternative: Use environment variable
-        export PGPASSWORD='postgres123'
-        echo "localhost:5432:*:postgres:postgres123" > ~/.pgpass
-        chmod 600 ~/.pgpass 2>/dev/null || true
-    }
+    # Create a temporary script to run all database commands as postgres user
+    cat > /tmp/create_db.sql << EOF
+-- Set up postgres user password first
+ALTER USER postgres PASSWORD 'postgres123';
+
+-- Create database if it doesn't exist
+SELECT 'CREATE DATABASE $DB_NAME'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB_NAME')\gexec
+
+-- Create user if it doesn't exist
+DO \$\$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$DB_USER') THEN
+        CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';
+    END IF;
+END
+\$\$;
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
+ALTER USER $DB_USER CREATEDB;
+
+-- Verify setup
+\l
+\du
+EOF
     
-    # Create database and user
-    log "Creating database and user as postgres..."
+    # Execute the SQL script as postgres user using local socket connection
+    log "Creating database and user..."
+    if sudo -u postgres psql -f /tmp/create_db.sql 2>/dev/null; then
+        success "Database and user created successfully via SQL script"
+    else
+        warning "SQL script method failed, trying individual commands..."
+        
+        # Fallback to individual commands with explicit local connection
+        log "Attempting fallback database creation..."
+        
+        # Try using local socket connection explicitly
+        sudo -u postgres psql -h /var/run/postgresql -c "ALTER USER postgres PASSWORD 'postgres123';" 2>/dev/null || true
+        sudo -u postgres createdb "$DB_NAME" 2>/dev/null || log "Database may already exist"
+        sudo -u postgres createuser "$DB_USER" 2>/dev/null || log "User may already exist"
+        sudo -u postgres psql -h /var/run/postgresql -c "ALTER USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';" 2>/dev/null || true
+        sudo -u postgres psql -h /var/run/postgresql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
+        sudo -u postgres psql -h /var/run/postgresql -c "ALTER USER $DB_USER CREATEDB;" 2>/dev/null || true
+        
+        log "Fallback database creation completed"
+    fi
     
-    # Use createdb and createuser commands which work with peer authentication
-    sudo -u postgres createdb "$DB_NAME" 2>/dev/null || log "Database may already exist"
-    sudo -u postgres createuser "$DB_USER" 2>/dev/null || log "User may already exist"
-    
-    # Set password and permissions using individual psql commands
-    sudo -u postgres psql -c "ALTER USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';" 2>/dev/null || true
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
-    sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;" 2>/dev/null || true
+    # Clean up temporary script
+    rm -f /tmp/create_db.sql 2>/dev/null || true
     
     success "Database and user created successfully"
     
