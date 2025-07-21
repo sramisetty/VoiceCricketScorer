@@ -872,26 +872,22 @@ EOF
         chmod 600 "$PG_HBA"
         systemctl restart postgresql
         sleep 5
+        
+        # Retry connection test
+        log "Retrying database connection..."
+        if psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1;" >/dev/null 2>&1; then
+            success "Database connection successful after authentication fix"
             
-            # Retry connection test
-            log "Retrying database connection..."
-            if psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1;" >/dev/null 2>&1; then
-                success "Database connection successful after authentication fix"
-                
-                # Create directory if it doesn't exist
-                mkdir -p /opt/cricket-scorer
-                
-                # Save database URL for later use
-                echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
-                chmod 600 /opt/cricket-scorer/.env.template
-                
-                log "Database connection string saved to /opt/cricket-scorer/.env.template"
-            else
-                error "Database connection still failed after authentication fix"
-                log "Continuing setup anyway - database can be configured manually later"
-            fi
+            # Create directory if it doesn't exist
+            mkdir -p /opt/cricket-scorer
+            
+            # Save database URL for later use
+            echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
+            chmod 600 /opt/cricket-scorer/.env.template
+            
+            log "Database connection string saved to /opt/cricket-scorer/.env.template"
         else
-            error "Database connection failed - manual configuration may be needed"
+            error "Database connection still failed after authentication fix"
             log "Continuing setup anyway - database can be configured manually later"
         fi
         
