@@ -309,18 +309,16 @@ build_application() {
 # Build client (React/Vite) - VPS Production Build
     log "Building client application for Linux VPS..."
     
-    # Use npm build script which should work properly
-    log "Using npm build script for reliable output..."
-    NODE_ENV=production npm run build
+    # Use production Vite config for Linux VPS deployment
+    log "Using production Vite configuration for VPS build..."
+    NODE_ENV=production npx vite build --config vite.config.production.ts --mode production
     
-    # If npm build failed, try with production config
-    if [ ! -f "dist/public/index.html" ] && [ ! -f "dist/index.html" ]; then
-        log "Build output not found, checking build results..."
-        log "Contents of dist/:"
-        ls -la dist/ 2>/dev/null || echo "  dist/ not found"
-        log "Contents of dist/public/:"
-        ls -la dist/public/ 2>/dev/null || echo "  dist/public/ not found"
-    fi
+    # Check build results
+    log "Checking build output locations..."
+    log "Contents of server/public/:"
+    ls -la server/public/ 2>/dev/null || echo "  server/public/ not found"
+    log "Contents of dist/:"
+    ls -la dist/ 2>/dev/null || echo "  dist/ not found"
     
     # Give build time to complete file operations
     sleep 2
@@ -332,21 +330,16 @@ build_application() {
     ls -la server/public/ 2>/dev/null || echo "  Directory not found"
     log "Checking for index.html..."
     
-    # Check for build output - npm build outputs to dist/public
-    if [ -f "dist/public/index.html" ]; then
-        log "Build output found in dist/public/, copying to server/public/"
-        mkdir -p server/public
-        cp -r dist/public/* server/public/
-        success "Client build completed and moved to server/public/"
+    # Production config outputs directly to server/public
+    if [ -f "server/public/index.html" ]; then
+        success "Production build completed successfully"
+        log "Build artifacts created in server/public/:"
+        ls -la server/public/ | head -10
     elif [ -f "dist/index.html" ]; then
         log "Build output found in dist/, copying to server/public/"
         mkdir -p server/public
         cp -r dist/* server/public/
         success "Client build completed and moved to server/public/"
-    elif [ -f "server/public/index.html" ]; then
-        success "Client build completed successfully"
-        log "Build artifacts created:"
-        ls -la server/public/ | head -10
     else
         warning "Build files not found in expected location, checking alternative paths..."
         
