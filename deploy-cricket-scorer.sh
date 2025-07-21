@@ -341,9 +341,30 @@ build_application() {
         cp -r dist/* server/public/
         success "Client build completed and moved to server/public/"
     else
-        warning "Build verification failed, but continuing deployment..."
-        log "Build appeared to complete successfully based on Vite output"
-        log "Files may exist but not detected by script - proceeding anyway"
+        warning "Build files not found in expected location, checking alternative paths..."
+        
+        # Check if Vite built to dist instead
+        if [ -d "dist" ] && [ -f "dist/index.html" ]; then
+            log "Found build output in dist/, moving to server/public/"
+            mkdir -p server/public
+            cp -r dist/* server/public/
+            success "Build files moved to server/public/"
+        else
+            # Force rebuild with standard npm script
+            log "Trying alternative build method..."
+            rm -rf dist/ server/public/ 2>/dev/null || true
+            mkdir -p server/public
+            NODE_ENV=production npm run build
+            
+            # Check again after rebuild
+            if [ -f "dist/index.html" ]; then
+                cp -r dist/* server/public/
+                success "Build completed with fallback method"
+            else
+                error "Build failed - unable to create static files"
+                exit 1
+            fi
+        fi
     fi
     
     # Build server (Node.js/Express) - VPS Production Build
@@ -356,7 +377,6 @@ build_application() {
         --packages=external \
         --format=esm \
         --minify \
-        --sourcemap=false \
         --loader:.html=text \
         --loader:.css=text \
         --define:process.env.NODE_ENV=\"production\"
