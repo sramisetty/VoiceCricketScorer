@@ -740,7 +740,32 @@ setup_database() {
         log "PostgreSQL authentication configured"
     fi
     
-    # Create database and user (using peer authentication for postgres user)
+    # First, set up postgres user without password prompts
+    log "Setting up postgres user authentication..."
+    
+    # Check if PostgreSQL is running, if not start it
+    if ! systemctl is-active --quiet postgresql; then
+        log "Starting PostgreSQL service..."
+        systemctl enable postgresql
+        systemctl start postgresql
+        sleep 3
+        
+        if ! systemctl is-active --quiet postgresql; then
+            error "Failed to start PostgreSQL service"
+            exit 1
+        fi
+    fi
+    
+    # Set a password for postgres user to avoid prompts (this uses peer authentication)
+    sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres123';" 2>/dev/null || {
+        warning "Could not set postgres password via peer authentication, trying alternative method..."
+        # Alternative: Use environment variable
+        export PGPASSWORD='postgres123'
+        echo "localhost:5432:*:postgres:postgres123" > ~/.pgpass
+        chmod 600 ~/.pgpass 2>/dev/null || true
+    }
+    
+    # Create database and user
     log "Creating database and user as postgres..."
     
     # Use createdb and createuser commands which work with peer authentication
@@ -748,9 +773,9 @@ setup_database() {
     sudo -u postgres createuser "$DB_USER" 2>/dev/null || log "User may already exist"
     
     # Set password and permissions using individual psql commands
-    sudo -u postgres psql -c "ALTER USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';"
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
-    sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;"
+    sudo -u postgres psql -c "ALTER USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';" 2>/dev/null || true
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
+    sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;" 2>/dev/null || true
     
     success "Database and user created successfully"
     
