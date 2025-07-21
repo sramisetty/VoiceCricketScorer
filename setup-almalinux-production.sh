@@ -868,8 +868,9 @@ setup_database() {
         echo "host    all             all             ::1/128                 md5" >> "$PG_HBA"
     fi
     
-    # Reload PostgreSQL configuration
-    systemctl reload postgresql
+    # Restart PostgreSQL to ensure authentication changes take effect
+    systemctl restart postgresql
+    sleep 3
     
     success "Database and user created successfully"
     
@@ -901,15 +902,48 @@ setup_database() {
         log "Error details:"
         cat /tmp/db_error.log 2>/dev/null || echo "No error log available"
         
-        # Authentication should already be configured, but double-check
-        log "Verifying PostgreSQL authentication configuration..."
+        # Fix authentication configuration for cricket_user specifically
+        log "Fixing PostgreSQL authentication configuration for cricket_user..."
         PG_HBA="/var/lib/pgsql/data/pg_hba.conf"
-        if [ -f "$PG_HBA" ] && ! grep -q "host.*all.*all.*127.0.0.1/32.*md5" "$PG_HBA"; then
-            log "Adding missing TCP authentication entries..."
-            echo "host    all             all             127.0.0.1/32            md5" >> "$PG_HBA"
-            echo "host    all             all             ::1/128                 md5" >> "$PG_HBA"
+        
+        # Create a clean pg_hba.conf with specific cricket_user authentication
+        if [ -f "$PG_HBA" ]; then
+            cp "$PG_HBA" "$PG_HBA.backup.auth.$(date +%Y%m%d_%H%M%S)"
+            
+            # Create new authentication configuration
+            cat > "$PG_HBA" << 'EOF'
+# PostgreSQL Client Authentication Configuration File
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# "local" is for Unix domain socket connections only
+local   all             postgres                                peer
+local   all             cricket_user                            md5
+local   all             all                                     peer
+
+# IPv4 local connections:
+host    all             postgres        127.0.0.1/32            md5
+host    all             cricket_user    127.0.0.1/32            md5
+host    cricket_scorer  cricket_user    127.0.0.1/32            md5
+host    all             all             127.0.0.1/32            md5
+
+# IPv6 local connections:
+host    all             postgres        ::1/128                 md5
+host    all             cricket_user    ::1/128                 md5
+host    all             all             ::1/128                 md5
+
+# Allow replication connections from localhost
+local   replication     all                                     peer
+host    replication     all             127.0.0.1/32            md5
+host    replication     all             ::1/128                 md5
+EOF
+            
+            # Set proper permissions
+            chown postgres:postgres "$PG_HBA"
+            chmod 600 "$PG_HBA"
+            
+            # Force restart PostgreSQL to apply authentication changes
             systemctl restart postgresql
-            sleep 3
+            sleep 5
             
             # Retry connection test
             log "Retrying database connection..."
