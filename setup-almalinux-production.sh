@@ -316,6 +316,8 @@ install_postgresql_builtin() {
         PG_SERVICE="postgresql"
         PG_DATA_DIR="/var/lib/pgsql/data"
         
+        log "PostgreSQL data directory: $PG_DATA_DIR"
+        
         success "PostgreSQL installed from AlmaLinux built-in repositories"
         
         # Handle PostgreSQL database setup with version compatibility
@@ -554,6 +556,40 @@ EOF
             chmod 600 "$PG_DATA_DIR/postgresql.conf"
             
             log "PostgreSQL configuration completely rebuilt with valid parameters"
+            
+            # Verify the configuration was written correctly
+            if grep -q "shared_buffers = 128MB" "$PG_DATA_DIR/postgresql.conf" && \
+               grep -q "effective_cache_size = 4GB" "$PG_DATA_DIR/postgresql.conf"; then
+                success "Configuration parameters verified: shared_buffers=128MB, effective_cache_size=4GB"
+            else
+                error "Configuration verification failed - parameters not set correctly"
+                log "Current shared_buffers setting:"
+                grep "shared_buffers" "$PG_DATA_DIR/postgresql.conf" || echo "Not found"
+                log "Current effective_cache_size setting:"
+                grep "effective_cache_size" "$PG_DATA_DIR/postgresql.conf" || echo "Not found"
+                
+                # Force configuration with simpler approach
+                log "Attempting direct parameter replacement..."
+                
+                # Create minimal working configuration
+                cat > "$PG_DATA_DIR/postgresql.conf" << 'EOF'
+# Minimal PostgreSQL Configuration
+max_connections = 100
+shared_buffers = 128MB
+effective_cache_size = 4GB
+work_mem = 4MB
+dynamic_shared_memory_type = posix
+log_destination = 'stderr'
+logging_collector = on
+log_directory = 'log'
+log_filename = 'postgresql-%a.log'
+datestyle = 'iso, mdy'
+timezone = 'UTC'
+EOF
+                chown postgres:postgres "$PG_DATA_DIR/postgresql.conf"
+                chmod 600 "$PG_DATA_DIR/postgresql.conf"
+                log "Minimal configuration applied"
+            fi
         fi
         
         # Configure pg_hba.conf to allow local connections without password for initial setup
