@@ -61,7 +61,8 @@ sudo -u postgres psql -c "
 DO \$\$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = 'cricket_user') THEN
-        CREATE USER cricket_user WITH PASSWORD 'cricket_pass';
+        -- abcd1234
+        CREATE USER cricket_user WITH PASSWORD 'abcd1234';
         GRANT ALL PRIVILEGES ON SCHEMA public TO cricket_user;
         ALTER USER cricket_user CREATEDB;
     END IF;
@@ -107,7 +108,7 @@ else
 fi
 
 # Test as cricket_user
-if PGPASSWORD=cricket_pass psql -h localhost -U cricket_user -d cricket_scorer -c "SELECT 1;" >/dev/null 2>&1; then
+if PGPASSWORD=abcd1234 psql -h localhost -U cricket_user -d cricket_scorer -c "SELECT 1;" >/dev/null 2>&1; then
     success "Cricket user database connection works"
 else
     warning "Cricket user connection failed, checking authentication..."
@@ -137,7 +138,7 @@ EOF
             sleep 5
             
             # Test again
-            if PGPASSWORD=cricket_pass psql -h localhost -U cricket_user -d cricket_scorer -c "SELECT 1;" >/dev/null 2>&1; then
+            if PGPASSWORD=abcd1234 psql -h localhost -U cricket_user -d cricket_scorer -c "SELECT 1;" >/dev/null 2>&1; then
                 success "Cricket user database connection now works"
             else
                 warning "Cricket user connection still failing, but user/database created"
@@ -169,13 +170,13 @@ WHERE usename IN ('postgres', 'cricket_user')
 ORDER BY usename;"
 
 # Create DATABASE_URL for the application
-DATABASE_URL="postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer"
+DATABASE_URL="postgresql://cricket_user:abcd1234@localhost:5432/cricket_scorer"
 log "Database URL: $DATABASE_URL"
 
 success "Database users and schema setup completed!"
 log "You can now connect using:"
 log "  psql -h localhost -U cricket_user -d cricket_scorer"
-log "  Password: cricket_pass"
+log "  Password: abcd1234"
 log ""
 log "Environment variable for application:"
 log "  DATABASE_URL=$DATABASE_URL"
