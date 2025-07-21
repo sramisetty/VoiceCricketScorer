@@ -1,0 +1,74 @@
+[2025-07-21 10:23:41] Starting Cricket Scorer deployment...
+[2025-07-21 10:23:41] Installing application dependencies...
+npm warn config production Use `--omit=dev` instead.
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+
+added 511 packages in 8s
+[2025-07-21 10:23:49] Installing terser for production builds...
+
+up to date in 1s
+[2025-07-21 10:23:51] Generating package-lock.json for consistent deployments...
+
+up to date in 925ms
+✓ Dependencies installed successfully
+[2025-07-21 10:23:52] Setting up database schema...
+[2025-07-21 10:23:52] Checking and fixing PostgreSQL configuration...
+[2025-07-21 10:23:52] Starting PostgreSQL service...
+✓ PostgreSQL service is running
+[2025-07-21 10:23:57] Waiting for PostgreSQL to be ready...
+✓ PostgreSQL is ready
+[2025-07-21 10:23:57] Setting up database users and schema...
+[2025-07-21 10:23:57] Running database migrations...
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/cricket-scorer/drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+[i] No changes detected
+✓ Database schema synchronized
+[2025-07-21 10:23:58] Building application for production...
+[2025-07-21 10:23:58] Emergency fix: Completely eliminating Replit imports from production build...
+[2025-07-21 10:23:58] Stopping all PM2 processes...
+[PM2] Spawning PM2 daemon with pm2_home=/root/.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][Module] Starting NPM module pm2-logrotate
+[PM2][WARN] Applications pm2-logrotate not running, starting...
+[PM2] App [pm2-logrotate] launched (1 instances)
+[PM2] Applying action deleteProcessId on app [all](ids: [ 0 ])
+[PM2] [pm2-logrotate](0) ✓
+[PM2] [v] All Applications Stopped
+[PM2] [v] PM2 Daemon Stopped
+[2025-07-21 10:23:59] Removing all build artifacts and caches...
+[2025-07-21 10:23:59] Removing Replit packages...
+
+up to date in 948ms
+[2025-07-21 10:24:00] Clean package reinstall...
+npm warn config production Use `--omit=dev` instead.
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+
+added 511 packages in 8s
+[2025-07-21 10:24:08] Creating production server without Vite config dependencies...
+[2025-07-21 10:24:08] Building client with production config...
+vite v5.4.19 building for production...
+✓ 1739 modules transformed.
+../server/public/index.html                   1.08 kB │ gzip:  0.50 kB
+../server/public/assets/index-Bd8G-azK.css   85.87 kB │ gzip: 14.28 kB
+../server/public/assets/ui-D3GOVFd5.js       79.63 kB │ gzip: 26.74 kB
+../server/public/assets/vendor-Ber6wfih.js  139.86 kB │ gzip: 44.92 kB
+../server/public/assets/index-B4Qisk0Y.js   239.57 kB │ gzip: 61.21 kB
+✓ built in 12.13s
+[2025-07-21 10:24:21] Building production server...
+
+  dist/index.prod.js  69.4kb
+
+⚡ Done in 15ms
+✗ Server build failed - no dist/index.js found
+total 80
+drwxr-xr-x  2 root root  4096 Jul 21 10:24 .
+drwxr-xr-x 10 root root  4096 Jul 21 10:24 ..
+-rw-r--r--  1 root root 71070 Jul 21 10:24 index.prod.js
