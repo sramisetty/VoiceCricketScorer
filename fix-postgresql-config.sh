@@ -42,11 +42,23 @@ BACKUP_FILE="$POSTGRES_CONF.backup.$(date +%Y%m%d_%H%M%S)"
 log "Creating backup: $BACKUP_FILE"
 cp "$POSTGRES_CONF" "$BACKUP_FILE"
 
-# Check for invalid parameters
-if grep -q "shared_buffers.*0.*8kB\|effective_cache_size.*0.*8kB" "$POSTGRES_CONF"; then
+# Check for invalid parameters or force fix if config test fails
+log "Checking for configuration issues..."
+config_needs_fix=false
+
+# Check for specific invalid patterns
+if grep -q "shared_buffers.*0.*8kB\|effective_cache_size.*0.*8kB\|shared_buffers.*0\|effective_cache_size.*0" "$POSTGRES_CONF"; then
     log "Found invalid PostgreSQL configuration parameters"
-    
-    # Create new minimal configuration
+    config_needs_fix=true
+fi
+
+# Also check if postgres config test fails
+if ! su - postgres -c "postgres --config-file=$POSTGRES_CONF -C shared_buffers" >/dev/null 2>&1; then
+    log "PostgreSQL configuration test failed, needs fixing"
+    config_needs_fix=true
+fi
+
+if [ "$config_needs_fix" = true ]; then
     log "Creating new PostgreSQL configuration..."
     cat > "$POSTGRES_CONF" << 'EOF'
 # PostgreSQL Configuration - Fixed for Production
@@ -106,18 +118,56 @@ log "Setting file permissions..."
 chown postgres:postgres "$POSTGRES_CONF"
 chmod 600 "$POSTGRES_CONF"
 
-# Test configuration
+# Test configuration with more robust checking
 log "Testing PostgreSQL configuration..."
-if su - postgres -c "postgres --config-file=$POSTGRES_CONF -C shared_buffers" >/dev/null 2>&1; then
-    success "Configuration test passed"
+
+# Test 1: Basic configuration syntax
+if su - postgres -c "postgres --config-file=$POSTGRES_CONF --check" >/dev/null 2>&1; then
+    success "Configuration syntax check passed"
+elif su - postgres -c "postgres --config-file=$POSTGRES_CONF -C shared_buffers" >/dev/null 2>&1; then
+    success "Configuration parameter check passed"
 else
-    error "Configuration test failed"
-    # Restore backup
-    log "Restoring backup configuration..."
-    cp "$BACKUP_FILE" "$POSTGRES_CONF"
-    chown postgres:postgres "$POSTGRES_CONF"
-    chmod 600 "$POSTGRES_CONF"
-    exit 1
+    log "Configuration test failed, checking what's wrong..."
+    
+    # Try to get specific error
+    config_error=$(su - postgres -c "postgres --config-file=$POSTGRES_CONF -C shared_buffers" 2>&1 || true)
+    log "Configuration error: $config_error"
+    
+    # If it's still a memory parameter issue, force a simpler config
+    if echo "$config_error" | grep -q "shared_buffers\|effective_cache_size"; then
+        log "Memory parameter issue detected, creating ultra-minimal config..."
+        
+        cat > "$POSTGRES_CONF" << 'EOF'
+# Ultra-minimal PostgreSQL Configuration
+listen_addresses = 'localhost'
+port = 5432
+max_connections = 100
+shared_buffers = 32MB
+effective_cache_size = 128MB
+EOF
+        chown postgres:postgres "$POSTGRES_CONF"
+        chmod 600 "$POSTGRES_CONF"
+        
+        # Test ultra-minimal config
+        if su - postgres -c "postgres --config-file=$POSTGRES_CONF -C shared_buffers" >/dev/null 2>&1; then
+            success "Ultra-minimal configuration works"
+        else
+            error "Even ultra-minimal configuration failed"
+            # Restore backup as last resort
+            log "Restoring backup configuration..."
+            cp "$BACKUP_FILE" "$POSTGRES_CONF"
+            chown postgres:postgres "$POSTGRES_CONF"
+            chmod 600 "$POSTGRES_CONF"
+            exit 1
+        fi
+    else
+        error "Configuration test failed with unknown error"
+        log "Restoring backup configuration..."
+        cp "$BACKUP_FILE" "$POSTGRES_CONF"
+        chown postgres:postgres "$POSTGRES_CONF"
+        chmod 600 "$POSTGRES_CONF"
+        exit 1
+    fi
 fi
 
 # Start PostgreSQL service
