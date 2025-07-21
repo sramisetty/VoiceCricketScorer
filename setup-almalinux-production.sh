@@ -729,9 +729,9 @@ EOF
     log "Testing database connection..."
     
     # Check if PostgreSQL is running
-    if ! systemctl is-active --quiet postgresql-15; then
+    if ! systemctl is-active --quiet postgresql; then
         log "PostgreSQL service not running, starting it..."
-        systemctl start postgresql-15
+        systemctl start postgresql
         sleep 3
     fi
     
@@ -757,7 +757,7 @@ EOF
         if grep -q "local.*all.*all.*peer" /var/lib/pgsql/data/pg_hba.conf; then
             log "Updating pg_hba.conf to allow password authentication..."
             sed -i 's/local   all             all                                     peer/local   all             all                                     md5/' /var/lib/pgsql/data/pg_hba.conf
-            systemctl restart postgresql-15
+            systemctl restart postgresql
             sleep 3
             
             # Retry connection test
@@ -781,6 +781,12 @@ EOF
             error "Database connection failed - manual configuration may be needed"
             log "Continuing setup anyway - database can be configured manually later"
         fi
+        
+        # Create directory and save connection string anyway for manual configuration
+        mkdir -p /opt/cricket-scorer
+        echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
+        chmod 600 /opt/cricket-scorer/.env.template
+        log "Database connection string saved to /opt/cricket-scorer/.env.template for manual configuration"
     fi
 }
 
@@ -824,7 +830,7 @@ root hard nofile 65536
 EOF
     
     # Optimize PostgreSQL
-    PG_CONF="/var/lib/pgsql/15/data/postgresql.conf"
+    PG_CONF="/var/lib/pgsql/data/postgresql.conf"
     
     # Calculate memory settings based on available RAM
     TOTAL_MEM=$(free -m | awk 'NR==2{printf "%.0f", $2/1024}')
@@ -848,7 +854,7 @@ max_wal_size = 4GB
 EOF
     
     # Restart PostgreSQL
-    systemctl restart postgresql-15
+    systemctl restart postgresql
     
     success "Performance optimizations applied"
 }
@@ -891,7 +897,7 @@ echo "=================================="
 
 # Check system services
 check_service nginx
-check_service postgresql-15
+check_service postgresql
 check_service firewalld
 
 # Check application ports
@@ -1100,7 +1106,7 @@ main() {
     echo "• Manual Backup: /opt/cricket-scorer/backup.sh"
     echo "• PM2 Status: pm2 status"
     echo "• Nginx Status: systemctl status nginx"
-    echo "• PostgreSQL Status: systemctl status postgresql-15"
+    echo "• PostgreSQL Status: systemctl status postgresql"
     echo ""
     echo "Server IP: $(curl -s ifconfig.me)"
     echo "Domain: score.ramisetty.net"
