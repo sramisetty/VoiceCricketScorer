@@ -715,14 +715,40 @@ setup_database() {
         exit 1
     fi
     
+    # Fix PostgreSQL authentication first
+    log "Configuring PostgreSQL authentication..."
+    
+    # Set up pg_hba.conf for proper authentication
+    PG_HBA="/var/lib/pgsql/data/pg_hba.conf"
+    if [ -f "$PG_HBA" ]; then
+        # Backup original configuration
+        cp "$PG_HBA" "$PG_HBA.backup.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+        
+        # Add TCP authentication entries if they don't exist
+        if ! grep -q "host.*all.*all.*127.0.0.1/32.*md5" "$PG_HBA"; then
+            echo "host    all             all             127.0.0.1/32            md5" >> "$PG_HBA"
+        fi
+        
+        if ! grep -q "host.*all.*all.*::1/128.*md5" "$PG_HBA"; then
+            echo "host    all             all             ::1/128                 md5" >> "$PG_HBA"
+        fi
+        
+        # Restart PostgreSQL to apply changes
+        systemctl restart postgresql
+        sleep 3
+        
+        log "PostgreSQL authentication configured"
+    fi
+    
     # Create database and user (using peer authentication for postgres user)
     log "Creating database and user as postgres..."
     
-    # First, ensure postgres user can authenticate without password
-    sudo -u postgres createdb $DB_NAME 2>/dev/null || log "Database may already exist"
+    # Use createdb and createuser commands which work with peer authentication
+    sudo -u postgres createdb "$DB_NAME" 2>/dev/null || log "Database may already exist"
+    sudo -u postgres createuser "$DB_USER" 2>/dev/null || log "User may already exist"
     
-    # Create user and set permissions using psql
-    sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';" 2>/dev/null || log "User may already exist"
+    # Set password and permissions using individual psql commands
+    sudo -u postgres psql -c "ALTER USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';"
     sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
     sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;"
     
@@ -756,13 +782,13 @@ setup_database() {
         log "Error details:"
         cat /tmp/db_error.log 2>/dev/null || echo "No error log available"
         
-        # Check pg_hba.conf for authentication method
-        log "Checking PostgreSQL authentication configuration..."
-        if grep -q "local.*all.*all.*peer" /var/lib/pgsql/data/pg_hba.conf; then
-            log "Updating pg_hba.conf to allow password authentication..."
-            # Add md5 authentication for TCP connections while keeping peer for local postgres user
-            sed -i '/^local.*all.*postgres.*peer/a host    all             all             127.0.0.1/32            md5' /var/lib/pgsql/data/pg_hba.conf
-            sed -i '/^local.*all.*postgres.*peer/a host    all             all             ::1/128                 md5' /var/lib/pgsql/data/pg_hba.conf
+        # Authentication should already be configured, but double-check
+        log "Verifying PostgreSQL authentication configuration..."
+        PG_HBA="/var/lib/pgsql/data/pg_hba.conf"
+        if [ -f "$PG_HBA" ] && ! grep -q "host.*all.*all.*127.0.0.1/32.*md5" "$PG_HBA"; then
+            log "Adding missing TCP authentication entries..."
+            echo "host    all             all             127.0.0.1/32            md5" >> "$PG_HBA"
+            echo "host    all             all             ::1/128                 md5" >> "$PG_HBA"
             systemctl restart postgresql
             sleep 3
             
