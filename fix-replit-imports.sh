@@ -50,14 +50,10 @@ rm -rf dist/ server/public/ node_modules/.cache/
 log "Reinstalling dependencies for production..."
 npm install --production=false
 
-# Build client application using production config
-log "Building client application for VPS production..."
+# Build application using production config
+log "Building application for VPS production..."
 export NODE_ENV=production
-npm run build:client -- --config vite.config.production.ts
-
-# Build server application
-log "Building server application..."
-npm run build:server
+vite build --config vite.config.production.ts && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 
 # Verify build outputs exist
 if [ ! -d "server/public" ]; then
