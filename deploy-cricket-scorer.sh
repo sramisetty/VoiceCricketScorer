@@ -68,20 +68,43 @@ validate_prerequisites() {
     fi
     
     # Check required tools
-    for tool in npm pm2 git nginx postgresql; do
+    for tool in npm pm2 git nginx; do
         if ! command -v $tool &> /dev/null; then
             error "$tool not found. Please run setup-almalinux-production.sh first"
             exit 1
         fi
     done
     
+    # Check PostgreSQL installation (different check since it may not be in PATH)
+    if ! systemctl list-unit-files | grep -q postgresql; then
+        error "PostgreSQL service not found. Please run setup-almalinux-production.sh first"
+        exit 1
+    fi
+    
     # Check services
-    for service in nginx postgresql-15; do
-        if ! systemctl is-active --quiet $service; then
-            error "$service is not running. Please run setup-almalinux-production.sh first"
-            exit 1
+    if ! systemctl is-active --quiet nginx; then
+        error "nginx is not running. Please run setup-almalinux-production.sh first"
+        exit 1
+    fi
+    
+    # Check PostgreSQL service (may be postgresql, postgresql-15, or postgresql-16)
+    PG_SERVICE=""
+    for svc in postgresql postgresql-15 postgresql-16; do
+        if systemctl list-unit-files | grep -q "^$svc.service"; then
+            PG_SERVICE="$svc"
+            break
         fi
     done
+    
+    if [ -z "$PG_SERVICE" ]; then
+        error "PostgreSQL service not found. Please run setup-almalinux-production.sh first"
+        exit 1
+    fi
+    
+    if ! systemctl is-active --quiet $PG_SERVICE; then
+        error "$PG_SERVICE is not running. Please run setup-almalinux-production.sh first"
+        exit 1
+    fi
     
     success "Prerequisites validated"
 }
