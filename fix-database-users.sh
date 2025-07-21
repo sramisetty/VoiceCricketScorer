@@ -85,7 +85,7 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'cricket_scorer')\gexe
 }
 
 # Grant all privileges to cricket_user on the database
-log "Setting up database permissions..."
+log "Setting up database permissions and ownership..."
 sudo -u postgres psql -d cricket_scorer -c "
 GRANT ALL PRIVILEGES ON DATABASE cricket_scorer TO cricket_user;
 GRANT ALL PRIVILEGES ON SCHEMA public TO cricket_user;
@@ -95,6 +95,40 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO cricket_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO cricket_user;" || {
     warning "Some permissions may have failed, continuing..."
 }
+
+# Transfer ownership of all existing tables and sequences to cricket_user
+log "Transferring table and sequence ownership to cricket_user for drizzle-kit compatibility..."
+sudo -u postgres psql -d cricket_scorer << 'EOF'
+-- Transfer ownership of all tables
+DO $$
+DECLARE
+    rec RECORD;
+BEGIN
+    FOR rec IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+        EXECUTE 'ALTER TABLE public.' || quote_ident(rec.tablename) || ' OWNER TO cricket_user;';
+        RAISE NOTICE 'Transferred ownership of table %', rec.tablename;
+    END LOOP;
+END;
+$$;
+
+-- Transfer ownership of all sequences
+DO $$
+DECLARE
+    rec RECORD;
+BEGIN
+    FOR rec IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public' LOOP
+        EXECUTE 'ALTER SEQUENCE public.' || quote_ident(rec.sequencename) || ' OWNER TO cricket_user;';
+        RAISE NOTICE 'Transferred ownership of sequence %', rec.sequencename;
+    END LOOP;
+END;
+$$;
+EOF
+
+if [ $? -eq 0 ]; then
+    success "Database ownership transfer completed"
+else
+    warning "Database ownership transfer had some issues, continuing..."
+fi
 
 # Test database connections
 log "Testing database connections..."
@@ -173,7 +207,23 @@ ORDER BY usename;"
 DATABASE_URL="postgresql://cricket_user:abcd1234@localhost:5432/cricket_scorer"
 log "Database URL: $DATABASE_URL"
 
+# Show final ownership status for verification
+log "Final ownership verification..."
+sudo -u postgres psql -d cricket_scorer -c "
+\echo '=== TABLE OWNERSHIP STATUS ==='
+SELECT schemaname, tablename, tableowner 
+FROM pg_tables 
+WHERE schemaname = 'public' 
+ORDER BY tablename;
+
+\echo '=== SEQUENCE OWNERSHIP STATUS ==='
+SELECT schemaname, sequencename, sequenceowner 
+FROM pg_sequences 
+WHERE schemaname = 'public' 
+ORDER BY sequencename;" 2>/dev/null || true
+
 success "Database users and schema setup completed!"
+log "Database is now ready for drizzle-kit operations"
 log "You can now connect using:"
 log "  psql -h localhost -U cricket_user -d cricket_scorer"
 log "  Password: abcd1234"
