@@ -288,6 +288,25 @@ configure_pm2() {
 configure_nginx() {
     log "Configuring Nginx reverse proxy..."
     
+    # First verify the application is running
+    log "Verifying application is running on port 3000..."
+    if ! curl -f -s http://localhost:3000/ >/dev/null 2>&1; then
+        error "Application is not responding on port 3000"
+        log "Checking PM2 status..."
+        pm2 status || true
+        log "Attempting to start application..."
+        cd $APP_DIR
+        pm2 start ecosystem.config.cjs --env production
+        sleep 10
+        
+        if ! curl -f -s http://localhost:3000/ >/dev/null 2>&1; then
+            error "Application still not responding after PM2 start"
+            pm2 logs $APP_NAME --lines 20
+            exit 1
+        fi
+    fi
+    success "Application is responding on port 3000"
+    
     # Stop nginx first
     systemctl stop nginx 2>/dev/null || true
     
@@ -318,7 +337,68 @@ configure_nginx() {
     
     success "Ports 80 and 443 are now free"
     
-    # Test nginx configuration first
+    # Create nginx directories if they don't exist
+    mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+    
+    # Create Nginx configuration for the app
+    cat > /etc/nginx/sites-available/$APP_NAME << 'EOF'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name score.ramisetty.net www.score.ramisetty.net;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 86400;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+    
+    location /ws {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+    
+    # Remove default configurations that interfere
+    rm -f /etc/nginx/sites-enabled/default
+    rm -f /etc/nginx/conf.d/default.conf
+    
+    # Enable site using both methods for compatibility
+    ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/$APP_NAME
+    
+    # Also create in conf.d as fallback for different nginx setups
+    cp /etc/nginx/sites-available/$APP_NAME /etc/nginx/conf.d/$APP_NAME.conf
+    
+    # Ensure nginx.conf includes sites-enabled
+    if [ -f "/etc/nginx/nginx.conf" ]; then
+        if ! grep -q "sites-enabled" /etc/nginx/nginx.conf; then
+            log "Adding sites-enabled include to nginx.conf..."
+            sed -i '/http {/a\    include /etc/nginx/sites-enabled/*;' /etc/nginx/nginx.conf
+        fi
+    fi
+    
+    # Test nginx configuration
     log "Testing Nginx configuration..."
     nginx -t
     if [ $? -ne 0 ]; then
@@ -342,51 +422,14 @@ configure_nginx() {
         exit 1
     fi
     
-    # Create Nginx configuration for the app
-    cat > /etc/nginx/sites-available/$APP_NAME << 'EOF'
-server {
-    listen 80;
-    listen [::]:80;
-    server_name score.ramisetty.net;
-    
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-        proxy_read_timeout 86400;
-    }
-    
-    location /ws {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOF
-    
-    # Enable site and remove default
-    ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
-    rm -f /etc/nginx/sites-enabled/default
-    
-    # Test and restart Nginx
-    if nginx -t; then
-        systemctl restart nginx
-        systemctl enable nginx
-        success "Nginx configured successfully"
+    # Test the final configuration
+    log "Testing final nginx configuration..."
+    if curl -f -s -H "Host: score.ramisetty.net" http://localhost/ >/dev/null 2>&1; then
+        success "Nginx proxy test passed"
     else
-        error "Nginx configuration test failed"
-        exit 1
+        error "Nginx proxy test failed"
+        log "Nginx error log:"
+        tail -10 /var/log/nginx/error.log 2>/dev/null || echo "No error log found"
     fi
 }
 
@@ -402,7 +445,27 @@ main() {
     configure_nginx
     
     success "Cricket Scorer deployment completed successfully!"
-    log "Application should be accessible at: https://$DOMAIN"
+    log ""
+    log "=== DEPLOYMENT SUMMARY ==="
+    log "Application Directory: $APP_DIR"
+    log "Database: cricket_scorer (PostgreSQL)"
+    log "Application Port: 3000"
+    log "Web Server: Nginx (ports 80/443)"
+    log ""
+    log "=== ACCESS INFORMATION ==="
+    log "Application URL: http://$DOMAIN"
+    log "If SSL configured: https://$DOMAIN"
+    log ""
+    log "=== SERVICE STATUS ==="
+    systemctl is-active postgresql >/dev/null 2>&1 && echo "✓ PostgreSQL: Running" || echo "✗ PostgreSQL: Not running"
+    systemctl is-active nginx >/dev/null 2>&1 && echo "✓ Nginx: Running" || echo "✗ Nginx: Not running"
+    pm2 list | grep -q "$APP_NAME.*online" && echo "✓ Cricket Scorer App: Running" || echo "✗ Cricket Scorer App: Not running"
+    log ""
+    log "=== VERIFICATION COMMANDS ==="
+    log "Check PM2 status: pm2 status"
+    log "Check application: curl http://localhost:3000/"
+    log "Check nginx proxy: curl -H 'Host: $DOMAIN' http://localhost/"
+    log "View logs: pm2 logs $APP_NAME"
     log "Checking application status..."
     
     sleep 5

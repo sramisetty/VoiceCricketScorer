@@ -104,10 +104,37 @@ server {
 }
 EOF
 
-# Remove default nginx site and enable cricket scorer
-log "Enabling cricket scorer site and disabling default..."
+# Check nginx directory structure
+if [ ! -d "/etc/nginx/sites-available" ]; then
+    log "Creating nginx sites directories..."
+    mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+fi
+
+# Remove default nginx configurations that might be interfering
+log "Removing default nginx configurations..."
 rm -f /etc/nginx/sites-enabled/default
 rm -f /etc/nginx/sites-enabled/cricket-scorer
+rm -f /etc/nginx/conf.d/default.conf
+
+# Handle different nginx configurations on different systems
+if [ -f "/etc/nginx/nginx.conf" ]; then
+    # Check if nginx.conf includes sites-enabled
+    if ! grep -q "sites-enabled" /etc/nginx/nginx.conf; then
+        log "Adding sites-enabled include to nginx.conf..."
+        # Add include directive before the last closing brace
+        sed -i '/^}/i\    include /etc/nginx/sites-enabled/*;' /etc/nginx/nginx.conf
+    fi
+    
+    # Also create direct configuration in conf.d as fallback
+    log "Creating fallback configuration in conf.d..."
+    cp /etc/nginx/sites-available/$APP_NAME /etc/nginx/conf.d/$APP_NAME.conf
+else
+    error "Nginx configuration file not found"
+    exit 1
+fi
+
+# Enable cricket scorer site
+log "Enabling cricket scorer site..."
 ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/$APP_NAME
 
 # Test nginx configuration
@@ -154,7 +181,37 @@ ls -la /etc/nginx/sites-enabled/
 log "Current PM2 status:"
 pm2 status
 
+# Final verification and troubleshooting
+log "Final verification steps..."
+
+# Show what's actually being served
+log "Testing what nginx is actually serving..."
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: score.ramisetty.net" http://localhost/ 2>/dev/null || echo "000")
+log "HTTP response code: $RESPONSE"
+
+if [ "$RESPONSE" = "200" ]; then
+    success "Nginx is serving content successfully"
+else
+    warning "Nginx may not be serving the application correctly"
+    
+    # Show nginx configuration for debugging
+    log "Current nginx configuration:"
+    cat /etc/nginx/sites-available/$APP_NAME | head -20
+    
+    log "Nginx includes:"
+    grep -n "include" /etc/nginx/nginx.conf || echo "No includes found"
+    
+    log "Active nginx configurations:"
+    ls -la /etc/nginx/sites-enabled/ 2>/dev/null || echo "No sites-enabled directory"
+    ls -la /etc/nginx/conf.d/ 2>/dev/null || echo "No conf.d directory"
+fi
+
 success "Nginx configuration completed!"
 log "Your cricket scorer should now be accessible at:"
 log "  http://score.ramisetty.net"
 log "  https://score.ramisetty.net (if SSL is configured)"
+log ""
+log "If still showing test page, try:"
+log "  1. Clear browser cache (Ctrl+F5)"
+log "  2. Wait 30 seconds for DNS/cache to clear"
+log "  3. Check: curl -H 'Host: score.ramisetty.net' http://YOUR_SERVER_IP/"
