@@ -1125,7 +1125,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Clear Match Data
-  async clearMatchData(matchId: number): Promise<boolean> {
+  async clearMatchDataLegacy(matchId: number): Promise<boolean> {
     try {
       // Get all innings for this match
       const matchInnings = await db.select().from(innings).where(eq(innings.matchId, matchId));

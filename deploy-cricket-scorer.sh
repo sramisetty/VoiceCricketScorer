@@ -127,15 +127,156 @@ build_application() {
     success "Application built successfully"
 }
 
+# Install dependencies
+install_dependencies() {
+    log "Installing application dependencies..."
+    
+    cd "$APP_DIR"
+    
+    # Clean install
+    rm -rf node_modules 2>/dev/null || true
+    
+    # Install with production dependencies
+    npm install --production=false
+    
+    # Install terser for production build
+    log "Installing terser for production builds..."
+    npm install terser --save-dev
+    
+    # Generate package-lock.json for future deployments
+    log "Generating package-lock.json for consistent deployments..."
+    
+    # Remove Replit-specific packages in production
+    npm uninstall @replit/vite-plugin-cartographer @replit/vite-plugin-runtime-error-modal 2>/dev/null || true
+    
+    success "Dependencies installed successfully"
+}
+
+# Setup database
+setup_database() {
+    log "Setting up database schema..."
+    
+    cd "$APP_DIR"
+    
+    # Check if database connection works
+    if command -v psql >/dev/null 2>&1; then
+        log "Creating database schema..."
+        npx drizzle-kit push --config=drizzle.config.ts
+    fi
+    
+    success "Database schema synchronized"
+}
+
+# Configure PM2
+configure_pm2() {
+    log "Configuring PM2 for production..."
+    
+    cd "$APP_DIR"
+    
+    # Stop existing PM2 processes
+    pm2 stop $APP_NAME 2>/dev/null || true
+    pm2 delete $APP_NAME 2>/dev/null || true
+    
+    # Start application with PM2
+    log "Starting application with PM2..."
+    pm2 start ecosystem.config.cjs --env production
+    
+    # Save PM2 configuration
+    pm2 save
+    
+    # Wait for application to start
+    sleep 10
+    
+    # Check PM2 status
+    if pm2 list | grep -q "$APP_NAME.*online"; then
+        success "Application started successfully with PM2"
+        pm2 status
+    else
+        error "Failed to start application with PM2"
+        pm2 logs $APP_NAME --lines 20
+        exit 1
+    fi
+}
+
+# Configure Nginx
+configure_nginx() {
+    log "Configuring Nginx reverse proxy..."
+    
+    # Check if Nginx is installed and running
+    if ! systemctl is-active --quiet nginx; then
+        log "Starting Nginx service..."
+        systemctl start nginx
+        systemctl enable nginx
+    fi
+    
+    # Create Nginx configuration for the app
+    cat > /etc/nginx/sites-available/$APP_NAME << EOF
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $DOMAIN;
+    
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+    
+    location /ws {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+    
+    # Enable site
+    ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
+    
+    # Test Nginx configuration
+    if nginx -t; then
+        systemctl reload nginx
+        success "Nginx configured successfully"
+    else
+        error "Nginx configuration test failed"
+        exit 1
+    fi
+}
+
 # Main deployment function
 main() {
     log "Starting Cricket Scorer deployment..."
     
     check_root
+    install_dependencies
+    setup_database
     build_application
+    configure_pm2
+    configure_nginx
     
     success "Cricket Scorer deployment completed successfully!"
     log "Application should be accessible at: https://$DOMAIN"
+    log "Checking application status..."
+    
+    sleep 5
+    if curl -f -s http://localhost:3000/api/health >/dev/null 2>&1 || curl -f -s http://localhost:3000/ >/dev/null 2>&1; then
+        success "Application is responding on localhost:3000"
+    else
+        warning "Application may not be fully started yet"
+        log "PM2 status:"
+        pm2 status
+    fi
 }
 
 # Run main function

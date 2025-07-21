@@ -1,0 +1,58 @@
+Building client application for Linux VPS...
+[2025-07-20 23:18:37] Using production Vite configuration for VPS build...
+vite v5.4.19 building for production...
+✓ 1739 modules transformed.
+../server/public/index.html                   1.18 kB │ gzip:  0.54 kB
+../server/public/assets/index-Bd8G-azK.css   85.87 kB │ gzip: 14.28 kB
+../server/public/assets/ui-D3GOVFd5.js       79.63 kB │ gzip: 26.74 kB
+../server/public/assets/vendor-Ber6wfih.js  139.86 kB │ gzip: 44.92 kB
+../server/public/assets/index-B4Qisk0Y.js   239.57 kB │ gzip: 61.21 kB
+✓ built in 12.03s
+[2025-07-20 23:18:50] Checking build output locations...
+[2025-07-20 23:18:50] Contents of server/public/:
+total 16
+drwxr-xr-x 3 root root 4096 Jul 20 23:18 .
+drwxr-xr-x 3 root root 4096 Jul 20 23:18 ..
+drwxr-xr-x 2 root root 4096 Jul 20 23:18 assets
+-rw-r--r-- 1 root root 1182 Jul 20 23:18 index.html
+[2025-07-20 23:18:50] Contents of dist/:
+total 8
+drwxr-xr-x  2 root root 4096 Jul 20 23:18 .
+drwxr-xr-x 11 root root 4096 Jul 20 23:18 ..
+[2025-07-20 23:18:52] Debugging build output...
+[2025-07-20 23:18:52] Current directory: /opt/cricket-scorer
+[2025-07-20 23:18:52] Contents of server/public/:
+total 16
+drwxr-xr-x 3 root root 4096 Jul 20 23:18 .
+drwxr-xr-x 3 root root 4096 Jul 20 23:18 ..
+drwxr-xr-x 2 root root 4096 Jul 20 23:18 assets
+-rw-r--r-- 1 root root 1182 Jul 20 23:18 index.html
+[2025-07-20 23:18:52] Checking for index.html...
+✓ Production build completed successfully
+[2025-07-20 23:18:52] Build artifacts created in server/public/:
+total 16
+drwxr-xr-x 3 root root 4096 Jul 20 23:18 .
+drwxr-xr-x 3 root root 4096 Jul 20 23:18 ..
+drwxr-xr-x 2 root root 4096 Jul 20 23:18 assets
+-rw-r--r-- 1 root root 1182 Jul 20 23:18 index.html
+[2025-07-20 23:18:52] Building server application for Linux VPS...
+▲ [WARNING] Duplicate member "clearMatchData" in class body [duplicate-class-member]
+
+    server/storage.ts:1313:8:
+      1313 │   async clearMatchData(matchId: number): Promise<void> {
+           ╵         ~~~~~~~~~~~~~~
+
+  The original member "clearMatchData" is here:
+
+    server/storage.ts:1128:8:
+      1128 │   async clearMatchData(matchId: number): Promise<boolean> {
+           ╵         ~~~~~~~~~~~~~~
+
+1 warning
+
+  dist/index.js  37.4kb
+
+⚡ Done in 16ms
+✓ Application built successfully
+✓ Cricket Scorer deployment completed successfully!
+[2025-07-20 23:18:52] Application should be accessible at: https://score.ramisetty.net
