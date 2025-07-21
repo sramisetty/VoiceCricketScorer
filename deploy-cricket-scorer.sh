@@ -157,9 +157,21 @@ EOF
     export NODE_ENV=production
     npx vite build --config vite.config.production.ts
     
+    # Verify client build succeeded
+    if [ ! -f "server/public/index.html" ]; then
+        error "Client build failed - no index.html found"
+        exit 1
+    fi
+    
     # Build production server
     log "Building production server..."
     npx esbuild server/index.prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+    
+    # Verify server build succeeded
+    if [ ! -f "dist/index.js" ]; then
+        error "Server build failed - no dist/index.js found"
+        exit 1
+    fi
     
     # Verify no Replit imports in built files
     log "Verifying no Replit imports remain..."
@@ -182,22 +194,6 @@ build_application() {
     
     # Use emergency production fix to eliminate Replit imports
     emergency_production_fix
-    
-    # Create necessary directories
-    mkdir -p server/public dist logs
-    
-    # Check if build succeeded
-    if [ ! -f "server/public/index.html" ]; then
-        error "Client build failed - no index.html found"
-        exit 1
-    fi
-    
-    if [ ! -f "dist/index.js" ]; then
-        error "Server build failed - no dist/index.js found"
-        exit 1
-    fi
-    
-    success "Application built successfully"
 }
 
 # Install dependencies
