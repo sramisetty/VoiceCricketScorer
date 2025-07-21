@@ -1,0 +1,24 @@
+✗ Application still not responding after PM2 start
+[TAILING] Tailing last 20 lines for [cricket-scorer] process (change the value with --lines option)
+/opt/cricket-scorer/logs/out-13.log last 20 lines:
+/opt/cricket-scorer/logs/err-13.log last 20 lines:
+13|cricket | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+13|cricket | Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@replit/vite-plugin-runtime-error-modal' imported from /opt/cricket-scorer/dist/index.js
+13|cricket |     at packageResolve (node:internal/modules/esm/resolve:873:9)
+13|cricket |     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+13|cricket |     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+13|cricket |     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+13|cricket |     at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+13|cricket |     at ModuleLoader.resolve (node:internal/modules/esm/loader:574:38)
+13|cricket |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:236:38)
+13|cricket |     at ModuleJob._link (node:internal/modules/esm/module_job:130:49)
+13|cricket | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+13|cricket | Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@replit/vite-plugin-runtime-error-modal' imported from /opt/cricket-scorer/dist/index.js
+13|cricket |     at packageResolve (node:internal/modules/esm/resolve:873:9)
+13|cricket |     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+13|cricket |     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+13|cricket |     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+13|cricket |     at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+13|cricket |     at ModuleLoader.resolve (node:internal/modules/esm/loader:574:38)
+13|cricket |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:236:38)
+13|cricket |     at ModuleJob._link (node:internal/modules/esm/module_job:130:49)
