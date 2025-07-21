@@ -170,6 +170,7 @@ EOF
     # Verify server build succeeded
     if [ ! -f "dist/index.js" ]; then
         error "Server build failed - no dist/index.js found"
+        ls -la dist/ || true
         exit 1
     fi
     
@@ -181,6 +182,7 @@ EOF
     fi
     
     success "Build completed successfully with no Replit imports"
+    log "Built files: $(ls -la dist/ server/public/)"
     
     # Clean up temporary files
     rm -f server/index.prod.ts
