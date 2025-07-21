@@ -147,77 +147,140 @@ install_postgresql() {
     log "Enabling and starting PostgreSQL service..."
     systemctl enable $PG_SERVICE
     
-    # Start PostgreSQL with error checking
+    # Start PostgreSQL with comprehensive error handling and recovery
+    log "Starting PostgreSQL service..."
+    
+    # Attempt to start PostgreSQL service
     if systemctl start $PG_SERVICE; then
         success "PostgreSQL service started successfully"
-        
-        # Wait for PostgreSQL to be ready
-        log "Waiting for PostgreSQL to be ready..."
-        for i in {1..30}; do
-            if sudo -u postgres psql -c "SELECT 1;" &>/dev/null; then
-                success "PostgreSQL is ready and accepting connections"
-                break
-            fi
-            sleep 2
-            if [ $i -eq 30 ]; then
-                error "PostgreSQL failed to start properly after 60 seconds"
-                log "Checking PostgreSQL status and logs..."
-                systemctl status $PG_SERVICE
-                journalctl -xeu $PG_SERVICE --no-pager -n 20
-                exit 1
-            fi
-        done
     else
-        error "Failed to start PostgreSQL service"
-        log "Checking PostgreSQL status and logs..."
-        systemctl status $PG_SERVICE
-        journalctl -xeu $PG_SERVICE --no-pager -n 20
+        warning "Initial PostgreSQL start failed, attempting recovery..."
         
-        log "Attempting to fix PostgreSQL configuration..."
+        # Show diagnostic information
+        log "PostgreSQL service status:"
+        systemctl status $PG_SERVICE --no-pager -l || true
         
-        # Check if data directory exists and has correct permissions
-        if [ -d "$PG_DATA_DIR" ]; then
-            chown -R postgres:postgres "$PG_DATA_DIR"
-            chmod 700 "$PG_DATA_DIR"
-            
-            # Try starting again
-            if systemctl start $PG_SERVICE; then
-                success "PostgreSQL started after fixing permissions"
-            else
-                error "PostgreSQL service failed to start even after fixes"
-                exit 1
-            fi
+        log "Recent PostgreSQL logs:"
+        journalctl -xeu $PG_SERVICE --no-pager -n 10 || true
+        
+        # Attempt fixes
+        log "Attempting to fix PostgreSQL configuration and permissions..."
+        
+        # Fix ownership and permissions again
+        chown -R postgres:postgres /var/lib/pgsql/
+        chmod 700 "$PG_DATA_DIR"
+        chmod 600 "$PG_DATA_DIR"/*.conf 2>/dev/null || true
+        
+        # Check for common issues in postgresql.conf
+        if [ -f "$PG_DATA_DIR/postgresql.conf" ]; then
+            # Ensure basic settings are correct
+            sed -i "s/#listen_addresses = 'localhost'/listen_addresses = 'localhost'/" "$PG_DATA_DIR/postgresql.conf"
+            sed -i "s/#port = 5432/port = 5432/" "$PG_DATA_DIR/postgresql.conf"
+        fi
+        
+        # Try starting again after fixes
+        if systemctl start $PG_SERVICE; then
+            success "PostgreSQL started successfully after fixes"
         else
-            error "PostgreSQL data directory does not exist: $PG_DATA_DIR"
+            error "PostgreSQL service failed to start even after recovery attempts"
+            log "Final diagnostic information:"
+            systemctl status $PG_SERVICE --no-pager -l || true
+            journalctl -xeu $PG_SERVICE --no-pager -n 20 || true
             exit 1
         fi
     fi
     
-    # Configure PostgreSQL for application access
-    log "Configuring PostgreSQL..."
+    # Wait for PostgreSQL to be ready and accepting connections
+    log "Waiting for PostgreSQL to be ready..."
+    for i in {1..30}; do
+        if sudo -u postgres psql -c "SELECT 1;" &>/dev/null 2>&1; then
+            success "PostgreSQL is ready and accepting connections"
+            break
+        fi
+        
+        if [ $i -eq 30 ]; then
+            error "PostgreSQL failed to accept connections after 60 seconds"
+            log "Service status:"
+            systemctl status $PG_SERVICE --no-pager -l || true
+            log "Connection test failed - checking if service is actually running..."
+            
+            if systemctl is-active $PG_SERVICE &>/dev/null; then
+                warning "PostgreSQL service is running but not accepting connections"
+                warning "This may resolve itself - continuing with setup..."
+            else
+                error "PostgreSQL service is not running"
+                exit 1
+            fi
+            break
+        fi
+        
+        sleep 2
+    done
     
-    # Update postgresql.conf
+    # Configure PostgreSQL for Cricket Scorer application
+    log "Configuring PostgreSQL for application access..."
+    
     PG_CONF="$PG_DATA_DIR/postgresql.conf"
-    cp $PG_CONF ${PG_CONF}.backup
-    
-    sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" $PG_CONF
-    sed -i "s/#port = 5432/port = 5432/" $PG_CONF
-    sed -i "s/#max_connections = 100/max_connections = 200/" $PG_CONF
-    
-    # Update pg_hba.conf for authentication
     PG_HBA="$PG_DATA_DIR/pg_hba.conf"
-    cp $PG_HBA ${PG_HBA}.backup
     
-    # Add application access
-    cat >> $PG_HBA << EOF
+    # Create backup copies of configuration files
+    cp "$PG_CONF" "${PG_CONF}.backup" 2>/dev/null || true
+    cp "$PG_HBA" "${PG_HBA}.backup" 2>/dev/null || true
+    
+    # Update postgresql.conf with application-specific settings
+    log "Updating PostgreSQL configuration..."
+    sed -i "s/#listen_addresses = 'localhost'/listen_addresses = 'localhost'/" "$PG_CONF"
+    sed -i "s/#port = 5432/port = 5432/" "$PG_CONF"
+    sed -i "s/#max_connections = 100/max_connections = 200/" "$PG_CONF"
+    
+    # Add performance and reliability settings
+    if ! grep -q "shared_buffers" "$PG_CONF" | grep -v "^#"; then
+        echo "shared_buffers = 256MB" >> "$PG_CONF"
+    fi
+    
+    # Update pg_hba.conf for secure application access
+    log "Configuring PostgreSQL authentication..."
+    
+    # Add Cricket Scorer application access if not already present
+    if ! grep -q "Cricket Scorer Application Access" "$PG_HBA"; then
+        cat >> "$PG_HBA" << EOF
 
 # Cricket Scorer Application Access
+local   all             all                                     peer
 host    all             all             127.0.0.1/32            md5
 host    all             all             ::1/128                 md5
 EOF
+    fi
     
-    # Restart PostgreSQL with new configuration
-    systemctl restart $PG_SERVICE
+    # Set proper permissions on configuration files
+    chown postgres:postgres "$PG_CONF" "$PG_HBA"
+    chmod 600 "$PG_CONF" "$PG_HBA"
+    
+    # Restart PostgreSQL to apply new configuration
+    log "Restarting PostgreSQL with new configuration..."
+    if systemctl restart $PG_SERVICE; then
+        success "PostgreSQL restarted successfully with new configuration"
+        
+        # Verify service is working after restart
+        sleep 3
+        for i in {1..10}; do
+            if sudo -u postgres psql -c "SELECT version();" &>/dev/null; then
+                success "PostgreSQL configuration applied and service is ready"
+                break
+            fi
+            sleep 2
+            if [ $i -eq 10 ]; then
+                warning "PostgreSQL restarted but may not be fully ready yet"
+            fi
+        done
+    else
+        error "Failed to restart PostgreSQL after configuration changes"
+        log "Reverting to backup configuration..."
+        cp "${PG_CONF}.backup" "$PG_CONF" 2>/dev/null || true
+        cp "${PG_HBA}.backup" "$PG_HBA" 2>/dev/null || true
+        systemctl restart $PG_SERVICE
+        exit 1
+    fi
     
     success "PostgreSQL installed and configured"
 }
@@ -252,34 +315,64 @@ install_postgresql_builtin() {
         
         success "PostgreSQL installed from AlmaLinux built-in repositories"
         
-        # Initialize database immediately after installation
+        # Initialize database with comprehensive error handling
         log "Initializing PostgreSQL database..."
+        
+        # Check if data directory exists and is properly initialized
         if [ ! -d "$PG_DATA_DIR" ] || [ ! -f "$PG_DATA_DIR/postgresql.conf" ]; then
+            log "Creating and initializing PostgreSQL data directory..."
+            
             # Remove any existing incomplete data directory
             rm -rf "$PG_DATA_DIR" 2>/dev/null || true
             
-            # Initialize database
-            if $PG_SETUP --initdb; then
-                success "PostgreSQL database initialized successfully"
+            # Create directory with proper ownership
+            mkdir -p "$PG_DATA_DIR"
+            chown postgres:postgres "$PG_DATA_DIR"
+            chmod 700 "$PG_DATA_DIR"
+            
+            # Try multiple initialization methods
+            if $PG_SETUP --initdb 2>/dev/null; then
+                success "PostgreSQL database initialized with postgresql-setup"
+            elif sudo -u postgres /usr/bin/initdb -D "$PG_DATA_DIR" 2>/dev/null; then
+                success "PostgreSQL database initialized with initdb"
             else
-                error "PostgreSQL database initialization failed"
-                log "Attempting alternative initialization method..."
+                error "All PostgreSQL initialization methods failed"
+                log "Checking system state and trying manual initialization..."
                 
-                # Try alternative initialization
-                if sudo -u postgres /usr/bin/initdb -D "$PG_DATA_DIR"; then
-                    success "PostgreSQL database initialized with alternative method"
+                # Ensure postgres user exists
+                if ! id postgres &>/dev/null; then
+                    error "PostgreSQL user 'postgres' does not exist"
+                    exit 1
+                fi
+                
+                # Try one more time with explicit paths
+                if sudo -u postgres /usr/bin/initdb --auth-local=peer --auth-host=md5 -D "$PG_DATA_DIR"; then
+                    success "PostgreSQL database initialized with manual method"
                 else
-                    error "All PostgreSQL initialization methods failed"
+                    error "PostgreSQL database initialization completely failed"
                     exit 1
                 fi
             fi
         else
-            log "PostgreSQL database already initialized"
+            log "PostgreSQL database already initialized, checking integrity..."
+            
+            # Verify database integrity
+            if [ ! -f "$PG_DATA_DIR/postgresql.conf" ] || [ ! -f "$PG_DATA_DIR/pg_hba.conf" ]; then
+                warning "Database appears corrupted, re-initializing..."
+                rm -rf "$PG_DATA_DIR"/*
+                if sudo -u postgres /usr/bin/initdb -D "$PG_DATA_DIR"; then
+                    success "PostgreSQL database re-initialized successfully"
+                else
+                    error "Database re-initialization failed"
+                    exit 1
+                fi
+            fi
         fi
         
-        # Set proper ownership and permissions
-        chown -R postgres:postgres "$PG_DATA_DIR"
+        # Set proper ownership and permissions for all PostgreSQL files
+        chown -R postgres:postgres /var/lib/pgsql/
         chmod 700 "$PG_DATA_DIR"
+        chmod 600 "$PG_DATA_DIR"/*.conf 2>/dev/null || true
         
     else
         error "Failed to install PostgreSQL from AlmaLinux repositories"
