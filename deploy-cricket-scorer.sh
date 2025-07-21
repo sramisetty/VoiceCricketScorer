@@ -350,18 +350,60 @@ build_application() {
             cp -r dist/* server/public/
             success "Build files moved to server/public/"
         else
-            # Force rebuild with standard npm script
-            log "Trying alternative build method..."
+            # Force rebuild with production config
+            log "Trying alternative build method with production config..."
             rm -rf dist/ server/public/ 2>/dev/null || true
             mkdir -p server/public
-            NODE_ENV=production npm run build
+            
+            # Use production config if available, otherwise create minimal config
+            if [ -f "vite.config.production.ts" ]; then
+                NODE_ENV=production npx vite build --config vite.config.production.ts --outDir server/public --emptyOutDir
+            else
+                # Create temporary minimal vite config without Replit plugins
+                cat > vite.config.temp.ts << 'EOF'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    outDir: 'server/public',
+    emptyOutDir: true,
+    minify: 'terser',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-select']
+        }
+      }
+    }
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './client/src'),
+      '@shared': path.resolve(__dirname, './shared')
+    }
+  }
+});
+EOF
+                NODE_ENV=production npx vite build --config vite.config.temp.ts
+                rm -f vite.config.temp.ts
+            fi
             
             # Check again after rebuild
-            if [ -f "dist/index.html" ]; then
-                cp -r dist/* server/public/
+            if [ -f "server/public/index.html" ]; then
                 success "Build completed with fallback method"
+            elif [ -f "dist/index.html" ]; then
+                cp -r dist/* server/public/
+                success "Build completed and moved to server/public/"
             else
                 error "Build failed - unable to create static files"
+                log "Final check - contents of directories:"
+                ls -la server/public/ 2>/dev/null || echo "server/public/ not found"
+                ls -la dist/ 2>/dev/null || echo "dist/ not found"
                 exit 1
             fi
         fi
