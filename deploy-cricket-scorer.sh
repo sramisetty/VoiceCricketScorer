@@ -86,18 +86,18 @@ validate_prerequisites() {
     success "Prerequisites validated"
 }
 
-# Create backup of existing deployment
+# Create backup of current state
 create_backup() {
     if [ -d "$APP_DIR" ] && [ "$(ls -A $APP_DIR)" ]; then
-        log "Creating backup of existing deployment..."
+        log "Creating backup before deployment..."
         
         mkdir -p "$BACKUP_DIR"
         BACKUP_NAME="deployment_backup_$(date +%Y%m%d_%H%M%S)"
         
-        # Stop application if running
+        # Stop application if running to ensure consistent backup
         pm2 stop $APP_NAME 2>/dev/null || true
         
-        # Create backup
+        # Create backup excluding build artifacts and dependencies
         tar -czf "$BACKUP_DIR/$BACKUP_NAME.tar.gz" \
             --exclude='node_modules' \
             --exclude='dist' \
@@ -105,48 +105,50 @@ create_backup() {
             --exclude='logs' \
             --exclude='backups' \
             --exclude='.git' \
-            "$APP_DIR" 2>/dev/null || true
+            --exclude='*.log' \
+            -C "$(dirname $APP_DIR)" \
+            "$(basename $APP_DIR)" 2>/dev/null || true
         
         success "Backup created: $BACKUP_NAME.tar.gz"
+        info "Backup location: $BACKUP_DIR/$BACKUP_NAME.tar.gz"
     else
-        info "No existing deployment found, skipping backup"
+        warning "Application directory not found or empty, skipping backup"
     fi
 }
 
-# Clone or update repository
-clone_repository() {
-    log "Setting up application repository..."
+# Use existing repository setup
+use_existing_repository() {
+    log "Using existing repository setup..."
     
-    if [ -d "$APP_DIR/.git" ]; then
-        log "Updating existing repository..."
-        cd "$APP_DIR"
-        
-        # Stash any local changes
-        git stash push -m "Auto-stash before deployment $(date)" 2>/dev/null || true
-        
-        # Fetch latest changes
-        git fetch origin
-        git reset --hard origin/main
-        git clean -fd
-        
-        success "Repository updated to latest main branch"
-    else
-        log "Cloning fresh repository..."
-        
-        # Remove existing directory if it exists
-        [ -d "$APP_DIR" ] && rm -rf "$APP_DIR"
-        
-        # Clone repository
-        git clone "$REPO_URL" "$APP_DIR"
-        cd "$APP_DIR"
-        
-        success "Repository cloned successfully"
+    if [ ! -d "$APP_DIR" ]; then
+        error "Application directory $APP_DIR not found!"
+        error "Please run setup-almalinux-production.sh first to set up the repository"
+        exit 1
     fi
     
-    # Show current commit
-    COMMIT_HASH=$(git rev-parse --short HEAD)
-    COMMIT_MSG=$(git log -1 --pretty=format:'%s')
-    info "Deploying commit: $COMMIT_HASH - $COMMIT_MSG"
+    cd "$APP_DIR"
+    
+    # Verify this is a valid cricket scorer directory
+    if [ ! -f "package.json" ] || ! grep -q "cricket" package.json 2>/dev/null; then
+        error "Directory $APP_DIR does not appear to contain cricket scorer application"
+        error "Expected package.json with cricket scorer configuration"
+        exit 1
+    fi
+    
+    success "Using existing application directory: $APP_DIR"
+    
+    # Show current state (git info if available)
+    if [ -d ".git" ]; then
+        COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        COMMIT_MSG=$(git log -1 --pretty=format:'%s' 2>/dev/null || echo "Git repository available")
+        info "Current state: $COMMIT_HASH - $COMMIT_MSG"
+    else
+        info "Directory ready for deployment (no git information available)"
+    fi
+    
+    # Ensure proper ownership
+    chown -R root:root "$APP_DIR"
+    success "Directory ownership verified"
 }
 
 # Setup environment configuration
@@ -603,16 +605,16 @@ main() {
     echo ""
     
     log "Starting deployment process..."
-    echo "Repository: $REPO_URL"
-    echo "Target Directory: $APP_DIR"
+    echo "Using existing setup at: $APP_DIR"
     echo "Domain: $DOMAIN"
+    echo "Note: Using existing repository - no git operations will be performed"
     echo ""
     
     # Deployment steps
     check_root
     validate_prerequisites
     create_backup
-    clone_repository
+    use_existing_repository
     setup_environment
     install_dependencies
     setup_database
