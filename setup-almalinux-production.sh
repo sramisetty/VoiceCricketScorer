@@ -820,12 +820,31 @@ setup_database() {
         echo "local   all             postgres                                peer" >> "$PG_HBA"
     fi
     
+    # Add specific authentication for cricket_user
+    if ! grep -q "^local.*all.*cricket_user.*md5" "$PG_HBA"; then
+        echo "local   all             cricket_user                            md5" >> "$PG_HBA"
+    fi
+    
     if ! grep -q "^local.*all.*all.*peer" "$PG_HBA"; then
         echo "local   all             all                                     peer" >> "$PG_HBA"
     fi
     
+    # Add specific host authentication for cricket_user
+    if ! grep -q "host.*all.*cricket_user.*127.0.0.1/32.*md5" "$PG_HBA"; then
+        echo "host    all             cricket_user    127.0.0.1/32            md5" >> "$PG_HBA"
+    fi
+    
+    if ! grep -q "host.*cricket_scorer.*cricket_user.*127.0.0.1/32.*md5" "$PG_HBA"; then
+        echo "host    cricket_scorer  cricket_user    127.0.0.1/32            md5" >> "$PG_HBA"
+    fi
+    
     if ! grep -q "host.*all.*all.*127.0.0.1/32.*md5" "$PG_HBA"; then
         echo "host    all             all             127.0.0.1/32            md5" >> "$PG_HBA"
+    fi
+    
+    # Add IPv6 authentication for cricket_user
+    if ! grep -q "host.*all.*cricket_user.*::1/128.*md5" "$PG_HBA"; then
+        echo "host    all             cricket_user    ::1/128                 md5" >> "$PG_HBA"
     fi
     
     if ! grep -q "host.*all.*all.*::1/128.*md5" "$PG_HBA"; then
