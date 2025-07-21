@@ -1,0 +1,175 @@
+Starting Cricket Scorer deployment...
+[2025-07-20 23:21:56] Installing application dependencies...
+npm warn config production Use `--omit=dev` instead.
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+
+added 511 packages in 9s
+[2025-07-20 23:22:05] Installing terser for production builds...
+
+up to date in 1s
+[2025-07-20 23:22:06] Generating package-lock.json for consistent deployments...
+
+up to date in 925ms
+✓ Dependencies installed successfully
+[2025-07-20 23:22:07] Setting up database schema...
+[2025-07-20 23:22:07] Creating database schema...
+Reading config file '/opt/cricket-scorer/drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+error: permission denied for schema public
+    at /opt/cricket-scorer/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Object.query (/opt/cricket-scorer/node_modules/drizzle-kit/bin.cjs:78355:26)
+    at async pgPush (/opt/cricket-scorer/node_modules/drizzle-kit/bin.cjs:81944:13)
+    at async Object.handler (/opt/cricket-scorer/node_modules/drizzle-kit/bin.cjs:92168:9)
+    at async run (/opt/cricket-scorer/node_modules/drizzle-kit/bin.cjs:91408:7) {
+  length: 99,
+  severity: 'ERROR',
+  code: '42501',
+  detail: undefined,
+  hint: undefined,
+  position: '14',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'aclchk.c',
+  line: '3655',
+  routine: 'aclcheck_error'
+}
+✓ Database schema synchronized
+[2025-07-20 23:22:08] Building application for production...
+[2025-07-20 23:22:08] Building client application for Linux VPS...
+[2025-07-20 23:22:08] Using production Vite configuration for VPS build...
+vite v5.4.19 building for production...
+✓ 1739 modules transformed.
+../server/public/index.html                   1.18 kB │ gzip:  0.54 kB
+../server/public/assets/index-Bd8G-azK.css   85.87 kB │ gzip: 14.28 kB
+../server/public/assets/ui-D3GOVFd5.js       79.63 kB │ gzip: 26.74 kB
+../server/public/assets/vendor-Ber6wfih.js  139.86 kB │ gzip: 44.92 kB
+../server/public/assets/index-B4Qisk0Y.js   239.57 kB │ gzip: 61.21 kB
+✓ built in 11.99s
+[2025-07-20 23:22:20] Checking build output locations...
+[2025-07-20 23:22:20] Contents of server/public/:
+total 16
+drwxr-xr-x 3 root root 4096 Jul 20 23:22 .
+drwxr-xr-x 3 root root 4096 Jul 20 23:22 ..
+drwxr-xr-x 2 root root 4096 Jul 20 23:22 assets
+-rw-r--r-- 1 root root 1182 Jul 20 23:22 index.html
+[2025-07-20 23:22:20] Contents of dist/:
+total 8
+drwxr-xr-x  2 root root 4096 Jul 20 23:22 .
+drwxr-xr-x 11 root root 4096 Jul 20 23:22 ..
+[2025-07-20 23:22:22] Debugging build output...
+[2025-07-20 23:22:22] Current directory: /opt/cricket-scorer
+[2025-07-20 23:22:22] Contents of server/public/:
+total 16
+drwxr-xr-x 3 root root 4096 Jul 20 23:22 .
+drwxr-xr-x 3 root root 4096 Jul 20 23:22 ..
+drwxr-xr-x 2 root root 4096 Jul 20 23:22 assets
+-rw-r--r-- 1 root root 1182 Jul 20 23:22 index.html
+[2025-07-20 23:22:22] Checking for index.html...
+✓ Production build completed successfully
+[2025-07-20 23:22:22] Build artifacts created in server/public/:
+total 16
+drwxr-xr-x 3 root root 4096 Jul 20 23:22 .
+drwxr-xr-x 3 root root 4096 Jul 20 23:22 ..
+drwxr-xr-x 2 root root 4096 Jul 20 23:22 assets
+-rw-r--r-- 1 root root 1182 Jul 20 23:22 index.html
+[2025-07-20 23:22:22] Building server application for Linux VPS...
+▲ [WARNING] Duplicate member "clearMatchData" in class body [duplicate-class-member]
+
+    server/storage.ts:1313:8:
+      1313 │   async clearMatchData(matchId: number): Promise<void> {
+           ╵         ~~~~~~~~~~~~~~
+
+  The original member "clearMatchData" is here:
+
+    server/storage.ts:1128:8:
+      1128 │   async clearMatchData(matchId: number): Promise<boolean> {
+           ╵         ~~~~~~~~~~~~~~
+
+1 warning
+
+  dist/index.js  37.4kb
+
+⚡ Done in 14ms
+✓ Application built successfully
+[2025-07-20 23:22:23] Configuring PM2 for production...
+[PM2] Applying action stopProcessId on app [cricket-scorer](ids: [ 0 ])
+[PM2] [cricket-scorer](0) ✓
+┌────┬───────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name              │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ cricket-scorer    │ default     │ 1.0.0   │ cluster │ 0        │ 0      │ 37   │ stopped   │ 0%       │ 0b       │ root     │ disabled │
+└────┴───────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Module
+┌────┬──────────────────────────────┬───────────────┬──────────┬──────────┬──────┬──────────┬──────────┬──────────┐
+│ id │ module                       │ version       │ pid      │ status   │ ↺    │ cpu      │ mem      │ user     │
+├────┼──────────────────────────────┼───────────────┼──────────┼──────────┼──────┼──────────┼──────────┼──────────┤
+│ 1  │ pm2-logrotate                │ 2.7.0         │ 65825    │ online   │ 0    │ 0%       │ 13.9mb   │ root     │
+└────┴──────────────────────────────┴───────────────┴──────────┴──────────┴──────┴──────────┴──────────┴──────────┘
+[PM2] Applying action deleteProcessId on app [cricket-scorer](ids: [ 0 ])
+[PM2] [cricket-scorer](0) ✓
+┌────┬──────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name             │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+└────┴──────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Module
+┌────┬──────────────────────────────┬───────────────┬──────────┬──────────┬──────┬──────────┬──────────┬──────────┐
+│ id │ module                       │ version       │ pid      │ status   │ ↺    │ cpu      │ mem      │ user     │
+├────┼──────────────────────────────┼───────────────┼──────────┼──────────┼──────┼──────────┼──────────┼──────────┤
+│ 1  │ pm2-logrotate                │ 2.7.0         │ 65825    │ online   │ 0    │ 0%       │ 13.9mb   │ root     │
+└────┴──────────────────────────────┴───────────────┴──────────┴──────────┴──────┴──────────┴──────────┴──────────┘
+[2025-07-20 23:22:23] Starting application with PM2...
+[PM2][WARN] Applications cricket-scorer not running, starting...
+[PM2] App [cricket-scorer] launched (1 instances)
+┌────┬───────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name              │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 2  │ cricket-scorer    │ default     │ 1.0.0   │ cluster │ 120975   │ 0s     │ 0    │ online    │ 0%       │ 43.5mb   │ root     │ disabled │
+└────┴───────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Module
+┌────┬──────────────────────────────┬───────────────┬──────────┬──────────┬──────┬──────────┬──────────┬──────────┐
+│ id │ module                       │ version       │ pid      │ status   │ ↺    │ cpu      │ mem      │ user     │
+├────┼──────────────────────────────┼───────────────┼──────────┼──────────┼──────┼──────────┼──────────┼──────────┤
+│ 1  │ pm2-logrotate                │ 2.7.0         │ 65825    │ online   │ 0    │ 0%       │ 13.9mb   │ root     │
+└────┴──────────────────────────────┴───────────────┴──────────┴──────────┴──────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+✓ Application started successfully with PM2
+┌────┬───────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name              │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 2  │ cricket-scorer    │ default     │ 1.0.0   │ cluster │ 120975   │ 10s    │ 0    │ online    │ 0%       │ 75.6mb   │ root     │ disabled │
+└────┴───────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Module
+┌────┬──────────────────────────────┬───────────────┬──────────┬──────────┬──────┬──────────┬──────────┬──────────┐
+│ id │ module                       │ version       │ pid      │ status   │ ↺    │ cpu      │ mem      │ user     │
+├────┼──────────────────────────────┼───────────────┼──────────┼──────────┼──────┼──────────┼──────────┼──────────┤
+│ 1  │ pm2-logrotate                │ 2.7.0         │ 65825    │ online   │ 0    │ 0%       │ 14.0mb   │ root     │
+└────┴──────────────────────────────┴───────────────┴──────────┴──────────┴──────┴──────────┴──────────┴──────────┘
+[2025-07-20 23:22:34] Configuring Nginx reverse proxy...
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+✓ Nginx configured successfully
+✓ Cricket Scorer deployment completed successfully!
+[2025-07-20 23:22:34] Application should be accessible at: https://score.ramisetty.net
+[2025-07-20 23:22:34] Checking application status...
+⚠ Application may not be fully started yet
+[2025-07-20 23:22:39] PM2 status:
+┌────┬───────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name              │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 2  │ cricket-scorer    │ default     │ 1.0.0   │ cluster │ 120975   │ 15s    │ 0    │ online    │ 0%       │ 75.7mb   │ root     │ disabled │
+└────┴───────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Module
+┌────┬──────────────────────────────┬───────────────┬──────────┬──────────┬──────┬──────────┬──────────┬──────────┐
+│ id │ module                       │ version       │ pid      │ status   │ ↺    │ cpu      │ mem      │ user     │
+├────┼──────────────────────────────┼───────────────┼──────────┼──────────┼──────┼──────────┼──────────┼──────────┤
+│ 1  │ pm2-logrotate                │ 2.7.0         │ 65825    │ online   │ 0    │ 0%       │ 13.3mb   │ root     │
+└────┴──────────────────────────────┴───────────────┴──────────┴──────────┴──────┴──────────┴──────────┴──────────┘
