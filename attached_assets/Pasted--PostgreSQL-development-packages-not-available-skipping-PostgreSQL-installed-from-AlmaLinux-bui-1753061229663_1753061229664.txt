@@ -1,0 +1,58 @@
+⚠ PostgreSQL development packages not available, skipping
+✓ PostgreSQL installed from AlmaLinux built-in repositories
+[2025-07-20 21:26:55] Setting up PostgreSQL database...
+[2025-07-20 21:26:55] Ensuring clean PostgreSQL installation...
+[2025-07-20 21:26:55] Found existing database version: 15
+[2025-07-20 21:26:55] Database version appears compatible, checking integrity...
+[2025-07-20 21:26:55] Configuring PostgreSQL for passwordless local setup...
+[2025-07-20 21:26:55] PostgreSQL configured for passwordless setup
+[2025-07-20 21:26:55] Enabling and starting PostgreSQL service...
+[2025-07-20 21:26:55] Starting PostgreSQL service...
+Job for postgresql.service failed because the control process exited with error code.
+See "systemctl status postgresql.service" and "journalctl -xeu postgresql.service" for details.
+✗ PostgreSQL service failed to start
+[2025-07-20 21:26:55] Checking PostgreSQL logs for other issues...
+Jul 20 21:22:34 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+░░ Subject: A start job for unit postgresql.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has finished with a failure.
+░░
+░░ The job identifier is 48382 and the job result is failed.
+Jul 20 21:26:55 luminous-potato.metalseed.net systemd[1]: Starting PostgreSQL database server...
+░░ Subject: A start job for unit postgresql.service has begun execution
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has begun execution.
+░░
+░░ The job identifier is 48844.
+Jul 20 21:26:55 luminous-potato.metalseed.net postmaster[98889]: 2025-07-20 21:26:55.602 EDT [98889] LOG:  invalid value for parameter "shared_buffers": "128MBMB"
+Jul 20 21:26:55 luminous-potato.metalseed.net postmaster[98889]: 2025-07-20 21:26:55.602 EDT [98889] HINT:  Valid units for this parameter are "B", "kB", "MB", "GB", and "TB".
+Jul 20 21:26:55 luminous-potato.metalseed.net postmaster[98889]: 2025-07-20 21:26:55.602 EDT [98889] LOG:  invalid value for parameter "effective_cache_size": "4GBMB"
+Jul 20 21:26:55 luminous-potato.metalseed.net postmaster[98889]: 2025-07-20 21:26:55.602 EDT [98889] HINT:  Valid units for this parameter are "B", "kB", "MB", "GB", and "TB".
+Jul 20 21:26:55 luminous-potato.metalseed.net postmaster[98889]: 2025-07-20 21:26:55.602 EDT [98889] FATAL:  configuration file "/var/lib/pgsql/data/postgresql.conf" contains errors
+Jul 20 21:26:55 luminous-potato.metalseed.net systemd[1]: postgresql.service: Main process exited, code=exited, status=1/FAILURE
+░░ Subject: Unit process exited
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ An ExecStart= process belonging to unit postgresql.service has exited.
+░░
+░░ The process' exit code is 'exited' and its exit status is 1.
+Jul 20 21:26:55 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ The unit postgresql.service has entered the 'failed' state with result 'exit-code'.
+Jul 20 21:26:55 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+░░ Subject: A start job for unit postgresql.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has finished with a failure.
+░░
+░░ The job identifier is 48844 and the job result is failed.
+✗ PostgreSQL startup failed for unknown reasons

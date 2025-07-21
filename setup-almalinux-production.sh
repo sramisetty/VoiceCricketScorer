@@ -389,6 +389,37 @@ install_postgresql_builtin() {
         chmod 700 "$PG_DATA_DIR"
         chmod 600 "$PG_DATA_DIR"/*.conf 2>/dev/null || true
         
+        # Fix postgresql.conf configuration issues first
+        log "Fixing PostgreSQL configuration parameters..."
+        if [ -f "$PG_DATA_DIR/postgresql.conf" ]; then
+            # Backup original configuration
+            cp "$PG_DATA_DIR/postgresql.conf" "$PG_DATA_DIR/postgresql.conf.backup.$(date +%Y%m%d_%H%M%S)"
+            
+            # Create a clean postgresql.conf with proper settings
+            # Remove any existing problematic lines and add clean ones
+            grep -v "^shared_buffers" "$PG_DATA_DIR/postgresql.conf" | \
+            grep -v "^effective_cache_size" | \
+            grep -v "^max_connections" | \
+            grep -v "^work_mem" > "$PG_DATA_DIR/postgresql.conf.tmp"
+            
+            # Add clean configuration parameters
+            cat >> "$PG_DATA_DIR/postgresql.conf.tmp" << 'EOF'
+
+# Production PostgreSQL Configuration
+shared_buffers = 128MB
+effective_cache_size = 4GB
+max_connections = 100
+work_mem = 4MB
+EOF
+            
+            # Replace the configuration file
+            mv "$PG_DATA_DIR/postgresql.conf.tmp" "$PG_DATA_DIR/postgresql.conf"
+            chown postgres:postgres "$PG_DATA_DIR/postgresql.conf"
+            chmod 600 "$PG_DATA_DIR/postgresql.conf"
+            
+            log "PostgreSQL configuration parameters fixed"
+        fi
+        
         # Configure pg_hba.conf to allow local connections without password for initial setup
         log "Configuring PostgreSQL for passwordless local setup..."
         if [ -f "$PG_DATA_DIR/pg_hba.conf" ]; then
