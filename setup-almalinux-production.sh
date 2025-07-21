@@ -389,6 +389,19 @@ install_postgresql_builtin() {
         chmod 700 "$PG_DATA_DIR"
         chmod 600 "$PG_DATA_DIR"/*.conf 2>/dev/null || true
         
+        # Configure pg_hba.conf to allow local connections without password for initial setup
+        log "Configuring PostgreSQL for passwordless local setup..."
+        if [ -f "$PG_DATA_DIR/pg_hba.conf" ]; then
+            # Backup original
+            cp "$PG_DATA_DIR/pg_hba.conf" "$PG_DATA_DIR/pg_hba.conf.backup.$(date +%Y%m%d_%H%M%S)"
+            
+            # Temporarily allow trust authentication for local connections during setup
+            sed -i 's/^local.*all.*all.*peer$/local   all             all                                     trust/' "$PG_DATA_DIR/pg_hba.conf"
+            sed -i 's/^local.*all.*all.*md5$/local   all             all                                     trust/' "$PG_DATA_DIR/pg_hba.conf"
+            
+            log "PostgreSQL configured for passwordless setup"
+        fi
+        
     else
         error "Failed to install PostgreSQL from AlmaLinux repositories"
         error "Please check your internet connection and try again"
@@ -740,72 +753,56 @@ setup_database() {
         log "PostgreSQL authentication configured"
     fi
     
-    # Set up PostgreSQL authentication to avoid password prompts completely
-    log "Configuring PostgreSQL for automated setup..."
+    # Start PostgreSQL service
+    log "Starting PostgreSQL service..."
+    systemctl enable postgresql
+    systemctl start postgresql
+    sleep 5
     
-    # Check if PostgreSQL is running, if not start it
     if ! systemctl is-active --quiet postgresql; then
-        log "Starting PostgreSQL service..."
-        systemctl enable postgresql
-        systemctl start postgresql
-        sleep 5
-        
-        if ! systemctl is-active --quiet postgresql; then
-            error "Failed to start PostgreSQL service"
-            exit 1
-        fi
+        error "Failed to start PostgreSQL service"
+        exit 1
     fi
     
-    # Create a temporary script to run all database commands as postgres user
-    cat > /tmp/create_db.sql << EOF
--- Set up postgres user password first
-ALTER USER postgres PASSWORD 'postgres123';
-
--- Create database if it doesn't exist
-SELECT 'CREATE DATABASE $DB_NAME'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB_NAME')\gexec
-
--- Create user if it doesn't exist
-DO \$\$
-BEGIN
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$DB_USER') THEN
-        CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';
-    END IF;
-END
-\$\$;
-
--- Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
-ALTER USER $DB_USER CREATEDB;
-
--- Verify setup
-\l
-\du
-EOF
+    log "Creating database and user with trust authentication..."
     
-    # Execute the SQL script as postgres user using local socket connection
-    log "Creating database and user..."
-    if sudo -u postgres psql -f /tmp/create_db.sql 2>/dev/null; then
-        success "Database and user created successfully via SQL script"
-    else
-        warning "SQL script method failed, trying individual commands..."
-        
-        # Fallback to individual commands with explicit local connection
-        log "Attempting fallback database creation..."
-        
-        # Try using local socket connection explicitly
-        sudo -u postgres psql -h /var/run/postgresql -c "ALTER USER postgres PASSWORD 'postgres123';" 2>/dev/null || true
-        sudo -u postgres createdb "$DB_NAME" 2>/dev/null || log "Database may already exist"
-        sudo -u postgres createuser "$DB_USER" 2>/dev/null || log "User may already exist"
-        sudo -u postgres psql -h /var/run/postgresql -c "ALTER USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';" 2>/dev/null || true
-        sudo -u postgres psql -h /var/run/postgresql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
-        sudo -u postgres psql -h /var/run/postgresql -c "ALTER USER $DB_USER CREATEDB;" 2>/dev/null || true
-        
-        log "Fallback database creation completed"
+    # Now create database and user using trust authentication (no password required)
+    sudo -u postgres createdb "$DB_NAME" 2>/dev/null || log "Database may already exist"
+    sudo -u postgres createuser "$DB_USER" 2>/dev/null || log "User may already exist"
+    
+    # Set passwords and permissions
+    sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres123';"
+    sudo -u postgres psql -c "ALTER USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';"
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+    sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;"
+    
+    # Now restore proper authentication in pg_hba.conf
+    log "Restoring proper PostgreSQL authentication..."
+    PG_HBA="/var/lib/pgsql/data/pg_hba.conf"
+    if [ -f "$PG_HBA.backup.$(date +%Y%m%d)*" ]; then
+        # Restore from backup and add our TCP entries
+        cp "$PG_HBA.backup."* "$PG_HBA" 2>/dev/null || true
     fi
     
-    # Clean up temporary script
-    rm -f /tmp/create_db.sql 2>/dev/null || true
+    # Ensure peer authentication for local postgres user and md5 for TCP
+    if ! grep -q "^local.*all.*postgres.*peer" "$PG_HBA"; then
+        echo "local   all             postgres                                peer" >> "$PG_HBA"
+    fi
+    
+    if ! grep -q "^local.*all.*all.*peer" "$PG_HBA"; then
+        echo "local   all             all                                     peer" >> "$PG_HBA"
+    fi
+    
+    if ! grep -q "host.*all.*all.*127.0.0.1/32.*md5" "$PG_HBA"; then
+        echo "host    all             all             127.0.0.1/32            md5" >> "$PG_HBA"
+    fi
+    
+    if ! grep -q "host.*all.*all.*::1/128.*md5" "$PG_HBA"; then
+        echo "host    all             all             ::1/128                 md5" >> "$PG_HBA"
+    fi
+    
+    # Reload PostgreSQL configuration
+    systemctl reload postgresql
     
     success "Database and user created successfully"
     
