@@ -52,10 +52,78 @@ find . -name "*.tsbuildinfo" -delete 2>/dev/null || true
 log "Reinstalling dependencies for production..."
 npm install --production=false
 
+# Create production server file without Replit imports
+log "Creating production server configuration..."
+cp server/vite.ts server/vite.production.ts
+
+# Replace the import line in server/vite.production.ts to use production config
+sed -i 's|import viteConfig from "../vite.config";|import viteConfig from "../vite.config.production";|g' server/vite.production.ts
+
+# Create production server index without vite imports in production
+cat > server/index.production.ts << 'EOF'
+import express, { type Request, Response, NextFunction } from "express";
+import { registerRoutes } from "./routes";
+import { serveStatic, log } from "./vite.production";
+
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
+      log(logLine);
+    }
+  });
+
+  next();
+});
+
+(async () => {
+  const server = await registerRoutes(app);
+
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    res.status(status).json({ message });
+    throw err;
+  });
+
+  // Only serve static files in production
+  serveStatic(app);
+
+  const PORT = Number(process.env.PORT) || 3000;
+  server.listen(PORT, "0.0.0.0", () => {
+    log(`serving on port ${PORT}`);
+  });
+})();
+EOF
+
 # Build application using production config
 log "Building application for VPS production..."
 export NODE_ENV=production
-npx vite build --config vite.config.production.ts && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+npx vite build --config vite.config.production.ts && npx esbuild server/index.production.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 
 # Verify build outputs exist
 if [ ! -d "server/public" ]; then
@@ -76,6 +144,9 @@ if grep -r "@replit" dist/ server/public/ 2>/dev/null; then
     error "Replit imports still found in built files"
     exit 1
 fi
+
+# Clean up temporary production files
+rm -f server/vite.production.ts server/index.production.ts
 
 success "No Replit imports found in built files"
 
