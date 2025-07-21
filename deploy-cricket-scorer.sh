@@ -308,10 +308,18 @@ build_application() {
     
 # Build client (React/Vite) - VPS Production Build
     log "Building client application for Linux VPS..."
-    if [ -f "vite.config.production.ts" ]; then
-        NODE_ENV=production npx vite build --config vite.config.production.ts --outDir server/public --emptyOutDir --mode production
-    else
-        NODE_ENV=production npm run build
+    
+    # Use npm build script which should work properly
+    log "Using npm build script for reliable output..."
+    NODE_ENV=production npm run build
+    
+    # If npm build failed, try with production config
+    if [ ! -f "dist/public/index.html" ] && [ ! -f "dist/index.html" ]; then
+        log "Build output not found, checking build results..."
+        log "Contents of dist/:"
+        ls -la dist/ 2>/dev/null || echo "  dist/ not found"
+        log "Contents of dist/public/:"
+        ls -la dist/public/ 2>/dev/null || echo "  dist/public/ not found"
     fi
     
     # Give build time to complete file operations
@@ -324,22 +332,21 @@ build_application() {
     ls -la server/public/ 2>/dev/null || echo "  Directory not found"
     log "Checking for index.html..."
     
-    # Check if index.html exists with full path
-    INDEX_PATH="$APP_DIR/server/public/index.html"
-    log "Checking path: $INDEX_PATH"
-    
-    if [ -f "$INDEX_PATH" ]; then
+    # Check for build output - npm build outputs to dist/public
+    if [ -f "dist/public/index.html" ]; then
+        log "Build output found in dist/public/, copying to server/public/"
+        mkdir -p server/public
+        cp -r dist/public/* server/public/
+        success "Client build completed and moved to server/public/"
+    elif [ -f "dist/index.html" ]; then
+        log "Build output found in dist/, copying to server/public/"
+        mkdir -p server/public
+        cp -r dist/* server/public/
+        success "Client build completed and moved to server/public/"
+    elif [ -f "server/public/index.html" ]; then
         success "Client build completed successfully"
         log "Build artifacts created:"
         ls -la server/public/ | head -10
-    elif [ -f "server/public/index.html" ]; then
-        success "Client build completed successfully (relative path)"
-        log "Build artifacts created:"
-        ls -la server/public/ | head -10
-    elif [ -f "dist/index.html" ]; then
-        log "Build output in dist/, copying to server/public/"
-        cp -r dist/* server/public/
-        success "Client build completed and moved to server/public/"
     else
         warning "Build files not found in expected location, checking alternative paths..."
         
@@ -355,12 +362,9 @@ build_application() {
             rm -rf dist/ server/public/ 2>/dev/null || true
             mkdir -p server/public
             
-            # Use production config if available, otherwise create minimal config
-            if [ -f "vite.config.production.ts" ]; then
-                NODE_ENV=production npx vite build --config vite.config.production.ts --outDir server/public --emptyOutDir
-            else
-                # Create temporary minimal vite config without Replit plugins
-                cat > vite.config.temp.ts << 'EOF'
+            # Create temporary minimal vite config without Replit plugins
+            log "Creating clean Vite config for production build..."
+            cat > vite.config.temp.ts << 'EOF'
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -368,10 +372,9 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'server/public',
+    outDir: 'dist',
     emptyOutDir: true,
     minify: 'terser',
-    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -384,9 +387,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './client/src'),
-      '@shared': path.resolve(__dirname, './shared')
+      '@shared': path.resolve(__dirname, './shared'),
+      '@assets': path.resolve(__dirname, './attached_assets')
     }
-  }
+  },
+  root: './client'
 });
 EOF
                 NODE_ENV=production npx vite build --config vite.config.temp.ts
