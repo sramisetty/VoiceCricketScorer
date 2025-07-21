@@ -203,6 +203,68 @@ build_application() {
     emergency_production_fix
 }
 
+# Setup or update application repository
+setup_repository() {
+    log "Setting up Cricket Scorer repository..."
+    
+    # Backup critical production files before updating
+    BACKUP_DIR="/opt/cricket-scorer-backup-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$BACKUP_DIR"
+    
+    if [ -d "$APP_DIR" ]; then
+        log "Backing up critical production files..."
+        # Backup environment files
+        cp "$APP_DIR/.env" "$BACKUP_DIR/.env" 2>/dev/null && log "✓ Backed up .env"
+        cp "$APP_DIR/.env.production" "$BACKUP_DIR/.env.production" 2>/dev/null && log "✓ Backed up .env.production"
+        cp "$APP_DIR/ecosystem.config.cjs" "$BACKUP_DIR/ecosystem.config.cjs" 2>/dev/null && log "✓ Backed up PM2 config"
+        
+        # Backup database (quick backup)
+        if command -v pg_dump >/dev/null 2>&1; then
+            pg_dump -U cricket_scorer cricket_scorer > "$BACKUP_DIR/database.sql" 2>/dev/null && log "✓ Database backup created"
+        fi
+        
+        log "Backup created at: $BACKUP_DIR"
+        
+        # Update existing repository
+        log "Updating existing repository..."
+        cd "$APP_DIR"
+        git pull origin main || {
+            log "Git pull failed, attempting fresh clone..."
+            cd ..
+            rm -rf "$APP_DIR"
+            git clone https://github.com/ramisetty-venkata/cricket-scorer.git "$APP_DIR" || {
+                error "Failed to clone repository"
+                exit 1
+            }
+        }
+    else
+        # Fresh clone
+        log "Cloning Cricket Scorer repository..."
+        git clone https://github.com/ramisetty-venkata/cricket-scorer.git "$APP_DIR" || {
+            error "Failed to clone repository"
+            exit 1
+        }
+    fi
+    
+    cd "$APP_DIR"
+    
+    # Restore critical files after repository update
+    if [ -d "$BACKUP_DIR" ]; then
+        log "Restoring critical production files..."
+        if [ -f "$BACKUP_DIR/.env" ]; then
+            cp "$BACKUP_DIR/.env" "$APP_DIR/.env" && log "✓ Restored .env"
+        fi
+        if [ -f "$BACKUP_DIR/.env.production" ]; then
+            cp "$BACKUP_DIR/.env.production" "$APP_DIR/.env.production" && log "✓ Restored .env.production" 
+        fi
+        if [ -f "$BACKUP_DIR/ecosystem.config.cjs" ]; then
+            cp "$BACKUP_DIR/ecosystem.config.cjs" "$APP_DIR/ecosystem.config.cjs" && log "✓ Restored PM2 config"
+        fi
+    fi
+    
+    success "Repository setup completed"
+}
+
 # Install dependencies
 install_dependencies() {
     log "Installing application dependencies..."
@@ -571,6 +633,7 @@ main() {
     log "Starting Cricket Scorer deployment..."
     
     check_root
+    setup_repository
     install_dependencies
     setup_database
     build_application

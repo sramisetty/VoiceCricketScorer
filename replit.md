@@ -146,6 +146,7 @@ Preferred communication style: Simple, everyday language.
 - **✓ Emergency Production Fix for Replit Imports**: Integrated emergency production fix into deploy-cricket-scorer.sh to completely eliminate persistent Replit import errors by building production server without any Vite config dependencies, ensuring clean deployment on AlmaLinux 9 production server
 - **✓ Build Verification Enhancement**: Added comprehensive file verification and debugging output to ensure both client and server builds complete successfully before proceeding with deployment
 - **✓ Nginx Configuration Issue Resolution**: Identified and fixed critical nginx proxy configuration problem - complex site-specific configurations with sites-enabled/sites-available directories cause conflicts on AlmaLinux 9. Solution: Use minimal nginx.conf with direct server blocks that simply proxy all traffic to localhost:3000. Root cause was overcomplicated nginx setup when simple proxy configuration works reliably.
+- **✓ Production File Management System**: Enhanced deploy-cricket-scorer.sh with automatic backup and restore functionality for critical production files (.env, .env.production, ecosystem.config.cjs, database). Now safely preserves environment variables, API keys, and custom configurations while updating application code during deployments.
 
 ### January 20, 2025
 - **✓ PostgreSQL Authentication Fix**: Resolved "ident authentication failed" error with proper database setup
