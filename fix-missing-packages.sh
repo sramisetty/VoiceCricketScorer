@@ -101,6 +101,36 @@ fi
 
 success "Database connection successful"
 
+# Fix database ownership issues first
+log "Fixing database table ownership for drizzle-kit compatibility..."
+sudo -u postgres psql -d cricket_scorer << 'OWNERSHIP_EOF'
+-- Transfer ownership of all tables
+DO $$
+DECLARE
+    rec RECORD;
+BEGIN
+    FOR rec IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+        EXECUTE 'ALTER TABLE public.' || quote_ident(rec.tablename) || ' OWNER TO cricket_user;';
+        RAISE NOTICE 'Transferred ownership of table %', rec.tablename;
+    END LOOP;
+END;
+$$;
+
+-- Transfer ownership of all sequences
+DO $$
+DECLARE
+    rec RECORD;
+BEGIN
+    FOR rec IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public' LOOP
+        EXECUTE 'ALTER SEQUENCE public.' || quote_ident(rec.sequencename) || ' OWNER TO cricket_user;';
+        RAISE NOTICE 'Transferred ownership of sequence %', rec.sequencename;
+    END LOOP;
+END;
+$$;
+OWNERSHIP_EOF
+
+success "Database ownership transferred to cricket_user"
+
 # Use npx to run drizzle-kit with proper Node module resolution
 log "Running drizzle-kit push with npx..."
 if npx drizzle-kit push; then
