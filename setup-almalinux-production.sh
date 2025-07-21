@@ -147,45 +147,47 @@ install_postgresql() {
     log "Enabling and starting PostgreSQL service..."
     systemctl enable $PG_SERVICE
     
-    # Start PostgreSQL with comprehensive error handling and recovery
+    # Start PostgreSQL service with proper error handling
     log "Starting PostgreSQL service..."
     
-    # Attempt to start PostgreSQL service
     if systemctl start $PG_SERVICE; then
         success "PostgreSQL service started successfully"
     else
-        warning "Initial PostgreSQL start failed, attempting recovery..."
+        error "PostgreSQL service failed to start"
         
-        # Show diagnostic information
-        log "PostgreSQL service status:"
-        systemctl status $PG_SERVICE --no-pager -l || true
-        
-        log "Recent PostgreSQL logs:"
-        journalctl -xeu $PG_SERVICE --no-pager -n 10 || true
-        
-        # Attempt fixes
-        log "Attempting to fix PostgreSQL configuration and permissions..."
-        
-        # Fix ownership and permissions again
-        chown -R postgres:postgres /var/lib/pgsql/
-        chmod 700 "$PG_DATA_DIR"
-        chmod 600 "$PG_DATA_DIR"/*.conf 2>/dev/null || true
-        
-        # Check for common issues in postgresql.conf
-        if [ -f "$PG_DATA_DIR/postgresql.conf" ]; then
-            # Ensure basic settings are correct
-            sed -i "s/#listen_addresses = 'localhost'/listen_addresses = 'localhost'/" "$PG_DATA_DIR/postgresql.conf"
-            sed -i "s/#port = 5432/port = 5432/" "$PG_DATA_DIR/postgresql.conf"
-        fi
-        
-        # Try starting again after fixes
-        if systemctl start $PG_SERVICE; then
-            success "PostgreSQL started successfully after fixes"
+        # Check for upgrade requirement (the specific error we're seeing)
+        if journalctl -xeu $PG_SERVICE --no-pager -n 5 | grep -q "postgresql-setup --upgrade"; then
+            log "Database version mismatch detected - performing upgrade..."
+            
+            # Stop the service
+            systemctl stop $PG_SERVICE 2>/dev/null || true
+            
+            # Perform upgrade
+            if $PG_SETUP --upgrade; then
+                success "Database upgraded successfully, starting service..."
+                if systemctl start $PG_SERVICE; then
+                    success "PostgreSQL started after upgrade"
+                else
+                    error "PostgreSQL failed to start even after upgrade"
+                    exit 1
+                fi
+            else
+                # If upgrade fails, backup old data and reinitialize
+                warning "Upgrade failed, backing up old data and reinitializing..."
+                mv "$PG_DATA_DIR" "${PG_DATA_DIR}.backup.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+                
+                if $PG_SETUP --initdb && systemctl start $PG_SERVICE; then
+                    success "Fresh database created and PostgreSQL started"
+                else
+                    error "Complete PostgreSQL setup failed"
+                    exit 1
+                fi
+            fi
         else
-            error "PostgreSQL service failed to start even after recovery attempts"
-            log "Final diagnostic information:"
-            systemctl status $PG_SERVICE --no-pager -l || true
-            journalctl -xeu $PG_SERVICE --no-pager -n 20 || true
+            # Other startup issues
+            log "Checking PostgreSQL logs for other issues..."
+            journalctl -xeu $PG_SERVICE --no-pager -n 10
+            error "PostgreSQL startup failed for unknown reasons"
             exit 1
         fi
     fi
@@ -315,61 +317,73 @@ install_postgresql_builtin() {
         
         success "PostgreSQL installed from AlmaLinux built-in repositories"
         
-        # Initialize database with comprehensive error handling
-        log "Initializing PostgreSQL database..."
+        # Handle PostgreSQL database setup with version compatibility
+        log "Setting up PostgreSQL database..."
         
-        # Check if data directory exists and is properly initialized
-        if [ ! -d "$PG_DATA_DIR" ] || [ ! -f "$PG_DATA_DIR/postgresql.conf" ]; then
-            log "Creating and initializing PostgreSQL data directory..."
-            
-            # Remove any existing incomplete data directory
-            rm -rf "$PG_DATA_DIR" 2>/dev/null || true
-            
-            # Create directory with proper ownership
-            mkdir -p "$PG_DATA_DIR"
-            chown postgres:postgres "$PG_DATA_DIR"
-            chmod 700 "$PG_DATA_DIR"
-            
-            # Try multiple initialization methods
-            if $PG_SETUP --initdb 2>/dev/null; then
-                success "PostgreSQL database initialized with postgresql-setup"
-            elif sudo -u postgres /usr/bin/initdb -D "$PG_DATA_DIR" 2>/dev/null; then
-                success "PostgreSQL database initialized with initdb"
-            else
-                error "All PostgreSQL initialization methods failed"
-                log "Checking system state and trying manual initialization..."
+        # Always start fresh to avoid version conflicts and corruption issues
+        log "Ensuring clean PostgreSQL installation..."
+        
+        # Stop any existing PostgreSQL service
+        systemctl stop postgresql 2>/dev/null || true
+        
+        # Check for existing database and handle version issues
+        if [ -d "$PG_DATA_DIR" ]; then
+            if [ -f "$PG_DATA_DIR/PG_VERSION" ]; then
+                EXISTING_VERSION=$(cat "$PG_DATA_DIR/PG_VERSION" 2>/dev/null || echo "unknown")
+                log "Found existing database version: $EXISTING_VERSION"
                 
-                # Ensure postgres user exists
-                if ! id postgres &>/dev/null; then
-                    error "PostgreSQL user 'postgres' does not exist"
-                    exit 1
-                fi
-                
-                # Try one more time with explicit paths
-                if sudo -u postgres /usr/bin/initdb --auth-local=peer --auth-host=md5 -D "$PG_DATA_DIR"; then
-                    success "PostgreSQL database initialized with manual method"
+                # Try upgrade first if versions don't match
+                if [[ "$EXISTING_VERSION" != "15" ]] && [[ "$EXISTING_VERSION" != "unknown" ]]; then
+                    log "Attempting database upgrade from version $EXISTING_VERSION to 15..."
+                    if $PG_SETUP --upgrade 2>/dev/null; then
+                        success "Database upgraded successfully to version 15"
+                    else
+                        warning "Upgrade failed, backing up old database and creating fresh one"
+                        mv "$PG_DATA_DIR" "${PG_DATA_DIR}.backup.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
+                        
+                        if $PG_SETUP --initdb; then
+                            success "Fresh PostgreSQL database initialized"
+                        else
+                            error "Failed to initialize fresh database"
+                            exit 1
+                        fi
+                    fi
                 else
-                    error "PostgreSQL database initialization completely failed"
+                    log "Database version appears compatible, checking integrity..."
+                    # Quick integrity check
+                    if [ ! -f "$PG_DATA_DIR/postgresql.conf" ] || [ ! -f "$PG_DATA_DIR/pg_hba.conf" ]; then
+                        warning "Database integrity issues detected, reinitializing..."
+                        rm -rf "$PG_DATA_DIR" 2>/dev/null || true
+                        if $PG_SETUP --initdb; then
+                            success "Database reinitialized successfully"
+                        else
+                            error "Database reinitialization failed"
+                            exit 1
+                        fi
+                    fi
+                fi
+            else
+                warning "Database directory exists but no version info found, reinitializing..."
+                rm -rf "$PG_DATA_DIR" 2>/dev/null || true
+                if $PG_SETUP --initdb; then
+                    success "Database initialized successfully"
+                else
+                    error "Database initialization failed"
                     exit 1
                 fi
             fi
         else
-            log "PostgreSQL database already initialized, checking integrity..."
-            
-            # Verify database integrity
-            if [ ! -f "$PG_DATA_DIR/postgresql.conf" ] || [ ! -f "$PG_DATA_DIR/pg_hba.conf" ]; then
-                warning "Database appears corrupted, re-initializing..."
-                rm -rf "$PG_DATA_DIR"/*
-                if sudo -u postgres /usr/bin/initdb -D "$PG_DATA_DIR"; then
-                    success "PostgreSQL database re-initialized successfully"
-                else
-                    error "Database re-initialization failed"
-                    exit 1
-                fi
+            # No existing database
+            log "No existing database found, creating fresh installation..."
+            if $PG_SETUP --initdb; then
+                success "Fresh PostgreSQL database initialized successfully"
+            else
+                error "PostgreSQL database initialization failed"
+                exit 1
             fi
         fi
         
-        # Set proper ownership and permissions for all PostgreSQL files
+        # Set proper ownership and permissions
         chown -R postgres:postgres /var/lib/pgsql/
         chmod 700 "$PG_DATA_DIR"
         chmod 600 "$PG_DATA_DIR"/*.conf 2>/dev/null || true

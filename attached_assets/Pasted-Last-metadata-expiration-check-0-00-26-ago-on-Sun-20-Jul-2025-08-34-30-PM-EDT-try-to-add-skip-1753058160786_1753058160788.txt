@@ -1,0 +1,192 @@
+Last metadata expiration check: 0:00:26 ago on Sun 20 Jul 2025 08:34:30 PM EDT.
+(try to add '--skip-broken' to skip uninstallable packages or '--nobest' to use not only best candidate packages)
+⚠ PostgreSQL development packages not available, skipping
+✓ PostgreSQL installed from AlmaLinux built-in repositories
+[2025-07-20 20:34:57] Initializing PostgreSQL database...
+[2025-07-20 20:34:57] PostgreSQL database already initialized, checking integrity...
+[2025-07-20 20:34:57] Enabling and starting PostgreSQL service...
+[2025-07-20 20:34:57] Starting PostgreSQL service...
+Job for postgresql.service failed because the control process exited with error code.
+See "systemctl status postgresql.service" and "journalctl -xeu postgresql.service" for details.
+⚠ Initial PostgreSQL start failed, attempting recovery...
+[2025-07-20 20:34:57] PostgreSQL service status:
+× postgresql.service - PostgreSQL database server
+     Loaded: loaded (/usr/lib/systemd/system/postgresql.service; enabled; preset: disabled)
+     Active: failed (Result: exit-code) since Sun 2025-07-20 20:34:57 EDT; 11ms ago
+   Duration: 5h 23min 31.850s
+    Process: 83863 ExecStartPre=/usr/libexec/postgresql-check-db-dir postgresql (code=exited, status=1/FAILURE)
+        CPU: 8ms
+
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: Starting PostgreSQL database server...
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83863]: An old version of the database format was found.
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83863]: Use 'postgresql-setup --upgrade' to upgrade to version '15'
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83863]: See /usr/share/doc/postgresql/README.rpm-dist for more information.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: postgresql.service: Control process exited, code=exited, status=1/FAILURE
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+[2025-07-20 20:34:57] Recent PostgreSQL logs:
+Jul 20 20:27:25 luminous-potato.metalseed.net systemd[1]: postgresql.service: Control process exited, code=exited, status=1/FAILURE
+░░ Subject: Unit process exited
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ An ExecStartPre= process belonging to unit postgresql.service has exited.
+░░
+░░ The process' exit code is 'exited' and its exit status is 1.
+Jul 20 20:27:25 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ The unit postgresql.service has entered the 'failed' state with result 'exit-code'.
+Jul 20 20:27:25 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+░░ Subject: A start job for unit postgresql.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has finished with a failure.
+░░
+░░ The job identifier is 39488 and the job result is failed.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: Starting PostgreSQL database server...
+░░ Subject: A start job for unit postgresql.service has begun execution
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has begun execution.
+░░
+░░ The job identifier is 40025.
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83863]: An old version of the database format was found.
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83863]: Use 'postgresql-setup --upgrade' to upgrade to version '15'
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83863]: See /usr/share/doc/postgresql/README.rpm-dist for more information.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: postgresql.service: Control process exited, code=exited, status=1/FAILURE
+░░ Subject: Unit process exited
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ An ExecStartPre= process belonging to unit postgresql.service has exited.
+░░
+░░ The process' exit code is 'exited' and its exit status is 1.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ The unit postgresql.service has entered the 'failed' state with result 'exit-code'.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+░░ Subject: A start job for unit postgresql.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has finished with a failure.
+░░
+░░ The job identifier is 40025 and the job result is failed.
+[2025-07-20 20:34:57] Attempting to fix PostgreSQL configuration and permissions...
+Job for postgresql.service failed because the control process exited with error code.
+See "systemctl status postgresql.service" and "journalctl -xeu postgresql.service" for details.
+✗ PostgreSQL service failed to start even after recovery attempts
+[2025-07-20 20:34:57] Final diagnostic information:
+× postgresql.service - PostgreSQL database server
+     Loaded: loaded (/usr/lib/systemd/system/postgresql.service; enabled; preset: disabled)
+     Active: failed (Result: exit-code) since Sun 2025-07-20 20:34:57 EDT; 9ms ago
+   Duration: 5h 23min 31.850s
+    Process: 83882 ExecStartPre=/usr/libexec/postgresql-check-db-dir postgresql (code=exited, status=1/FAILURE)
+        CPU: 6ms
+
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: Starting PostgreSQL database server...
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83882]: An old version of the database format was found.
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83882]: Use 'postgresql-setup --upgrade' to upgrade to version '15'
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83882]: See /usr/share/doc/postgresql/README.rpm-dist for more information.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: postgresql.service: Control process exited, code=exited, status=1/FAILURE
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+Jul 20 20:27:25 luminous-potato.metalseed.net postgresql-check-db-dir[82216]: An old version of the database format was found.
+Jul 20 20:27:25 luminous-potato.metalseed.net postgresql-check-db-dir[82216]: Use 'postgresql-setup --upgrade' to upgrade to version '15'
+Jul 20 20:27:25 luminous-potato.metalseed.net postgresql-check-db-dir[82216]: See /usr/share/doc/postgresql/README.rpm-dist for more information.
+Jul 20 20:27:25 luminous-potato.metalseed.net systemd[1]: postgresql.service: Control process exited, code=exited, status=1/FAILURE
+░░ Subject: Unit process exited
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ An ExecStartPre= process belonging to unit postgresql.service has exited.
+░░
+░░ The process' exit code is 'exited' and its exit status is 1.
+Jul 20 20:27:25 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ The unit postgresql.service has entered the 'failed' state with result 'exit-code'.
+Jul 20 20:27:25 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+░░ Subject: A start job for unit postgresql.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has finished with a failure.
+░░
+░░ The job identifier is 39488 and the job result is failed.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: Starting PostgreSQL database server...
+░░ Subject: A start job for unit postgresql.service has begun execution
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has begun execution.
+░░
+░░ The job identifier is 40025.
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83863]: An old version of the database format was found.
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83863]: Use 'postgresql-setup --upgrade' to upgrade to version '15'
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83863]: See /usr/share/doc/postgresql/README.rpm-dist for more information.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: postgresql.service: Control process exited, code=exited, status=1/FAILURE
+░░ Subject: Unit process exited
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ An ExecStartPre= process belonging to unit postgresql.service has exited.
+░░
+░░ The process' exit code is 'exited' and its exit status is 1.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ The unit postgresql.service has entered the 'failed' state with result 'exit-code'.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+░░ Subject: A start job for unit postgresql.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has finished with a failure.
+░░
+░░ The job identifier is 40025 and the job result is failed.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: Starting PostgreSQL database server...
+░░ Subject: A start job for unit postgresql.service has begun execution
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has begun execution.
+░░
+░░ The job identifier is 40101.
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83882]: An old version of the database format was found.
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83882]: Use 'postgresql-setup --upgrade' to upgrade to version '15'
+Jul 20 20:34:57 luminous-potato.metalseed.net postgresql-check-db-dir[83882]: See /usr/share/doc/postgresql/README.rpm-dist for more information.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: postgresql.service: Control process exited, code=exited, status=1/FAILURE
+░░ Subject: Unit process exited
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ An ExecStartPre= process belonging to unit postgresql.service has exited.
+░░
+░░ The process' exit code is 'exited' and its exit status is 1.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ The unit postgresql.service has entered the 'failed' state with result 'exit-code'.
+Jul 20 20:34:57 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+░░ Subject: A start job for unit postgresql.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has finished with a failure.
+░░
+░░ The job identifier is 40101 and the job result is failed.
