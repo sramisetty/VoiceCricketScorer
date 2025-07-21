@@ -245,10 +245,13 @@ install_dependencies() {
     cd "$APP_DIR"
     
     # Clean install
-    rm -rf node_modules package-lock.json 2>/dev/null || true
+    rm -rf node_modules 2>/dev/null || true
     
-# Install with Linux VPS production optimizations
-    npm ci --production=false --ignore-scripts --prefer-offline
+    # Install with Linux VPS production optimizations
+    npm install --production=false --ignore-scripts
+    
+    # Generate package-lock.json for future deployments
+    log "Generating package-lock.json for consistent deployments..."
     
     # Remove Replit-specific packages in production
     npm uninstall @replit/vite-plugin-cartographer @replit/vite-plugin-runtime-error-modal 2>/dev/null || true
