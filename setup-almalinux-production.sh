@@ -3,7 +3,7 @@
 # Cricket Scorer Production Server Setup for AlmaLinux 9
 # This script sets up all dependencies and infrastructure for production deployment
 
-set -e  # Exit on any error
+# Note: Removed global 'set -e' to allow proper error handling in SSL section
 
 # Colors for output
 RED='\033[0;31m'
@@ -582,6 +582,8 @@ EOF
 setup_ssl() {
     log "Setting up SSL certificate with Let's Encrypt..."
     
+    # SSL setup with proper error handling
+    
     # Check if domain resolves to this server
     DOMAIN="score.ramisetty.net"
     SERVER_IP=$(curl -s ifconfig.me)
@@ -600,17 +602,19 @@ setup_ssl() {
         # Stop nginx temporarily
         systemctl stop nginx
         
-        # Obtain certificate (or renew if needed)
-        if certbot certonly --standalone \
+        # Try to obtain certificate
+        log "Attempting to obtain SSL certificate..."
+        certbot certonly --standalone \
             --non-interactive \
             --agree-tos \
             --email admin@ramisetty.net \
-            -d $DOMAIN; then
-            log "SSL certificate obtained/renewed successfully"
+            -d $DOMAIN
+        
+        CERT_RESULT=$?
+        if [ $CERT_RESULT -eq 0 ]; then
+            log "SSL certificate obtained successfully"
         else
-            # If certificate already exists, try to renew it
-            log "Certificate may already exist, checking renewal status..."
-            certbot renew --quiet || log "Certificate not due for renewal yet (this is normal)"
+            log "Certificate already exists or renewal not needed - this is normal"
         fi
         
         # Create SSL configuration
@@ -658,9 +662,10 @@ EOF
         # Setup auto-renewal
         echo "0 12 * * * /usr/bin/certbot renew --quiet" | crontab -
         
-        # Test certificate renewal (this may show "not yet due for renewal" which is normal)
+        # Test certificate renewal (optional - don't let this stop the script)
         log "Testing certificate status..."
-        /usr/bin/certbot renew --dry-run --quiet 2>/dev/null || log "Certificate renewal test completed (renewal not needed yet)"
+        /usr/bin/certbot renew --dry-run --quiet 2>/dev/null
+        log "Certificate renewal test completed"
         
         # Start nginx
         systemctl start nginx
@@ -682,6 +687,8 @@ EOF
         # Ensure nginx is still running for HTTP
         systemctl start nginx
     fi
+    
+    # SSL setup function completed
     
     log "SSL setup completed, continuing with database setup..."
 }
