@@ -573,7 +573,7 @@ EOF
                 
                 # Create minimal working configuration
                 cat > "$PG_DATA_DIR/postgresql.conf" << 'EOF'
-# Minimal PostgreSQL Configuration
+# Minimal PostgreSQL Configuration for Cricket Scorer
 max_connections = 100
 shared_buffers = 128MB
 effective_cache_size = 4GB
@@ -589,6 +589,13 @@ EOF
                 chown postgres:postgres "$PG_DATA_DIR/postgresql.conf"
                 chmod 600 "$PG_DATA_DIR/postgresql.conf"
                 log "Minimal configuration applied"
+                
+                # Test configuration validity
+                if sudo -u postgres /usr/bin/postgres --config-file="$PG_DATA_DIR/postgresql.conf" -C shared_buffers 2>/dev/null; then
+                    success "PostgreSQL configuration validation passed"
+                else
+                    error "PostgreSQL configuration still invalid after fallback"
+                fi
             fi
         fi
         
@@ -683,10 +690,34 @@ install_nginx() {
     chown -R root:root /opt/cricket-scorer
     chmod -R 755 /opt/cricket-scorer
     
-    # Stop any existing Nginx processes and clean configuration
+    # Comprehensive port cleanup and service stopping
+    log "Performing comprehensive port cleanup..."
+    
+    # Stop all web servers that might conflict
     systemctl stop nginx 2>/dev/null || true
+    systemctl stop httpd 2>/dev/null || true
+    systemctl stop apache2 2>/dev/null || true
     killall nginx 2>/dev/null || true
-    sleep 2
+    
+    # Kill processes using ports 80 and 443 with multiple methods
+    log "Killing processes using ports 80 and 443..."
+    lsof -ti:80 | xargs kill -9 2>/dev/null || true
+    lsof -ti:443 | xargs kill -9 2>/dev/null || true
+    fuser -k 80/tcp 2>/dev/null || true
+    fuser -k 443/tcp 2>/dev/null || true
+    pkill -f ":80" 2>/dev/null || true
+    pkill -f ":443" 2>/dev/null || true
+    
+    # Wait for ports to be released
+    sleep 3
+    
+    # Check if ports are still in use and report
+    if netstat -tlnp | grep -E ':80|:443' | grep -v nginx; then
+        warning "Some processes still using ports 80/443:"
+        netstat -tlnp | grep -E ':80|:443' || true
+        log "Attempting additional cleanup..."
+        sleep 2
+    fi
     
     # Remove any existing configuration files that might conflict
     rm -f /etc/nginx/conf.d/cricket-scorer*.conf
@@ -697,13 +728,8 @@ install_nginx() {
     # Remove any other configurations that might have conflicting server names
     find /etc/nginx/conf.d/ -name "*.conf" -exec grep -l "score.ramisetty.net\|$DOMAIN" {} \; | xargs rm -f 2>/dev/null || true
     
-    # Check for processes using ports 80 and 443
-    log "Checking for processes using ports 80 and 443..."
-    lsof -ti:80 | xargs kill -9 2>/dev/null || true
-    lsof -ti:443 | xargs kill -9 2>/dev/null || true
-    sleep 2
-    
-    # Create simple HTTP-only Nginx configuration for Cricket Scorer (SSL will be added later)
+    # Create clean, working Nginx configuration for Cricket Scorer
+    log "Creating Nginx configuration for Cricket Scorer..."
     cat > /etc/nginx/conf.d/cricket-scorer.conf << 'EOF'
 # Cricket Scorer Application Configuration
 
@@ -758,7 +784,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_Set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
         proxy_read_timeout 86400;
     }
