@@ -42,9 +42,11 @@ pm2 delete cricket-scorer 2>/dev/null || true
 log "Removing Replit-specific packages..."
 npm uninstall @replit/vite-plugin-cartographer @replit/vite-plugin-runtime-error-modal 2>/dev/null || true
 
-# Clean all build artifacts
+# Clean all build artifacts completely
 log "Cleaning build artifacts..."
-rm -rf dist/ server/public/ node_modules/.cache/
+rm -rf dist/ server/public/ node_modules/.cache/ node_modules/.vite/
+# Also remove any cached TypeScript builds
+find . -name "*.tsbuildinfo" -delete 2>/dev/null || true
 
 # Reinstall dependencies without Replit packages
 log "Reinstalling dependencies for production..."
@@ -53,7 +55,7 @@ npm install --production=false
 # Build application using production config
 log "Building application for VPS production..."
 export NODE_ENV=production
-vite build --config vite.config.production.ts && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+npx vite build --config vite.config.production.ts && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 
 # Verify build outputs exist
 if [ ! -d "server/public" ]; then
