@@ -112,12 +112,21 @@ Preferred communication style: Simple, everyday language.
 - **Hot Module Replacement**: Instant updates during development
 - **Database**: Neon Database for consistent development environment
 
-### Production
+### Production Deployment Order
+1. **Server Setup**: `setup-almalinux-production.sh` (one-time infrastructure setup)
+2. **Environment Config**: `setup-production-env.sh` (one-time environment variables)
+3. **Application Deploy**: `deploy-cricket-scorer.sh` (main deployment, run for updates)
+4. **Emergency Recovery**: `emergency-services-fix.sh` (if services break)
+5. **Status Check**: `check-production-status.sh` (verify deployment)
+
+### Production Architecture
 - **Build Process**: Vite builds optimized React bundle, esbuild compiles Express server
 - **Static Assets**: Frontend built to `dist/public` directory
 - **Server Bundle**: Backend compiled to `dist/index.js`
 - **Database**: PostgreSQL with Drizzle ORM migrations
 - **Environment**: Node.js runtime with environment variable configuration
+- **Web Server**: Nginx with minimal proxy configuration
+- **Process Management**: PM2 with cluster mode and auto-restart
 
 ### Key Features
 - **Voice-First Design**: Primary interaction through voice commands
