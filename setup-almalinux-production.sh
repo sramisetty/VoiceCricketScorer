@@ -458,7 +458,11 @@ install_nginx() {
     chown -R root:root /opt/cricket-scorer
     chmod -R 755 /opt/cricket-scorer
     
-    # Create Nginx configuration for Cricket Scorer
+    # Remove any existing configuration
+    rm -f /etc/nginx/conf.d/cricket-scorer.conf
+    rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
+    
+    # Create simple HTTP-only Nginx configuration for Cricket Scorer (SSL will be added later)
     cat > /etc/nginx/conf.d/cricket-scorer.conf << 'EOF'
 # Cricket Scorer Application Configuration
 
@@ -474,7 +478,7 @@ upstream cricket_scorer_backend {
 }
 
 server {
-    listen 80;
+    listen 80 default_server;
     server_name score.ramisetty.net 67.227.251.94;
     
     # Security headers
@@ -551,8 +555,20 @@ server {
 EOF
     
     # Test Nginx configuration
-    nginx -t
-    systemctl reload nginx
+    if nginx -t; then
+        log "Nginx configuration test passed"
+        systemctl enable nginx
+        if systemctl start nginx; then
+            success "Nginx started successfully"
+        else
+            warning "Nginx failed to start, checking configuration..."
+            journalctl -xeu nginx.service --no-pager -n 20
+        fi
+    else
+        error "Nginx configuration test failed"
+        nginx -t
+        exit 1
+    fi
     
     success "Nginx installed and configured"
 }
@@ -679,8 +695,9 @@ server {
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 10m;
     ssl_session_tickets off;
-    ssl_stapling on;
-    ssl_stapling_verify on;
+    # Disable SSL stapling as certificate may not support OCSP responder
+    # ssl_stapling on;
+    # ssl_stapling_verify on;
     
     # Security Headers
     add_header Strict-Transport-Security "max-age=63072000" always;
