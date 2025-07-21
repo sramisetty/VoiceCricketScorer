@@ -212,6 +212,40 @@ setup_database() {
         sleep 1
     done
     
+    # Ensure database users and database exist
+    log "Setting up database users and schema..."
+    
+    # Check if cricket_user exists
+    if ! sudo -u postgres psql -c "\du cricket_user" 2>/dev/null | grep -q cricket_user; then
+        log "Cricket user missing, creating database setup..."
+        
+        # Create cricket_user
+        sudo -u postgres psql -c "
+        DO \$\$
+        BEGIN
+            IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = 'cricket_user') THEN
+                CREATE USER cricket_user WITH PASSWORD 'cricket_pass';
+                GRANT ALL PRIVILEGES ON SCHEMA public TO cricket_user;
+                ALTER USER cricket_user CREATEDB;
+            END IF;
+        END
+        \$\$;" || warning "User creation may have failed"
+        
+        # Create cricket_scorer database
+        sudo -u postgres psql -c "
+        SELECT 'CREATE DATABASE cricket_scorer OWNER cricket_user'
+        WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'cricket_scorer')\gexec" || {
+            sudo -u postgres createdb -O cricket_user cricket_scorer 2>/dev/null || true
+        }
+        
+        # Set permissions
+        sudo -u postgres psql -d cricket_scorer -c "
+        GRANT ALL PRIVILEGES ON DATABASE cricket_scorer TO cricket_user;
+        GRANT ALL PRIVILEGES ON SCHEMA public TO cricket_user;" || true
+        
+        success "Database users and database created"
+    fi
+    
     # Run database migrations
     log "Running database migrations..."
     npm run db:push || warning "Database schema sync may have issues, continuing deployment"
