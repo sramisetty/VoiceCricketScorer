@@ -152,7 +152,7 @@ setup_database() {
     success "Database schema synchronized"
 }
 
-# Configure PM2 with clean configuration
+# Configure PM2 for production
 configure_pm2() {
     log "Configuring PM2 for production..."
     
@@ -162,26 +162,9 @@ configure_pm2() {
     pm2 stop $APP_NAME 2>/dev/null || true
     pm2 delete $APP_NAME 2>/dev/null || true
     
-    # Create clean ecosystem config
-    cat > ecosystem.clean.cjs << 'EOF'
-module.exports = {
-  apps: [{
-    name: 'cricket-scorer',
-    script: './dist/index.js',
-    instances: 1,
-    exec_mode: 'cluster',
-    env_production: {
-      NODE_ENV: 'production',
-      PORT: 3000,
-      DATABASE_URL: 'postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer'
-    }
-  }]
-};
-EOF
-    
-    # Start application with clean PM2 config
-    log "Starting application with clean PM2 configuration..."
-    pm2 start ecosystem.clean.cjs --env production
+    # Start application with existing PM2 config
+    log "Starting application with PM2..."
+    pm2 start ecosystem.config.cjs --env production
     
     # Save PM2 configuration
     pm2 save
