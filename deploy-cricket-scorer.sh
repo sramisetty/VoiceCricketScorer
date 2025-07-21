@@ -195,32 +195,7 @@ build_application() {
     if [ ! -f "dist/index.js" ]; then
         error "Server build failed - no dist/index.js found"
         exit 1
-            error "Client build failed - no static files found"
-            exit 1
-        fi
     fi
-    success "Client build completed successfully"
-    
-    # Build server
-    log "Building server application..."
-    npx esbuild server/index.ts \
-        --bundle \
-        --platform=node \
-        --target=node20 \
-        --outfile=dist/index.js \
-        --packages=external \
-        --format=esm \
-        --minify \
-        --define:process.env.NODE_ENV=\"production\"
-    
-    if [ ! -f "dist/index.js" ]; then
-        error "Server build failed"
-        exit 1
-    fi
-    
-    # Set proper permissions
-    chmod -R 755 server/public/ dist/
-    chown -R root:root server/public/ dist/
     
     success "Application built successfully"
 }
