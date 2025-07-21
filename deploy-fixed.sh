@@ -57,6 +57,10 @@ main() {
     log "Installing dependencies with npm install..."
     rm -rf node_modules 2>/dev/null || true
     npm install --production=false
+    
+    # Install terser for production build
+    log "Installing terser for production builds..."
+    npm install terser --save-dev
     success "Dependencies installed"
     
     # Build application
@@ -64,8 +68,18 @@ main() {
     rm -rf dist/ server/public/ 2>/dev/null || true
     mkdir -p server/public dist logs
     
-    # Build frontend
-    NODE_ENV=production npm run build
+    # Build frontend using production config if available
+    log "Building frontend..."
+    if [ -f "vite.config.production.ts" ]; then
+        NODE_ENV=production npx vite build --config vite.config.production.ts --outDir server/public --emptyOutDir
+    else
+        NODE_ENV=production npm run build
+    fi
+    
+    # Build backend
+    log "Building backend..."
+    npx esbuild server/index.ts --bundle --platform=node --packages=external --format=esm --outdir=dist
+    
     success "Application built"
     
     # Setup PM2
