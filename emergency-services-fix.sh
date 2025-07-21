@@ -1,184 +1,265 @@
 #!/bin/bash
 
-# Emergency services fix - run this on production to immediately resolve issues
-# This script handles both PostgreSQL configuration errors and Nginx port conflicts
+# Emergency Services Fix - Clean Production Build
+# Fixes Replit dependency issues in production deployment
 
 set -e
+
+APP_NAME="cricket-scorer"
+APP_DIR="/opt/cricket-scorer"
+DOMAIN="score.ramisetty.net"
 
 # Color codes
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
-log() { echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"; }
-success() { echo -e "${GREEN}✓ $1${NC}"; }
-error() { echo -e "${RED}✗ $1${NC}"; }
+log() { echo -e "${BLUE}[$(date '+%H:%M:%S')]${NC} $1"; }
+success() { echo -e "${GREEN}✓${NC} $1"; }
+warning() { echo -e "${YELLOW}⚠${NC} $1"; }
+error() { echo -e "${RED}✗${NC} $1"; }
 
-echo "=== Emergency Services Fix for Cricket Scorer ==="
-
-# 1. Fix PostgreSQL Configuration
-log "Fixing PostgreSQL configuration..."
-
-PG_DATA_DIR="/var/lib/pgsql/data"
-PG_CONF="$PG_DATA_DIR/postgresql.conf"
-
-systemctl stop postgresql 2>/dev/null || true
-
-if [ -f "$PG_CONF" ]; then
-    cp "$PG_CONF" "$PG_CONF.corrupted.$(date +%Y%m%d_%H%M%S)"
-    success "Backed up corrupted PostgreSQL configuration"
-fi
-
-cat > "$PG_CONF" << 'EOF'
-# PostgreSQL Configuration - Cricket Scorer Emergency Fix
-max_connections = 100
-port = 5432
-shared_buffers = 128MB
-effective_cache_size = 4GB
-work_mem = 4MB
-maintenance_work_mem = 64MB
-wal_buffers = 16MB
-checkpoint_completion_target = 0.9
-random_page_cost = 1.1
-effective_io_concurrency = 200
-log_destination = 'stderr'
-logging_collector = on
-log_directory = 'log'
-log_filename = 'postgresql-%a.log'
-log_rotation_age = 1d
-log_rotation_size = 10MB
-datestyle = 'iso, mdy'
-timezone = 'UTC'
-lc_messages = 'en_US.UTF-8'
-lc_monetary = 'en_US.UTF-8'
-lc_numeric = 'en_US.UTF-8'
-lc_time = 'en_US.UTF-8'
-dynamic_shared_memory_type = posix
-ssl = off
-EOF
-
-chown postgres:postgres "$PG_CONF"
-chmod 600 "$PG_CONF"
-success "Created clean PostgreSQL configuration"
-
-# 2. Fix Nginx Port Conflicts
-log "Resolving Nginx port conflicts..."
-
-# Stop all web servers
-systemctl stop nginx 2>/dev/null || true
-systemctl stop httpd 2>/dev/null || true
-systemctl stop apache2 2>/dev/null || true
-killall nginx 2>/dev/null || true
-
-# Install lsof if needed
-if ! command -v lsof &> /dev/null; then
-    dnf install -y lsof 2>/dev/null || yum install -y lsof 2>/dev/null || true
-fi
-
-# Kill processes on ports 80 and 443
-if command -v lsof &> /dev/null; then
-    lsof -ti:80 | xargs kill -9 2>/dev/null || true
-    lsof -ti:443 | xargs kill -9 2>/dev/null || true
-fi
-
-fuser -k 80/tcp 2>/dev/null || true
-fuser -k 443/tcp 2>/dev/null || true
-pkill -f ":80" 2>/dev/null || true
-pkill -f ":443" 2>/dev/null || true
-
-# Alternative cleanup
-netstat -tlnp | grep ':80 ' | awk '{print $7}' | cut -d'/' -f1 | xargs kill -9 2>/dev/null || true
-netstat -tlnp | grep ':443 ' | awk '{print $7}' | cut -d'/' -f1 | xargs kill -9 2>/dev/null || true
-
-sleep 3
-
-# Remove conflicting Nginx configs
-rm -f /etc/nginx/conf.d/cricket-scorer*.conf
-rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
-rm -f /etc/nginx/conf.d/default.conf 2>/dev/null || true
-
-# Create simple working Nginx config
-cat > /etc/nginx/conf.d/cricket-scorer.conf << 'EOF'
-server {
-    listen 80;
-    server_name score.ramisetty.net;
+# Clean production build without Replit dependencies
+clean_production_build() {
+    log "Creating clean production build without Replit dependencies..."
     
-    add_header X-Frame-Options DENY always;
-    add_header X-Content-Type-Options nosniff always;
+    cd "$APP_DIR"
     
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
+    # Remove existing builds
+    rm -rf dist/ server/public/ 2>/dev/null || true
+    
+    # Remove Replit-specific packages
+    npm uninstall @replit/vite-plugin-cartographer @replit/vite-plugin-runtime-error-modal 2>/dev/null || true
+    
+    # Clean install production dependencies
+    log "Installing clean production dependencies..."
+    rm -rf node_modules package-lock.json 2>/dev/null || true
+    npm install --production=false
+    
+    # Create clean Vite config without any Replit dependencies
+    log "Creating clean Vite configuration..."
+    cat > vite.config.clean.ts << 'EOF'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    outDir: '../server/public',
+    emptyOutDir: true,
+    minify: 'terser',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-select']
+        }
+      }
     }
-    
-    location /ws {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './client/src'),
+      '@shared': path.resolve(__dirname, './shared'),
+      '@assets': path.resolve(__dirname, './attached_assets')
     }
-}
+  },
+  root: './client'
+});
 EOF
-
-success "Created clean Nginx configuration"
-
-# 3. Start Services
-log "Starting PostgreSQL..."
-if systemctl start postgresql; then
-    success "PostgreSQL started successfully"
-    systemctl enable postgresql
-else
-    error "PostgreSQL failed to start"
-    systemctl status postgresql --no-pager -l
-fi
-
-log "Testing Nginx configuration..."
-if nginx -t; then
-    success "Nginx configuration is valid"
     
-    log "Starting Nginx..."
-    if systemctl start nginx; then
-        success "Nginx started successfully"
-        systemctl enable nginx
-    else
-        error "Nginx failed to start"
-        systemctl status nginx --no-pager -l
+    # Build client with clean config
+    log "Building client application with clean configuration..."
+    cd client
+    NODE_ENV=production npx vite build --config ../vite.config.clean.ts --mode production
+    cd ..
+    
+    # Verify client build
+    if [ ! -f "server/public/index.html" ]; then
+        error "Client build failed"
+        exit 1
     fi
-else
-    error "Nginx configuration test failed"
-    nginx -t
-fi
+    success "Client build completed successfully"
+    
+    # Create clean server build configuration
+    log "Building server application with clean configuration..."
+    
+    # Create temporary clean server entry point
+    cat > server/index.clean.ts << 'EOF'
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-# 4. Test Services
-echo "=== Service Status ==="
-systemctl is-active postgresql && echo "✓ PostgreSQL: Active" || echo "✗ PostgreSQL: Inactive"
-systemctl is-active nginx && echo "✓ Nginx: Active" || echo "✗ Nginx: Inactive"
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-# Test database
-if sudo -u postgres psql -c "SELECT version();" 2>/dev/null; then
-    success "PostgreSQL database connection working"
-else
-    error "PostgreSQL database connection failed"
-fi
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-# Test web server
-if curl -s -o /dev/null -w "%{http_code}" http://localhost 2>/dev/null | grep -q "200\|301\|302\|502"; then
-    success "Nginx web server responding"
-else
-    error "Nginx web server not responding"
-fi
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
 
-echo "=== Emergency Fix Complete ==="
-echo "Services should now be running. Test: https://score.ramisetty.net"
+// API routes
+import './routes.js';
+
+// Catch-all handler for React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
+EOF
+    
+    # Build server with clean entry point
+    npx esbuild server/index.clean.ts \
+        --bundle \
+        --platform=node \
+        --target=node20 \
+        --outfile=dist/index.js \
+        --packages=external \
+        --format=esm \
+        --minify \
+        --sourcemap=false \
+        --define:process.env.NODE_ENV=\"production\"
+    
+    # Clean up temporary files
+    rm -f server/index.clean.ts vite.config.clean.ts
+    
+    if [ ! -f "dist/index.js" ]; then
+        error "Server build failed"
+        exit 1
+    fi
+    
+    success "Clean production build completed successfully"
+}
+
+# Test clean application
+test_clean_application() {
+    log "Testing clean application..."
+    
+    cd "$APP_DIR"
+    
+    # Set environment variables
+    export NODE_ENV=production
+    export PORT=3000
+    export DATABASE_URL="postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer"
+    
+    # Test application startup
+    timeout 10s node dist/index.js &
+    APP_PID=$!
+    
+    sleep 5
+    
+    # Check if it responds
+    if curl -f -s http://localhost:3000/ >/dev/null 2>&1; then
+        success "Clean application responds successfully"
+        kill $APP_PID 2>/dev/null || true
+        return 0
+    else
+        warning "Application still not responding"
+        kill $APP_PID 2>/dev/null || true
+        return 1
+    fi
+}
+
+# Deploy clean application
+deploy_clean_application() {
+    log "Deploying clean application with PM2..."
+    
+    cd "$APP_DIR"
+    
+    # Stop existing processes
+    pm2 stop $APP_NAME 2>/dev/null || true
+    pm2 delete $APP_NAME 2>/dev/null || true
+    
+    # Create clean ecosystem config
+    cat > ecosystem.clean.cjs << 'EOF'
+module.exports = {
+  apps: [{
+    name: 'cricket-scorer',
+    script: './dist/index.js',
+    instances: 1,
+    exec_mode: 'cluster',
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 3000,
+      DATABASE_URL: 'postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer'
+    }
+  }]
+};
+EOF
+    
+    # Start with clean config
+    pm2 start ecosystem.clean.cjs --env production
+    pm2 save
+    
+    # Wait for startup
+    sleep 10
+    
+    # Verify PM2 status
+    if pm2 list | grep -q "$APP_NAME.*online"; then
+        success "Clean application deployed successfully with PM2"
+    else
+        error "PM2 deployment failed"
+        pm2 logs $APP_NAME --lines 20
+        return 1
+    fi
+}
+
+# Verify final deployment
+verify_final_deployment() {
+    log "Verifying final deployment..."
+    
+    # Test application
+    if curl -f -s http://localhost:3000/ >/dev/null 2>&1; then
+        success "Application responding on localhost:3000"
+    else
+        error "Application not responding"
+        return 1
+    fi
+    
+    # Test Nginx proxy
+    if curl -f -s http://localhost/ >/dev/null 2>&1; then
+        success "Nginx proxy working"
+    else
+        warning "Nginx may need restart"
+        systemctl restart nginx
+    fi
+    
+    # Show final status
+    log "Final deployment status:"
+    pm2 status
+    
+    success "Emergency services fix completed!"
+    log "Application should be accessible at: http://$DOMAIN"
+}
+
+# Main execution
+main() {
+    log "Starting emergency services fix..."
+    
+    if [[ $EUID -ne 0 ]]; then
+        error "This script must be run as root"
+        exit 1
+    fi
+    
+    clean_production_build
+    
+    if test_clean_application; then
+        deploy_clean_application
+        verify_final_deployment
+    else
+        error "Clean application test failed"
+        exit 1
+    fi
+    
+    success "Emergency services fix completed successfully!"
+}
+
+main "$@"
