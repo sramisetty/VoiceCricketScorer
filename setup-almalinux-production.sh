@@ -724,10 +724,23 @@ ALTER USER $DB_USER CREATEDB;
 \q
 EOF
     
-    # Test connection
+    # Test connection with better error handling
     export PGPASSWORD=$DB_PASSWORD
-    if psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1;" >/dev/null 2>&1; then
+    log "Testing database connection..."
+    
+    # Check if PostgreSQL is running
+    if ! systemctl is-active --quiet postgresql-15; then
+        log "PostgreSQL service not running, starting it..."
+        systemctl start postgresql-15
+        sleep 3
+    fi
+    
+    # Test connection with detailed error reporting
+    if psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1;" 2>/tmp/db_error.log; then
         success "Database created and connection tested successfully"
+        
+        # Create directory if it doesn't exist
+        mkdir -p /opt/cricket-scorer
         
         # Save database URL for later use
         echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
@@ -735,8 +748,39 @@ EOF
         
         log "Database connection string saved to /opt/cricket-scorer/.env.template"
     else
-        error "Database connection test failed"
-        exit 1
+        warning "Database connection test failed, checking configuration..."
+        log "Error details:"
+        cat /tmp/db_error.log 2>/dev/null || echo "No error log available"
+        
+        # Check pg_hba.conf for authentication method
+        log "Checking PostgreSQL authentication configuration..."
+        if grep -q "local.*all.*all.*peer" /var/lib/pgsql/data/pg_hba.conf; then
+            log "Updating pg_hba.conf to allow password authentication..."
+            sed -i 's/local   all             all                                     peer/local   all             all                                     md5/' /var/lib/pgsql/data/pg_hba.conf
+            systemctl restart postgresql-15
+            sleep 3
+            
+            # Retry connection test
+            log "Retrying database connection..."
+            if psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1;" >/dev/null 2>&1; then
+                success "Database connection successful after authentication fix"
+                
+                # Create directory if it doesn't exist
+                mkdir -p /opt/cricket-scorer
+                
+                # Save database URL for later use
+                echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
+                chmod 600 /opt/cricket-scorer/.env.template
+                
+                log "Database connection string saved to /opt/cricket-scorer/.env.template"
+            else
+                error "Database connection still failed after authentication fix"
+                log "Continuing setup anyway - database can be configured manually later"
+            fi
+        else
+            error "Database connection failed - manual configuration may be needed"
+            log "Continuing setup anyway - database can be configured manually later"
+        fi
     fi
 }
 
