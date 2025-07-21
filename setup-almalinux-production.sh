@@ -389,7 +389,7 @@ install_postgresql_builtin() {
         chmod 700 "$PG_DATA_DIR"
         chmod 600 "$PG_DATA_DIR"/*.conf 2>/dev/null || true
         
-        # Configure PostgreSQL for passwordless setup and fix configuration issues
+        # Configure pg_hba.conf to allow local connections without password for initial setup
         log "Configuring PostgreSQL for passwordless local setup..."
         if [ -f "$PG_DATA_DIR/pg_hba.conf" ]; then
             # Backup original
@@ -400,37 +400,6 @@ install_postgresql_builtin() {
             sed -i 's/^local.*all.*all.*md5$/local   all             all                                     trust/' "$PG_DATA_DIR/pg_hba.conf"
             
             log "PostgreSQL configured for passwordless setup"
-        fi
-        
-        # Fix postgresql.conf configuration issues
-        log "Fixing PostgreSQL configuration parameters..."
-        if [ -f "$PG_DATA_DIR/postgresql.conf" ]; then
-            # Backup original configuration
-            cp "$PG_DATA_DIR/postgresql.conf" "$PG_DATA_DIR/postgresql.conf.backup.$(date +%Y%m%d_%H%M%S)"
-            
-            # Fix invalid shared_buffers and effective_cache_size values
-            sed -i 's/^shared_buffers = 0/shared_buffers = 128MB/' "$PG_DATA_DIR/postgresql.conf"
-            sed -i 's/^effective_cache_size = 0/effective_cache_size = 4GB/' "$PG_DATA_DIR/postgresql.conf"
-            
-            # Ensure minimum valid values if they're commented out
-            if ! grep -q "^shared_buffers" "$PG_DATA_DIR/postgresql.conf"; then
-                echo "shared_buffers = 128MB" >> "$PG_DATA_DIR/postgresql.conf"
-            fi
-            
-            if ! grep -q "^effective_cache_size" "$PG_DATA_DIR/postgresql.conf"; then
-                echo "effective_cache_size = 4GB" >> "$PG_DATA_DIR/postgresql.conf"
-            fi
-            
-            # Add other essential settings for production
-            if ! grep -q "^max_connections" "$PG_DATA_DIR/postgresql.conf"; then
-                echo "max_connections = 100" >> "$PG_DATA_DIR/postgresql.conf"
-            fi
-            
-            if ! grep -q "^work_mem" "$PG_DATA_DIR/postgresql.conf"; then
-                echo "work_mem = 4MB" >> "$PG_DATA_DIR/postgresql.conf"
-            fi
-            
-            log "PostgreSQL configuration parameters fixed"
         fi
         
     else
@@ -903,22 +872,26 @@ EOF
         chmod 600 "$PG_HBA"
         systemctl restart postgresql
         sleep 5
-        
-        # Retry connection test
-        log "Retrying database connection..."
-        if psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1;" >/dev/null 2>&1; then
-            success "Database connection successful after authentication fix"
             
-            # Create directory if it doesn't exist
-            mkdir -p /opt/cricket-scorer
-            
-            # Save database URL for later use
-            echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
-            chmod 600 /opt/cricket-scorer/.env.template
-            
-            log "Database connection string saved to /opt/cricket-scorer/.env.template"
+            # Retry connection test
+            log "Retrying database connection..."
+            if psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1;" >/dev/null 2>&1; then
+                success "Database connection successful after authentication fix"
+                
+                # Create directory if it doesn't exist
+                mkdir -p /opt/cricket-scorer
+                
+                # Save database URL for later use
+                echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
+                chmod 600 /opt/cricket-scorer/.env.template
+                
+                log "Database connection string saved to /opt/cricket-scorer/.env.template"
+            else
+                error "Database connection still failed after authentication fix"
+                log "Continuing setup anyway - database can be configured manually later"
+            fi
         else
-            error "Database connection still failed after authentication fix"
+            error "Database connection failed - manual configuration may be needed"
             log "Continuing setup anyway - database can be configured manually later"
         fi
         
