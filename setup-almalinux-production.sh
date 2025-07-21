@@ -885,18 +885,44 @@ setup_database() {
         sleep 3
     fi
     
-    # Test connection with detailed error reporting
-    if psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1;" 2>/tmp/db_error.log; then
-        success "Database created and connection tested successfully"
+    # Test connection with multiple methods
+    log "Testing database connection with different methods..."
+    
+    # First try local socket connection
+    if psql -U $DB_USER -d $DB_NAME -c "SELECT 1;" 2>/dev/null; then
+        success "Database connection successful via local socket"
+        CONNECTION_METHOD="local"
+    # Then try TCP connection with IPv4
+    elif psql -h 127.0.0.1 -U $DB_USER -d $DB_NAME -c "SELECT 1;" 2>/tmp/db_error.log; then
+        success "Database connection successful via IPv4 TCP"
+        CONNECTION_METHOD="tcp"
+    # Finally try the original localhost method
+    elif psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1;" 2>/tmp/db_error.log; then
+        success "Database connection successful via localhost"
+        CONNECTION_METHOD="localhost"
+    else
+        warning "All initial connection methods failed, will try authentication fix"
+        CONNECTION_METHOD="failed"
+    fi
+    
+    # If any connection method worked, save the configuration
+    if [ "$CONNECTION_METHOD" != "failed" ]; then
+        success "Database created and connection tested successfully via $CONNECTION_METHOD"
         
         # Create directory if it doesn't exist
         mkdir -p /opt/cricket-scorer
         
-        # Save database URL for later use
-        echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
+        # Save database URL with working connection method
+        if [ "$CONNECTION_METHOD" = "local" ]; then
+            echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME?host=/tmp" > /opt/cricket-scorer/.env.template
+        elif [ "$CONNECTION_METHOD" = "tcp" ]; then
+            echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
+        else
+            echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
+        fi
         chmod 600 /opt/cricket-scorer/.env.template
         
-        log "Database connection string saved to /opt/cricket-scorer/.env.template"
+        log "Database connection string saved using $CONNECTION_METHOD method"
     else
         warning "Database connection test failed, checking configuration..."
         log "Error details:"
@@ -945,19 +971,41 @@ EOF
             systemctl restart postgresql
             sleep 5
             
-            # Retry connection test
-            log "Retrying database connection..."
-            if psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1;" >/dev/null 2>&1; then
-                success "Database connection successful after authentication fix"
-                
+            # Retry connection test with multiple methods
+            log "Retrying database connection with multiple methods..."
+            
+            # Test local socket first
+            if psql -U $DB_USER -d $DB_NAME -c "SELECT 1;" >/dev/null 2>&1; then
+                success "Database connection successful via local socket after authentication fix"
+                CONNECTION_METHOD="local"
+            # Test IPv4 TCP
+            elif psql -h 127.0.0.1 -U $DB_USER -d $DB_NAME -c "SELECT 1;" >/dev/null 2>&1; then
+                success "Database connection successful via IPv4 TCP after authentication fix"  
+                CONNECTION_METHOD="tcp"
+            # Test localhost
+            elif psql -h localhost -U $DB_USER -d $DB_NAME -c "SELECT 1;" >/dev/null 2>&1; then
+                success "Database connection successful via localhost after authentication fix"
+                CONNECTION_METHOD="localhost"
+            else
+                error "All connection methods failed after authentication fix"
+                CONNECTION_METHOD="failed"
+            fi
+            
+            if [ "$CONNECTION_METHOD" != "failed" ]; then
                 # Create directory if it doesn't exist
                 mkdir -p /opt/cricket-scorer
                 
-                # Save database URL for later use
-                echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
+                # Save database URL with working connection method
+                if [ "$CONNECTION_METHOD" = "local" ]; then
+                    echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME?host=/tmp" > /opt/cricket-scorer/.env.template
+                elif [ "$CONNECTION_METHOD" = "tcp" ]; then
+                    echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
+                else
+                    echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" > /opt/cricket-scorer/.env.template
+                fi
                 chmod 600 /opt/cricket-scorer/.env.template
                 
-                log "Database connection string saved to /opt/cricket-scorer/.env.template"
+                log "Database connection string saved using $CONNECTION_METHOD method"
             else
                 error "Database connection still failed after authentication fix"
                 log "Continuing setup anyway - database can be configured manually later"
