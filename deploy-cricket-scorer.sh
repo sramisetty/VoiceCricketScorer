@@ -75,6 +75,7 @@ export default defineConfig({
     minify: 'terser',
     sourcemap: false,
     rollupOptions: {
+      input: 'index.html',
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
@@ -93,6 +94,10 @@ export default defineConfig({
   root: './client'
 });
 EOF
+    
+    # Clean up client HTML file (remove Replit script)
+    log "Cleaning client HTML file..."
+    sed -i '/<script.*replit-dev-banner\.js/d' client/index.html
     
     # Build client
     cd client
