@@ -45,7 +45,7 @@ check_root() {
     fi
 }
 
-# Build application with clean production configuration
+# Build application for production
 build_application() {
     log "Building application for production..."
     
@@ -55,181 +55,33 @@ build_application() {
     rm -rf dist/ server/public/ 2>/dev/null || true
     npm uninstall @replit/vite-plugin-cartographer @replit/vite-plugin-runtime-error-modal 2>/dev/null || true
     
+    # Remove Replit script from HTML
+    sed -i '/<script.*replit-dev-banner\.js/d' client/index.html
+    
     # Create necessary directories
     mkdir -p server/public dist logs
     
-    # Build client with clean configuration
-    log "Building client application with clean configuration..."
+    # Use existing working build process
+    log "Building client with existing production config..."
+    NODE_ENV=production npx vite build --config vite.config.production.ts --mode production
     
-    # Create clean Vite config without Replit dependencies
-    cat > client/vite.config.ts << 'EOF'
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-
-export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: '../server/public',
-    emptyOutDir: true,
-    minify: 'terser',
-    sourcemap: false,
-    rollupOptions: {
-      input: 'index.html',
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-select']
-        }
-      }
-    }
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@shared': path.resolve(__dirname, '../shared'),
-      '@assets': path.resolve(__dirname, '../attached_assets')
-    }
-  }
-});
-EOF
-    
-    # Clean up client HTML file (remove Replit script and fix import path)
-    log "Cleaning client HTML file..."
-    sed -i '/<script.*replit-dev-banner\.js/d' client/index.html
-    sed -i 's|src="/src/main.tsx"|src="./src/main.tsx"|g' client/index.html
-    
-    # Fix Tailwind configuration for production build
-    log "Fixing Tailwind configuration..."
-    cat > tailwind.config.production.ts << 'EOF'
-import type { Config } from "tailwindcss";
-
-export default {
-  darkMode: ["class"],
-  content: [
-    "./client/src/**/*.{ts,tsx}",
-    "./client/index.html",
-    "./client/src/components/**/*.{ts,tsx}",
-    "./client/src/pages/**/*.{ts,tsx}",
-  ],
-  prefix: "",
-  theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
-    extend: {
-      colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
-      keyframes: {
-        "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
-        },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-      },
-    },
-  },
-  plugins: [require("tailwindcss-animate")],
-} satisfies Config;
-EOF
-    
-    # Copy tailwind config to client directory for build
-    cp tailwind.config.production.ts client/tailwind.config.ts
-    
-    # Build client
-    cd client
-    NODE_ENV=production npx vite build --mode production
-    cd ..
-    
-    # Verify client build
+    # Check if build succeeded
     if [ ! -f "server/public/index.html" ]; then
-        error "Client build failed"
-        exit 1
+        # Fallback: copy from dist if built there
+        if [ -f "dist/index.html" ]; then
+            log "Copying build from dist/ to server/public/"
+            mkdir -p server/public
+            cp -r dist/* server/public/
+        else
+            error "Client build failed - no static files found"
+            exit 1
+        fi
     fi
     success "Client build completed successfully"
     
-    # Build server with clean configuration
-    log "Building server application with clean configuration..."
-    
-    # Create clean server entry point
-    cat > server/index.clean.ts << 'EOF'
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
-
-// API routes
-import './routes.js';
-
-// Catch-all handler for React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-});
-EOF
-    
-    # Build server with clean entry point
-    npx esbuild server/index.clean.ts \
+    # Build server
+    log "Building server application..."
+    npx esbuild server/index.ts \
         --bundle \
         --platform=node \
         --target=node20 \
@@ -237,14 +89,10 @@ EOF
         --packages=external \
         --format=esm \
         --minify \
-        --sourcemap=false \
         --define:process.env.NODE_ENV=\"production\"
     
-    # Clean up temporary files
-    rm -f server/index.clean.ts vite.config.clean.ts
-    
     if [ ! -f "dist/index.js" ]; then
-        error "Server build failed - dist/index.js not found"
+        error "Server build failed"
         exit 1
     fi
     
@@ -252,7 +100,7 @@ EOF
     chmod -R 755 server/public/ dist/
     chown -R root:root server/public/ dist/
     
-    success "Clean production build completed successfully"
+    success "Application built successfully"
 }
 
 # Install dependencies
