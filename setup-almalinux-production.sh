@@ -715,14 +715,18 @@ setup_database() {
         exit 1
     fi
     
-    # Create database and user
-    sudo -u postgres psql << EOF
-CREATE DATABASE $DB_NAME;
-CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';
-GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
-ALTER USER $DB_USER CREATEDB;
-\q
-EOF
+    # Create database and user (using peer authentication for postgres user)
+    log "Creating database and user as postgres..."
+    
+    # First, ensure postgres user can authenticate without password
+    sudo -u postgres createdb $DB_NAME 2>/dev/null || log "Database may already exist"
+    
+    # Create user and set permissions using psql
+    sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';" 2>/dev/null || log "User may already exist"
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+    sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;"
+    
+    success "Database and user created successfully"
     
     # Test connection with better error handling
     export PGPASSWORD=$DB_PASSWORD
@@ -756,7 +760,9 @@ EOF
         log "Checking PostgreSQL authentication configuration..."
         if grep -q "local.*all.*all.*peer" /var/lib/pgsql/data/pg_hba.conf; then
             log "Updating pg_hba.conf to allow password authentication..."
-            sed -i 's/local   all             all                                     peer/local   all             all                                     md5/' /var/lib/pgsql/data/pg_hba.conf
+            # Add md5 authentication for TCP connections while keeping peer for local postgres user
+            sed -i '/^local.*all.*postgres.*peer/a host    all             all             127.0.0.1/32            md5' /var/lib/pgsql/data/pg_hba.conf
+            sed -i '/^local.*all.*postgres.*peer/a host    all             all             ::1/128                 md5' /var/lib/pgsql/data/pg_hba.conf
             systemctl restart postgresql
             sleep 3
             
