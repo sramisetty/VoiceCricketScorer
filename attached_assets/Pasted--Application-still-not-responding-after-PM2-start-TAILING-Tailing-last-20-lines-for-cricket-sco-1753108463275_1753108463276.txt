@@ -1,0 +1,23 @@
+✗ Application still not responding after PM2 start
+[TAILING] Tailing last 20 lines for [cricket-scorer] process (change the value with --lines option)
+/opt/cricket-scorer/logs/err-1.log last 20 lines:
+1|cricket- |     at file:///opt/cricket-scorer/dist/index.js:989:9
+1|cricket- |     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+1|cricket- |     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+1|cricket- | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+1|cricket- | Error: OPENAI_API_KEY environment variable is not set
+1|cricket- |     at file:///opt/cricket-scorer/dist/index.js:989:9
+1|cricket- |     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+1|cricket- |     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+1|cricket- | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+1|cricket- | Error: Could not find the build directory: /opt/cricket-scorer/dist/public, make sure to build the client first
+1|cricket- |     at file:///opt/cricket-scorer/dist/index.js:1824:11
+1|cricket- | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+1|cricket- | Error: Could not find the build directory: /opt/cricket-scorer/dist/public, make sure to build the client first
+1|cricket- |     at file:///opt/cricket-scorer/dist/index.js:1824:11
+1|cricket- | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+1|cricket- | Error: Could not find the build directory: /opt/cricket-scorer/dist/public, make sure to build the client first
+1|cricket- |     at file:///opt/cricket-scorer/dist/index.js:1824:11
+1|cricket- | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+1|cricket- | Error: Could not find the build directory: /opt/cricket-scorer/dist/public, make sure to build the client first
+1|cricket- |     at file:///opt/cricket-scorer/dist/index.js:1824:11

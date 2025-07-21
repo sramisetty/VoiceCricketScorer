@@ -160,8 +160,13 @@ EOF
     # Verify client build succeeded
     if [ ! -f "server/public/index.html" ]; then
         error "Client build failed - no index.html found"
+        ls -la server/public/ || true
         exit 1
     fi
+    
+    # Also copy files to dist/public for compatibility (if needed)
+    mkdir -p dist/public
+    cp -r server/public/* dist/public/ 2>/dev/null || true
     
     # Build production server
     log "Building production server..."
@@ -361,9 +366,14 @@ configure_pm2() {
     # Load environment variables from .env file if it exists
     if [ -f ".env" ]; then
         log "Loading environment variables from .env file..."
-        set -a
-        source .env
-        set +a
+        export $(grep -v '^#' .env | xargs)
+        log "OPENAI_API_KEY loaded: ${OPENAI_API_KEY:0:8}..."
+    else
+        warning "No .env file found, checking if OPENAI_API_KEY is set in environment"
+        if [ -z "$OPENAI_API_KEY" ]; then
+            error "OPENAI_API_KEY not found in .env file or environment"
+            exit 1
+        fi
     fi
     
     # Start application with existing PM2 config
@@ -403,9 +413,8 @@ configure_nginx() {
         # Load environment variables from .env file if it exists
         if [ -f ".env" ]; then
             log "Loading environment variables from .env file..."
-            set -a
-            source .env
-            set +a
+            export $(grep -v '^#' .env | xargs)
+            log "OPENAI_API_KEY loaded: ${OPENAI_API_KEY:0:8}..."
         fi
         
         pm2 start ecosystem.config.cjs --env production
