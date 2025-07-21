@@ -45,65 +45,100 @@ check_root() {
     fi
 }
 
-# Build application
+# Build application with clean production configuration
 build_application() {
     log "Building application for production..."
     
     cd "$APP_DIR"
     
-    # Clean previous builds
+    # Clean previous builds and remove Replit dependencies
     rm -rf dist/ server/public/ 2>/dev/null || true
+    npm uninstall @replit/vite-plugin-cartographer @replit/vite-plugin-runtime-error-modal 2>/dev/null || true
     
     # Create necessary directories
     mkdir -p server/public dist logs
     
-    # Build client (React/Vite) - VPS Production Build
-    log "Building client application for Linux VPS..."
+    # Build client with clean configuration
+    log "Building client application with clean configuration..."
     
-    # Use production Vite config for Linux VPS deployment
-    log "Using production Vite configuration for VPS build..."
-    NODE_ENV=production npx vite build --config vite.config.production.ts --mode production
+    # Create clean Vite config without Replit dependencies
+    cat > vite.config.clean.ts << 'EOF'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    outDir: '../server/public',
+    emptyOutDir: true,
+    minify: 'terser',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-select']
+        }
+      }
+    }
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './client/src'),
+      '@shared': path.resolve(__dirname, './shared'),
+      '@assets': path.resolve(__dirname, './attached_assets')
+    }
+  },
+  root: './client'
+});
+EOF
     
-    # Check build results
-    log "Checking build output locations..."
-    log "Contents of server/public/:"
-    ls -la server/public/ 2>/dev/null || echo "  server/public/ not found"
-    log "Contents of dist/:"
-    ls -la dist/ 2>/dev/null || echo "  dist/ not found"
+    # Build client
+    cd client
+    NODE_ENV=production npx vite build --config ../vite.config.clean.ts --mode production
+    cd ..
     
-    # Give build time to complete file operations
-    sleep 2
-    
-    # Debug: Show what actually exists
-    log "Debugging build output..."
-    log "Current directory: $(pwd)"
-    log "Contents of server/public/:"
-    ls -la server/public/ 2>/dev/null || echo "  Directory not found"
-    log "Checking for index.html..."
-    
-    # Production config outputs directly to server/public
-    if [ -f "server/public/index.html" ]; then
-        success "Production build completed successfully"
-        log "Build artifacts created in server/public/:"
-        ls -la server/public/ | head -10
-    elif [ -f "dist/index.html" ]; then
-        log "Build output found in dist/, copying to server/public/"
-        mkdir -p server/public
-        cp -r dist/* server/public/
-        success "Client build completed and moved to server/public/"
-    else
-        error "Production build failed - static files not created"
-        log "Final check - contents of directories:"
-        log "server/public/:"
-        ls -la server/public/ 2>/dev/null || echo "  Directory not found"
-        log "dist/:"
-        ls -la dist/ 2>/dev/null || echo "  Directory not found"
+    # Verify client build
+    if [ ! -f "server/public/index.html" ]; then
+        error "Client build failed"
         exit 1
     fi
+    success "Client build completed successfully"
     
-    # Build server (Node.js/Express) - VPS Production Build
-    log "Building server application for Linux VPS..."
-    npx esbuild server/index.ts \
+    # Build server with clean configuration
+    log "Building server application with clean configuration..."
+    
+    # Create clean server entry point
+    cat > server/index.clean.ts << 'EOF'
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
+
+// API routes
+import './routes.js';
+
+// Catch-all handler for React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
+EOF
+    
+    # Build server with clean entry point
+    npx esbuild server/index.clean.ts \
         --bundle \
         --platform=node \
         --target=node20 \
@@ -111,9 +146,11 @@ build_application() {
         --packages=external \
         --format=esm \
         --minify \
-        --loader:.html=text \
-        --loader:.css=text \
+        --sourcemap=false \
         --define:process.env.NODE_ENV=\"production\"
+    
+    # Clean up temporary files
+    rm -f server/index.clean.ts vite.config.clean.ts
     
     if [ ! -f "dist/index.js" ]; then
         error "Server build failed - dist/index.js not found"
@@ -124,7 +161,7 @@ build_application() {
     chmod -R 755 server/public/ dist/
     chown -R root:root server/public/ dist/
     
-    success "Application built successfully"
+    success "Clean production build completed successfully"
 }
 
 # Install dependencies
@@ -176,7 +213,7 @@ setup_database() {
     success "Database schema synchronized"
 }
 
-# Configure PM2
+# Configure PM2 with clean configuration
 configure_pm2() {
     log "Configuring PM2 for production..."
     
@@ -186,9 +223,26 @@ configure_pm2() {
     pm2 stop $APP_NAME 2>/dev/null || true
     pm2 delete $APP_NAME 2>/dev/null || true
     
-    # Start application with PM2
-    log "Starting application with PM2..."
-    pm2 start ecosystem.config.cjs --env production
+    # Create clean ecosystem config
+    cat > ecosystem.clean.cjs << 'EOF'
+module.exports = {
+  apps: [{
+    name: 'cricket-scorer',
+    script: './dist/index.js',
+    instances: 1,
+    exec_mode: 'cluster',
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 3000,
+      DATABASE_URL: 'postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer'
+    }
+  }]
+};
+EOF
+    
+    # Start application with clean PM2 config
+    log "Starting application with clean PM2 configuration..."
+    pm2 start ecosystem.clean.cjs --env production
     
     # Save PM2 configuration
     pm2 save
