@@ -128,11 +128,46 @@ install_nodejs() {
 install_postgresql() {
     log "Installing PostgreSQL 15..."
     
+# Install EPEL repository for additional Perl modules
+    dnf install -y epel-release
+    
     # Install PostgreSQL 15 repository
     dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm
     
-    # Install PostgreSQL 15
-    dnf install -y postgresql15-server postgresql15-devel postgresql15-contrib
+    # Update package cache
+    dnf makecache
+    
+# Install required dependencies for PostgreSQL development packages
+    dnf install -y perl-IPC-Run perl-DBD-Pg perl-Test-Simple perl-devel \
+                   openssl-devel readline-devel zlib-devel \
+                   gcc gcc-c++ make cmake
+    
+# Install PostgreSQL 15 core packages first
+    log "Installing PostgreSQL 15 core packages..."
+    dnf install -y postgresql15-server postgresql15 postgresql15-contrib
+    
+    # Try to install development packages with different strategies
+    log "Installing PostgreSQL development packages..."
+    if ! dnf install -y postgresql15-devel; then
+        warning "Standard postgresql15-devel installation failed, trying alternative approaches..."
+        
+        # Try with --nobest flag
+        if ! dnf install -y postgresql15-devel --nobest; then
+            warning "Alternative installation failed, trying --skip-broken..."
+            
+            # Try with --skip-broken
+            if ! dnf install -y postgresql15-devel --skip-broken; then
+                warning "PostgreSQL development packages unavailable, application will work without them"
+                warning "Note: Some advanced database features may be limited"
+            else
+                success "PostgreSQL development packages installed with --skip-broken"
+            fi
+        else
+            success "PostgreSQL development packages installed with --nobest"
+        fi
+    else
+        success "PostgreSQL development packages installed successfully"
+    fi
     
     # Initialize database if not already done
     if [ ! -f /var/lib/pgsql/15/data/postgresql.conf ]; then

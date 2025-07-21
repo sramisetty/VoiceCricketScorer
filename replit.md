@@ -161,6 +161,7 @@ Preferred communication style: Simple, everyday language.
 - **✓ Complete Linux VPS Deployment Pipeline**: Created deploy-cricket-scorer.sh script for end-to-end application deployment from GitHub repository on pure Linux VPS including environment setup, database migration, VPS-optimized build process, PM2 configuration, Nginx setup, SSL configuration, and comprehensive verification
 - **✓ VPS Production Configuration**: Created vite.config.production.ts for Linux VPS optimized builds with minification, tree shaking, and Replit dependency removal
 - **✓ Linux VPS Build Documentation**: Created BUILD-COMMANDS-VPS.md with comprehensive Linux VPS production build commands and optimization guides
+- **✓ PostgreSQL Dependency Fix**: Created setup-almalinux-production-fixed.sh to resolve perl(IPC::Run) dependency issue with multiple installation strategies for AlmaLinux 9
 
 ### January 19, 2025
 - **✓ Production PM2 Deployment System**: Created comprehensive deploy-pm2.sh with PM2 process management, clustering, and SSL automation
