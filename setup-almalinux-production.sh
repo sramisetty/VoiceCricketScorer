@@ -131,52 +131,17 @@ install_postgresql() {
 # Install EPEL repository for additional Perl modules
     dnf install -y epel-release
     
-    # Install comprehensive Perl environment and dependencies
-    log "Installing Perl dependencies and development tools..."
-    dnf install -y perl-IPC-Run perl-DBD-Pg perl-Test-Simple perl-devel \
-                   perl-CPAN perl-ExtUtils-MakeMaker perl-Module-Install \
+    # Install essential development tools and libraries
+    log "Installing development tools and libraries..."
+    dnf install -y gcc gcc-c++ make cmake \
                    openssl-devel readline-devel zlib-devel libxml2-devel \
-                   gcc gcc-c++ make cmake
+                   perl-devel perl-CPAN perl-ExtUtils-MakeMaker 2>/dev/null || {
+        warning "Some development packages failed to install, continuing..."
+    }
     
-    # Try PostgreSQL 15 from official repository first
-    log "Attempting PostgreSQL 15 installation from official repository..."
-    if dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm; then
-        dnf makecache
-        
-        # Install PostgreSQL 15 core packages
-        if dnf install -y postgresql15-server postgresql15 postgresql15-contrib; then
-            success "PostgreSQL 15 core packages installed from official repository"
-            
-            # Try development packages with multiple strategies
-            if dnf install -y postgresql15-devel; then
-                success "PostgreSQL 15 development packages installed"
-                PG_VERSION="15"
-                PG_SETUP="/usr/pgsql-15/bin/postgresql-15-setup"
-                PG_SERVICE="postgresql-15"
-                PG_DATA_DIR="/var/lib/pgsql/15/data"
-            elif dnf install -y postgresql15-devel --nobest --allowerasing; then
-                success "PostgreSQL 15 development packages installed with --nobest"
-                PG_VERSION="15"
-                PG_SETUP="/usr/pgsql-15/bin/postgresql-15-setup"
-                PG_SERVICE="postgresql-15"
-                PG_DATA_DIR="/var/lib/pgsql/15/data"
-            else
-                warning "PostgreSQL 15 development packages failed, using core packages only"
-                PG_VERSION="15"
-                PG_SETUP="/usr/pgsql-15/bin/postgresql-15-setup"
-                PG_SERVICE="postgresql-15"
-                PG_DATA_DIR="/var/lib/pgsql/15/data"
-            fi
-        else
-            warning "PostgreSQL 15 official repository failed, falling back to AlmaLinux built-in"
-            install_postgresql_builtin
-            return
-        fi
-    else
-        warning "PostgreSQL 15 official repository installation failed, using AlmaLinux built-in"
-        install_postgresql_builtin
-        return
-    fi
+    # Use AlmaLinux built-in PostgreSQL for maximum compatibility
+    log "Installing PostgreSQL from AlmaLinux repositories for maximum stability..."
+    install_postgresql_builtin
     
     # Initialize database if not already done
     if [ ! -f "$PG_DATA_DIR/postgresql.conf" ]; then
@@ -224,19 +189,34 @@ EOF
 install_postgresql_builtin() {
     log "Installing PostgreSQL from AlmaLinux built-in repositories..."
     
-    # Enable PostgreSQL module
-    dnf module enable postgresql:15 -y
+    # Enable PostgreSQL module (version may vary)
+    if dnf module enable postgresql:15 -y 2>/dev/null; then
+        log "Enabled PostgreSQL 15 module"
+    elif dnf module enable postgresql:13 -y 2>/dev/null; then
+        log "Enabled PostgreSQL 13 module (15 not available)"
+    else
+        log "Using default PostgreSQL version"
+    fi
     
     # Install PostgreSQL packages
-    dnf install -y postgresql-server postgresql postgresql-contrib postgresql-devel
-    
-    # Set variables for built-in PostgreSQL
-    PG_VERSION="builtin"
-    PG_SETUP="postgresql-setup"
-    PG_SERVICE="postgresql"
-    PG_DATA_DIR="/var/lib/pgsql/data"
-    
-    success "PostgreSQL installed from AlmaLinux built-in repositories"
+    if dnf install -y postgresql-server postgresql postgresql-contrib 2>/dev/null; then
+        # Try to install development packages
+        dnf install -y postgresql-devel 2>/dev/null || {
+            warning "PostgreSQL development packages not available, skipping"
+        }
+        
+        # Set variables for built-in PostgreSQL
+        PG_VERSION="builtin"
+        PG_SETUP="postgresql-setup"
+        PG_SERVICE="postgresql"
+        PG_DATA_DIR="/var/lib/pgsql/data"
+        
+        success "PostgreSQL installed from AlmaLinux built-in repositories"
+    else
+        error "Failed to install PostgreSQL from both official and built-in repositories"
+        error "Please check your internet connection and try again"
+        exit 1
+    fi
 }
 
 # Install and configure Nginx
