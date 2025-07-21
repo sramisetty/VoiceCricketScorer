@@ -314,8 +314,25 @@ build_application() {
         NODE_ENV=production npm run build
     fi
     
-    if [ ! -f "server/public/index.html" ]; then
+    # Give build time to complete file operations
+    sleep 2
+    
+    # Verify build output
+    if [ -f "server/public/index.html" ]; then
+        success "Client build completed successfully"
+        log "Build artifacts created:"
+        ls -la server/public/ | head -10
+    elif [ -f "dist/index.html" ]; then
+        log "Build output in dist/, copying to server/public/"
+        cp -r dist/* server/public/
+        success "Client build completed and moved to server/public/"
+    else
         error "Client build failed - index.html not found"
+        log "Build output directory contents:"
+        log "server/public/:"
+        ls -la server/public/ 2>/dev/null || echo "  Directory not found"
+        log "dist/:"
+        ls -la dist/ 2>/dev/null || echo "  Directory not found"
         exit 1
     fi
     
