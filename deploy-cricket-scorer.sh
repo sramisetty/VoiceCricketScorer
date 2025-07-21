@@ -151,7 +151,7 @@ use_existing_repository() {
     
     cd "$APP_DIR"
     
-    # Verify this is a valid cricket scorer directory
+    # Verify this is a valid application directory
     if [ ! -f "package.json" ]; then
         error "Directory $APP_DIR does not contain package.json file"
         error "Directory contents:"
@@ -159,11 +159,18 @@ use_existing_repository() {
         exit 1
     fi
     
-    # Check if this is the cricket scorer application (look for key indicators)
-    if ! grep -q "voice.*cricket\|cricket.*score\|rest-express" package.json 2>/dev/null; then
-        warning "Could not verify cricket scorer application from package.json"
-        log "Package.json name field:"
-        grep '"name"' package.json || echo "No name field found"
+    # Show package.json information for verification
+    log "Found package.json - Application details:"
+    if grep -q '"name"' package.json; then
+        APP_NAME_CHECK=$(grep '"name"' package.json | head -1)
+        log "  $APP_NAME_CHECK"
+    fi
+    
+    # Check for Node.js/React indicators (more permissive)
+    if grep -q "react\|express\|node\|vite\|typescript" package.json 2>/dev/null; then
+        success "Detected Node.js/React application - proceeding with deployment"
+    else
+        warning "Could not detect application type from package.json"
         log "Continuing with deployment anyway..."
     fi
     
