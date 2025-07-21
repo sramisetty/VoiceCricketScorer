@@ -701,12 +701,27 @@ install_nginx() {
     
     # Kill processes using ports 80 and 443 with multiple methods
     log "Killing processes using ports 80 and 443..."
-    lsof -ti:80 | xargs kill -9 2>/dev/null || true
-    lsof -ti:443 | xargs kill -9 2>/dev/null || true
+    # Install lsof if not available
+    if ! command -v lsof &> /dev/null; then
+        log "Installing lsof for port management..."
+        dnf install -y lsof 2>/dev/null || yum install -y lsof 2>/dev/null || true
+    fi
+    
+    # Use lsof if available, otherwise use alternative methods
+    if command -v lsof &> /dev/null; then
+        lsof -ti:80 | xargs kill -9 2>/dev/null || true
+        lsof -ti:443 | xargs kill -9 2>/dev/null || true
+    fi
+    
+    # Additional cleanup methods
     fuser -k 80/tcp 2>/dev/null || true
     fuser -k 443/tcp 2>/dev/null || true
     pkill -f ":80" 2>/dev/null || true
     pkill -f ":443" 2>/dev/null || true
+    
+    # Alternative port cleanup using netstat and kill
+    netstat -tlnp | grep ':80 ' | awk '{print $7}' | cut -d'/' -f1 | xargs kill -9 2>/dev/null || true
+    netstat -tlnp | grep ':443 ' | awk '{print $7}' | cut -d'/' -f1 | xargs kill -9 2>/dev/null || true
     
     # Wait for ports to be released
     sleep 3
@@ -716,6 +731,10 @@ install_nginx() {
         warning "Some processes still using ports 80/443:"
         netstat -tlnp | grep -E ':80|:443' || true
         log "Attempting additional cleanup..."
+        
+        # Final aggressive cleanup
+        ss -tulpn | grep ':80 ' | awk '{print $7}' | grep -o 'pid=[0-9]*' | cut -d'=' -f2 | xargs kill -9 2>/dev/null || true
+        ss -tulpn | grep ':443 ' | awk '{print $7}' | grep -o 'pid=[0-9]*' | cut -d'=' -f2 | xargs kill -9 2>/dev/null || true
         sleep 2
     fi
     
@@ -784,7 +803,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_Set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
         proxy_read_timeout 86400;
     }
