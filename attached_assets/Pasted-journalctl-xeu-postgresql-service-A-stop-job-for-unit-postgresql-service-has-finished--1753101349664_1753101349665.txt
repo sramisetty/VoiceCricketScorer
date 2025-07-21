@@ -1,0 +1,70 @@
+journalctl -xeu postgresql.service
+░░ A stop job for unit postgresql.service has finished.
+░░
+░░ The job identifier is 71775 and the job result is done.
+Jul 21 08:21:55 luminous-potato.metalseed.net systemd[1]: Starting PostgreSQL database server...
+░░ Subject: A start job for unit postgresql.service has begun execution
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has begun execution.
+░░
+░░ The job identifier is 71775.
+Jul 21 08:21:55 luminous-potato.metalseed.net postmaster[146610]: 2025-07-21 12:21:55.181 UTC [146610] LOG:  0 8kB is outside the valid range for parameter "shared_buffers" (16 .. 1073741823)
+Jul 21 08:21:55 luminous-potato.metalseed.net postmaster[146610]: 2025-07-21 12:21:55.181 UTC [146610] LOG:  0 8kB is outside the valid range for parameter "effective_cache_size" (1 .. 2147483647)
+Jul 21 08:21:55 luminous-potato.metalseed.net postmaster[146610]: 2025-07-21 12:21:55.181 UTC [146610] FATAL:  configuration file "/var/lib/pgsql/data/postgresql.conf" contains errors
+Jul 21 08:21:55 luminous-potato.metalseed.net systemd[1]: postgresql.service: Main process exited, code=exited, status=1/FAILURE
+░░ Subject: Unit process exited
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ An ExecStart= process belonging to unit postgresql.service has exited.
+░░
+░░ The process' exit code is 'exited' and its exit status is 1.
+Jul 21 08:21:55 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ The unit postgresql.service has entered the 'failed' state with result 'exit-code'.
+Jul 21 08:21:55 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+░░ Subject: A start job for unit postgresql.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has finished with a failure.
+░░
+░░ The job identifier is 71775 and the job result is failed.
+Jul 21 08:35:21 luminous-potato.metalseed.net systemd[1]: Starting PostgreSQL database server...
+░░ Subject: A start job for unit postgresql.service has begun execution
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has begun execution.
+░░
+░░ The job identifier is 71928.
+Jul 21 08:35:21 luminous-potato.metalseed.net postmaster[147186]: 2025-07-21 12:35:21.277 UTC [147186] LOG:  0 8kB is outside the valid range for parameter "shared_buffers" (16 .. 1073741823)
+Jul 21 08:35:21 luminous-potato.metalseed.net postmaster[147186]: 2025-07-21 12:35:21.277 UTC [147186] LOG:  0 8kB is outside the valid range for parameter "effective_cache_size" (1 .. 2147483647)
+Jul 21 08:35:21 luminous-potato.metalseed.net postmaster[147186]: 2025-07-21 12:35:21.277 UTC [147186] FATAL:  configuration file "/var/lib/pgsql/data/postgresql.conf" contains errors
+Jul 21 08:35:21 luminous-potato.metalseed.net systemd[1]: postgresql.service: Main process exited, code=exited, status=1/FAILURE
+░░ Subject: Unit process exited
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ An ExecStart= process belonging to unit postgresql.service has exited.
+░░
+░░ The process' exit code is 'exited' and its exit status is 1.
+Jul 21 08:35:21 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ The unit postgresql.service has entered the 'failed' state with result 'exit-code'.
+Jul 21 08:35:21 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+░░ Subject: A start job for unit postgresql.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has finished with a failure.
+░░
+░░ The job identifier is 71928 and the job result is failed.
