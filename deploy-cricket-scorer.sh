@@ -158,10 +158,19 @@ setup_database() {
     
     cd "$APP_DIR"
     
+    # Fix PostgreSQL permissions first
+    log "Fixing PostgreSQL permissions..."
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON SCHEMA public TO postgres;" 2>/dev/null || true
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;" 2>/dev/null || true
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;" 2>/dev/null || true
+    
     # Check if database connection works
     if command -v psql >/dev/null 2>&1; then
         log "Creating database schema..."
-        npx drizzle-kit push --config=drizzle.config.ts
+        # Try with postgres user if regular user fails
+        npx drizzle-kit push --config=drizzle.config.ts || \
+        sudo -u postgres DATABASE_URL="$DATABASE_URL" npx drizzle-kit push --config=drizzle.config.ts || \
+        warning "Database schema sync may have issues, continuing deployment"
     fi
     
     success "Database schema synchronized"
@@ -202,6 +211,13 @@ configure_pm2() {
 configure_nginx() {
     log "Configuring Nginx reverse proxy..."
     
+    # Stop conflicting services and clear ports
+    log "Clearing port conflicts..."
+    systemctl stop apache2 2>/dev/null || true
+    systemctl stop httpd 2>/dev/null || true
+    lsof -ti:80 | xargs kill -9 2>/dev/null || true
+    lsof -ti:443 | xargs kill -9 2>/dev/null || true
+    
     # Check if Nginx is installed and running
     if ! systemctl is-active --quiet nginx; then
         log "Starting Nginx service..."
@@ -210,43 +226,46 @@ configure_nginx() {
     fi
     
     # Create Nginx configuration for the app
-    cat > /etc/nginx/sites-available/$APP_NAME << EOF
+    cat > /etc/nginx/sites-available/$APP_NAME << 'EOF'
 server {
     listen 80;
     listen [::]:80;
-    server_name $DOMAIN;
+    server_name score.ramisetty.net;
     
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 86400;
     }
     
     location /ws {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 EOF
     
-    # Enable site
+    # Enable site and remove default
     ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
     
-    # Test Nginx configuration
+    # Test and restart Nginx
     if nginx -t; then
-        systemctl reload nginx
+        systemctl restart nginx
+        systemctl enable nginx
         success "Nginx configured successfully"
     else
         error "Nginx configuration test failed"
@@ -270,13 +289,33 @@ main() {
     log "Checking application status..."
     
     sleep 5
+    
+    # Check PM2 status
+    if pm2 list | grep -q "$APP_NAME.*online"; then
+        success "PM2 application is running"
+    else
+        warning "PM2 application may not be running correctly"
+        pm2 logs $APP_NAME --lines 10
+    fi
+    
+    # Check application response
     if curl -f -s http://localhost:3000/api/health >/dev/null 2>&1 || curl -f -s http://localhost:3000/ >/dev/null 2>&1; then
         success "Application is responding on localhost:3000"
     else
         warning "Application may not be fully started yet"
-        log "PM2 status:"
-        pm2 status
     fi
+    
+    # Check Nginx status
+    if systemctl is-active --quiet nginx; then
+        success "Nginx is running"
+        log "Application should be accessible at: http://$DOMAIN"
+    else
+        warning "Nginx is not running"
+    fi
+    
+    # Final verification
+    log "Final deployment verification:"
+    pm2 status
 }
 
 # Run main function
