@@ -458,9 +458,25 @@ install_nginx() {
     chown -R root:root /opt/cricket-scorer
     chmod -R 755 /opt/cricket-scorer
     
-    # Remove any existing configuration
-    rm -f /etc/nginx/conf.d/cricket-scorer.conf
+    # Stop any existing Nginx processes and clean configuration
+    systemctl stop nginx 2>/dev/null || true
+    killall nginx 2>/dev/null || true
+    sleep 2
+    
+    # Remove any existing configuration files that might conflict
+    rm -f /etc/nginx/conf.d/cricket-scorer*.conf
     rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
+    rm -f /etc/nginx/conf.d/default.conf 2>/dev/null || true
+    rm -f /etc/nginx/sites-available/default 2>/dev/null || true
+    
+    # Remove any other configurations that might have conflicting server names
+    find /etc/nginx/conf.d/ -name "*.conf" -exec grep -l "score.ramisetty.net\|$DOMAIN" {} \; | xargs rm -f 2>/dev/null || true
+    
+    # Check for processes using ports 80 and 443
+    log "Checking for processes using ports 80 and 443..."
+    lsof -ti:80 | xargs kill -9 2>/dev/null || true
+    lsof -ti:443 | xargs kill -9 2>/dev/null || true
+    sleep 2
     
     # Create simple HTTP-only Nginx configuration for Cricket Scorer (SSL will be added later)
     cat > /etc/nginx/conf.d/cricket-scorer.conf << 'EOF'
@@ -558,11 +574,33 @@ EOF
     if nginx -t; then
         log "Nginx configuration test passed"
         systemctl enable nginx
+        
+        # Ensure no processes are using the ports
+        log "Final check for port conflicts..."
+        netstat -tlnp | grep -E ':80|:443' | grep -v nginx || true
+        
+        # Kill any remaining processes on these ports
+        fuser -k 80/tcp 2>/dev/null || true
+        fuser -k 443/tcp 2>/dev/null || true
+        sleep 2
+        
         if systemctl start nginx; then
             success "Nginx started successfully"
+            systemctl status nginx --no-pager -l
         else
-            warning "Nginx failed to start, checking configuration..."
-            journalctl -xeu nginx.service --no-pager -n 20
+            warning "Nginx failed to start, attempting recovery..."
+            log "Checking detailed error information..."
+            journalctl -xeu nginx.service --no-pager -n 30
+            
+            # Try to identify conflicting processes
+            log "Processes using port 80:"
+            netstat -tlnp | grep :80 || echo "No processes found on port 80"
+            log "Processes using port 443:"
+            netstat -tlnp | grep :443 || echo "No processes found on port 443"
+            
+            # Attempt restart after cleanup
+            log "Attempting Nginx restart after cleanup..."
+            systemctl restart nginx && success "Nginx restarted successfully" || warning "Nginx restart failed"
         fi
     else
         error "Nginx configuration test failed"

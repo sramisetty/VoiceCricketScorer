@@ -1,0 +1,43 @@
+[2025-07-20 21:42:19] Nginx configuration test passed
+Job for nginx.service failed because the control process exited with error code.
+See "systemctl status nginx.service" and "journalctl -xeu nginx.service" for details.
+⚠ Nginx failed to start, checking configuration...
+Jul 20 21:42:19 luminous-potato.metalseed.net nginx[104325]: nginx: [warn] conflicting server name "score.ramisetty.net" on 0.0.0.0:80, ignored
+Jul 20 21:42:19 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to 0.0.0.0:443 failed (98: Address already in use)
+Jul 20 21:42:19 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Jul 20 21:42:19 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Jul 20 21:42:20 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to 0.0.0.0:443 failed (98: Address already in use)
+Jul 20 21:42:20 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Jul 20 21:42:20 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Jul 20 21:42:20 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to 0.0.0.0:443 failed (98: Address already in use)
+Jul 20 21:42:20 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Jul 20 21:42:20 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Jul 20 21:42:21 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to 0.0.0.0:443 failed (98: Address already in use)
+Jul 20 21:42:21 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Jul 20 21:42:21 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Jul 20 21:42:21 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to 0.0.0.0:443 failed (98: Address already in use)
+Jul 20 21:42:21 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+Jul 20 21:42:21 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] bind() to [::]:80 failed (98: Address already in use)
+Jul 20 21:42:22 luminous-potato.metalseed.net nginx[104325]: nginx: [emerg] still could not bind()
+Jul 20 21:42:22 luminous-potato.metalseed.net systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
+░░ Subject: Unit process exited
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ An ExecStart= process belonging to unit nginx.service has exited.
+░░
+░░ The process' exit code is 'exited' and its exit status is 1.
+Jul 20 21:42:22 luminous-potato.metalseed.net systemd[1]: nginx.service: Failed with result 'exit-code'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ The unit nginx.service has entered the 'failed' state with result 'exit-code'.
+Jul 20 21:42:22 luminous-potato.metalseed.net systemd[1]: Failed to start The nginx HTTP and reverse proxy server.
+░░ Subject: A start job for unit nginx.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit nginx.service has finished with a failure.
+░░
+░░ The job identifier is 53108 and the job result is failed.
