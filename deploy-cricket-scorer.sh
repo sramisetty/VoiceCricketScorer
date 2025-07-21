@@ -358,6 +358,14 @@ configure_pm2() {
     pm2 stop $APP_NAME 2>/dev/null || true
     pm2 delete $APP_NAME 2>/dev/null || true
     
+    # Load environment variables from .env file if it exists
+    if [ -f ".env" ]; then
+        log "Loading environment variables from .env file..."
+        set -a
+        source .env
+        set +a
+    fi
+    
     # Start application with existing PM2 config
     log "Starting application with PM2..."
     pm2 start ecosystem.config.cjs --env production
@@ -391,6 +399,15 @@ configure_nginx() {
         pm2 status || true
         log "Attempting to start application..."
         cd $APP_DIR
+        
+        # Load environment variables from .env file if it exists
+        if [ -f ".env" ]; then
+            log "Loading environment variables from .env file..."
+            set -a
+            source .env
+            set +a
+        fi
+        
         pm2 start ecosystem.config.cjs --env production
         sleep 10
         
