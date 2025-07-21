@@ -152,10 +152,19 @@ use_existing_repository() {
     cd "$APP_DIR"
     
     # Verify this is a valid cricket scorer directory
-    if [ ! -f "package.json" ] || ! grep -q "cricket" package.json 2>/dev/null; then
-        error "Directory $APP_DIR does not appear to contain cricket scorer application"
-        error "Expected package.json with cricket scorer configuration"
+    if [ ! -f "package.json" ]; then
+        error "Directory $APP_DIR does not contain package.json file"
+        error "Directory contents:"
+        ls -la "$APP_DIR" || true
         exit 1
+    fi
+    
+    # Check if this is the cricket scorer application (look for key indicators)
+    if ! grep -q "voice.*cricket\|cricket.*score\|rest-express" package.json 2>/dev/null; then
+        warning "Could not verify cricket scorer application from package.json"
+        log "Package.json name field:"
+        grep '"name"' package.json || echo "No name field found"
+        log "Continuing with deployment anyway..."
     fi
     
     success "Using existing application directory: $APP_DIR"
