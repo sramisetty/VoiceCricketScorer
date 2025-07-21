@@ -50,7 +50,7 @@ module.exports = {
       repo: 'https://github.com/sramisetty/VoiceCricketScorer.git',
       path: '/opt/cricket-scorer',
       'pre-deploy-local': '',
-      'post-deploy': 'npm install && npx vite build --outDir server/public --emptyOutDir && npx esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --packages=external --format=esm && pm2 reload ecosystem.config.cjs --env production',
+'post-deploy': 'npm install && NODE_ENV=production npx vite build --config vite.config.production.ts --outDir server/public --emptyOutDir --mode production && npx esbuild server/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --packages=external --format=esm --minify --define:process.env.NODE_ENV=\"production\" && pm2 reload ecosystem.config.cjs --env production',
       'pre-setup': ''
     }
   }

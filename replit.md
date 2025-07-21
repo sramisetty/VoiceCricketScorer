@@ -158,7 +158,9 @@ Preferred communication style: Simple, everyday language.
 - **✓ PM2 Environment Configuration**: Updated ecosystem.config.cjs with proper environment variable handling without file dependencies
 - **✓ Interactive Environment Setup**: Created setup-production-env.sh script for guided production configuration with input validation, secure password masking, and automatic session secret generation
 - **✓ Comprehensive AlmaLinux 9 Production Setup**: Created setup-almalinux-production.sh script for complete server infrastructure setup including Node.js 20.x, PostgreSQL 15, Nginx with SSL, security hardening, monitoring, and backup systems
-- **✓ Complete Production Deployment Pipeline**: Created deploy-cricket-scorer.sh script for end-to-end application deployment from GitHub repository including environment setup, database migration, build process, PM2 configuration, Nginx setup, SSL configuration, and comprehensive verification
+- **✓ Complete Linux VPS Deployment Pipeline**: Created deploy-cricket-scorer.sh script for end-to-end application deployment from GitHub repository on pure Linux VPS including environment setup, database migration, VPS-optimized build process, PM2 configuration, Nginx setup, SSL configuration, and comprehensive verification
+- **✓ VPS Production Configuration**: Created vite.config.production.ts for Linux VPS optimized builds with minification, tree shaking, and Replit dependency removal
+- **✓ Linux VPS Build Documentation**: Created BUILD-COMMANDS-VPS.md with comprehensive Linux VPS production build commands and optimization guides
 
 ### January 19, 2025
 - **✓ Production PM2 Deployment System**: Created comprehensive deploy-pm2.sh with PM2 process management, clustering, and SSL automation

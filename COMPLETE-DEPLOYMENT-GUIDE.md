@@ -1,7 +1,7 @@
-# Complete Production Deployment Guide
-## Cricket Scorer - AlmaLinux 9 Production Server
+# Complete Linux VPS Production Deployment Guide
+## Cricket Scorer - AlmaLinux 9 VPS Server (Pure Linux Deployment)
 
-This guide provides the complete three-script deployment process for the Cricket Scorer application on AlmaLinux 9.
+This guide provides the complete three-script deployment process for the Cricket Scorer application on AlmaLinux 9 VPS server, specifically designed for pure Linux deployment without any Replit dependencies.
 
 ## Prerequisites
 
@@ -76,8 +76,9 @@ chmod +x setup-production-env.sh
 - ✅ Runs interactive environment setup (if needed)
 - ✅ Installs Node.js dependencies
 - ✅ Sets up database schema with Drizzle
-- ✅ Builds client (React/Vite) to `server/public/`
-- ✅ Builds server (Node.js/Express) to `dist/index.js`
+- ✅ Builds client (React/Vite) to `server/public/` with VPS optimizations
+- ✅ Builds server (Node.js/Express) to `dist/index.js` with production minification
+- ✅ Removes Replit-specific dependencies for pure Linux VPS deployment
 - ✅ Tests application startup
 - ✅ Configures and starts PM2 process
 - ✅ Updates Nginx configuration
