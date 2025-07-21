@@ -95,9 +95,10 @@ export default defineConfig({
 });
 EOF
     
-    # Clean up client HTML file (remove Replit script)
+    # Clean up client HTML file (remove Replit script and fix import path)
     log "Cleaning client HTML file..."
     sed -i '/<script.*replit-dev-banner\.js/d' client/index.html
+    sed -i 's|src="/src/main.tsx"|src="./src/main.tsx"|g' client/index.html
     
     # Build client
     cd client
