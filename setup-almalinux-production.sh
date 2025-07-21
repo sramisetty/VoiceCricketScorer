@@ -80,7 +80,8 @@ install_system_tools() {
         firewalld \
         fail2ban \
         certbot \
-        python3-certbot-nginx
+        python3-certbot-nginx \
+        bind-utils
     
     systemctl enable firewalld
     systemctl start firewalld
@@ -584,7 +585,14 @@ setup_ssl() {
     # Check if domain resolves to this server
     DOMAIN="score.ramisetty.net"
     SERVER_IP=$(curl -s ifconfig.me)
-    DOMAIN_IP=$(dig +short $DOMAIN)
+    
+    # Install bind-utils if dig command is missing
+    if ! command -v dig &> /dev/null; then
+        log "Installing DNS utilities..."
+        dnf install -y bind-utils
+    fi
+    
+    DOMAIN_IP=$(dig +short $DOMAIN 2>/dev/null || nslookup $DOMAIN | grep -A1 "Name:" | tail -1 | awk '{print $2}' 2>/dev/null || echo "")
     
     if [ "$SERVER_IP" = "$DOMAIN_IP" ]; then
         log "Domain resolves correctly. Obtaining SSL certificate..."
