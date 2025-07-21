@@ -458,66 +458,78 @@ configure_nginx() {
     
     success "Ports 80 and 443 are now free"
     
-    # Create nginx directories if they don't exist
-    mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+    # Emergency nginx recovery - restore basic working configuration
+    log "Restoring basic nginx configuration..."
     
-    # Create Nginx configuration for the app
-    cat > /etc/nginx/sites-available/$APP_NAME << 'EOF'
-server {
-    listen 80;
-    listen [::]:80;
-    server_name score.ramisetty.net www.score.ramisetty.net;
+    # Stop nginx and clear all configurations
+    systemctl stop nginx 2>/dev/null || true
     
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header X-Content-Type-Options "nosniff" always;
+    # Remove ALL nginx configurations to start fresh
+    rm -rf /etc/nginx/sites-available/* 2>/dev/null || true
+    rm -rf /etc/nginx/sites-enabled/* 2>/dev/null || true
+    rm -rf /etc/nginx/conf.d/* 2>/dev/null || true
     
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-        proxy_read_timeout 86400;
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
+    # Create minimal working configuration directly in main nginx.conf
+    cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup 2>/dev/null || true
+    
+    # Create ultra-simple nginx config that just proxies everything to port 3000
+    cat > /etc/nginx/nginx.conf << 'EOF'
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    
+    server {
+        listen 80 default_server;
+        listen [::]:80 default_server;
+        server_name _;
+        
+        location / {
+            proxy_pass http://localhost:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        location /ws {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+        }
     }
     
-    location /ws {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+    server {
+        listen 443 ssl default_server;
+        listen [::]:443 ssl default_server;
+        server_name _;
+        
+        ssl_certificate /etc/letsencrypt/live/score.ramisetty.net/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/score.ramisetty.net/privkey.pem;
+        
+        location / {
+            proxy_pass http://localhost:3000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        location /ws {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+        }
     }
 }
 EOF
-    
-    # Remove default configurations that interfere
-    rm -f /etc/nginx/sites-enabled/default
-    rm -f /etc/nginx/conf.d/default.conf
-    
-    # Enable site using both methods for compatibility
-    ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/$APP_NAME
-    
-    # Also create in conf.d as fallback for different nginx setups
-    cp /etc/nginx/sites-available/$APP_NAME /etc/nginx/conf.d/$APP_NAME.conf
-    
-    # Ensure nginx.conf includes sites-enabled
-    if [ -f "/etc/nginx/nginx.conf" ]; then
-        if ! grep -q "sites-enabled" /etc/nginx/nginx.conf; then
-            log "Adding sites-enabled include to nginx.conf..."
-            sed -i '/http {/a\    include /etc/nginx/sites-enabled/*;' /etc/nginx/nginx.conf
-        fi
-    fi
     
     # Test nginx configuration
     log "Testing Nginx configuration..."
