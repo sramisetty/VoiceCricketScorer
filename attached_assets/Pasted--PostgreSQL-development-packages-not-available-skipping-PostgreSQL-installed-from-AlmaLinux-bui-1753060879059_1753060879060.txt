@@ -1,0 +1,70 @@
+⚠ PostgreSQL development packages not available, skipping
+✓ PostgreSQL installed from AlmaLinux built-in repositories
+[2025-07-20 21:20:56] Setting up PostgreSQL database...
+[2025-07-20 21:20:56] Ensuring clean PostgreSQL installation...
+[2025-07-20 21:20:56] Found existing database version: 15
+[2025-07-20 21:20:56] Database version appears compatible, checking integrity...
+[2025-07-20 21:20:56] Configuring PostgreSQL for passwordless local setup...
+[2025-07-20 21:20:56] PostgreSQL configured for passwordless setup
+[2025-07-20 21:20:56] Enabling and starting PostgreSQL service...
+[2025-07-20 21:20:56] Starting PostgreSQL service...
+Job for postgresql.service failed because the control process exited with error code.
+See "systemctl status postgresql.service" and "journalctl -xeu postgresql.service" for details.
+✗ PostgreSQL service failed to start
+[2025-07-20 21:20:56] Checking PostgreSQL logs for other issues...
+Jul 20 21:15:03 luminous-potato.metalseed.net systemd[1]: postgresql.service: Main process exited, code=exited, status=1/FAILURE
+░░ Subject: Unit process exited
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ An ExecStart= process belonging to unit postgresql.service has exited.
+░░
+░░ The process' exit code is 'exited' and its exit status is 1.
+Jul 20 21:15:03 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ The unit postgresql.service has entered the 'failed' state with result 'exit-code'.
+Jul 20 21:15:03 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+░░ Subject: A start job for unit postgresql.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has finished with a failure.
+░░
+░░ The job identifier is 47306 and the job result is failed.
+Jul 20 21:20:56 luminous-potato.metalseed.net systemd[1]: Starting PostgreSQL database server...
+░░ Subject: A start job for unit postgresql.service has begun execution
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has begun execution.
+░░
+░░ The job identifier is 47920.
+Jul 20 21:20:56 luminous-potato.metalseed.net postmaster[97017]: 2025-07-20 21:20:56.646 EDT [97017] LOG:  0 8kB is outside the valid range for parameter "shared_buffers" (16 .. 1073741823)
+Jul 20 21:20:56 luminous-potato.metalseed.net postmaster[97017]: 2025-07-20 21:20:56.646 EDT [97017] LOG:  0 8kB is outside the valid range for parameter "effective_cache_size" (1 .. 2147483647)
+Jul 20 21:20:56 luminous-potato.metalseed.net postmaster[97017]: 2025-07-20 21:20:56.646 EDT [97017] FATAL:  configuration file "/var/lib/pgsql/data/postgresql.conf" contains errors
+Jul 20 21:20:56 luminous-potato.metalseed.net systemd[1]: postgresql.service: Main process exited, code=exited, status=1/FAILURE
+░░ Subject: Unit process exited
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ An ExecStart= process belonging to unit postgresql.service has exited.
+░░
+░░ The process' exit code is 'exited' and its exit status is 1.
+Jul 20 21:20:56 luminous-potato.metalseed.net systemd[1]: postgresql.service: Failed with result 'exit-code'.
+░░ Subject: Unit failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ The unit postgresql.service has entered the 'failed' state with result 'exit-code'.
+Jul 20 21:20:56 luminous-potato.metalseed.net systemd[1]: Failed to start PostgreSQL database server.
+░░ Subject: A start job for unit postgresql.service has failed
+░░ Defined-By: systemd
+░░ Support: https://wiki.almalinux.org/Help-and-Support
+░░
+░░ A start job for unit postgresql.service has finished with a failure.
+░░
+░░ The job identifier is 47920 and the job result is failed.
+✗ PostgreSQL startup failed for unknown reasons
