@@ -395,29 +395,165 @@ install_postgresql_builtin() {
             # Backup original configuration
             cp "$PG_DATA_DIR/postgresql.conf" "$PG_DATA_DIR/postgresql.conf.backup.$(date +%Y%m%d_%H%M%S)"
             
-            # Create a clean postgresql.conf with proper settings
-            # Remove any existing problematic lines and add clean ones
-            grep -v "^shared_buffers" "$PG_DATA_DIR/postgresql.conf" | \
-            grep -v "^effective_cache_size" | \
-            grep -v "^max_connections" | \
-            grep -v "^work_mem" > "$PG_DATA_DIR/postgresql.conf.tmp"
-            
-            # Add clean configuration parameters
-            cat >> "$PG_DATA_DIR/postgresql.conf.tmp" << 'EOF'
+            # Create a completely clean postgresql.conf with only essential parameters
+            # First, use the default template and modify only necessary parameters
+            cat > "$PG_DATA_DIR/postgresql.conf" << 'EOF'
+# PostgreSQL Configuration File
+# This file consists of lines of the form:
+#   name = value
 
-# Production PostgreSQL Configuration
-shared_buffers = 128MB
-effective_cache_size = 4GB
+#------------------------------------------------------------------------------
+# CONNECTIONS AND AUTHENTICATION
+#------------------------------------------------------------------------------
+
+# Connection Settings
 max_connections = 100
+#superuser_reserved_connections = 3
+#unix_socket_directories = '/var/run/postgresql, /tmp'
+#unix_socket_group = ''
+#unix_socket_permissions = 0777
+#bonjour = off
+#bonjour_name = ''
+
+# Authentication
+#authentication_timeout = 1min
+#ssl = off
+#ssl_ciphers = 'HIGH:MEDIUM:+3DES:!aNULL'
+#ssl_prefer_server_ciphers = on
+
+#------------------------------------------------------------------------------
+# RESOURCE USAGE (except WAL)
+#------------------------------------------------------------------------------
+
+# Memory
+shared_buffers = 128MB
+#huge_pages = try
+#temp_buffers = 8MB
+#max_prepared_transactions = 0
 work_mem = 4MB
+#maintenance_work_mem = 64MB
+#replacement_sort_tuples = 150000
+#autovacuum_work_mem = -1
+#max_stack_depth = 2MB
+dynamic_shared_memory_type = posix
+
+# Disk
+#temp_file_limit = -1
+
+#------------------------------------------------------------------------------
+# QUERY TUNING
+#------------------------------------------------------------------------------
+
+# Planner Cost Constants
+#seq_page_cost = 1.0
+#random_page_cost = 4.0
+#cpu_tuple_cost = 0.01
+#cpu_index_tuple_cost = 0.005
+#cpu_operator_cost = 0.0025
+effective_cache_size = 4GB
+
+#------------------------------------------------------------------------------
+# ERROR REPORTING AND LOGGING
+#------------------------------------------------------------------------------
+
+# Where to Log
+log_destination = 'stderr'
+logging_collector = on
+log_directory = 'log'
+log_filename = 'postgresql-%a.log'
+log_file_mode = 0600
+log_truncate_on_rotation = on
+log_rotation_age = 1d
+log_rotation_size = 0
+
+# What to Log
+#debug_print_parse = off
+#debug_print_rewritten = off
+#debug_print_plan = off
+#debug_pretty_print = on
+log_checkpoints = off
+log_connections = off
+log_disconnections = off
+log_duration = off
+log_error_verbosity = default
+log_hostname = off
+log_line_prefix = '%m [%p] '
+log_lock_waits = off
+log_statement = 'none'
+log_temp_files = -1
+log_timezone = 'UTC'
+
+#------------------------------------------------------------------------------
+# CLIENT CONNECTION DEFAULTS
+#------------------------------------------------------------------------------
+
+# Statement Behavior
+#search_path = '"$user", public'
+#default_tablespace = ''
+#temp_tablespaces = ''
+#check_function_bodies = on
+#default_transaction_isolation = 'read committed'
+#default_transaction_read_only = off
+#default_transaction_deferrable = off
+#session_replication_role = 'origin'
+#statement_timeout = 0
+#lock_timeout = 0
+#vacuum_freeze_min_age = 50000000
+#vacuum_freeze_table_age = 150000000
+#bytea_output = 'hex'
+#xmlbinary = 'base64'
+#xmloption = 'content'
+#gin_fuzzy_search_limit = 0
+
+# Locale and Formatting
+datestyle = 'iso, mdy'
+#intervalstyle = 'postgres'
+timezone = 'UTC'
+#timezone_abbreviations = 'Default'
+#extra_float_digits = 0
+#client_encoding = sql_ascii
+
+# Shared Library Preloading
+#shared_preload_libraries = ''
+#local_preload_libraries = ''
+#session_preload_libraries = ''
+
+# Other Defaults
+#dynamic_library_path = '$libdir'
+
+#------------------------------------------------------------------------------
+# LOCK MANAGEMENT
+#------------------------------------------------------------------------------
+
+#deadlock_timeout = 1s
+#max_locks_per_transaction = 64
+#max_pred_locks_per_transaction = 64
+
+#------------------------------------------------------------------------------
+# VERSION/PLATFORM COMPATIBILITY
+#------------------------------------------------------------------------------
+
+# Previous PostgreSQL Versions
+#array_nulls = on
+#backslash_quote = safe_encoding
+#default_with_oids = off
+#escape_string_warning = on
+#lo_compat_privileges = off
+#operator_precedence_warning = off
+#quote_all_identifiers = off
+#sql_inheritance = on
+#standard_conforming_strings = on
+#synchronize_seqscans = on
+
+# Other Platforms and Clients
+#transform_null_equals = off
 EOF
             
-            # Replace the configuration file
-            mv "$PG_DATA_DIR/postgresql.conf.tmp" "$PG_DATA_DIR/postgresql.conf"
+            # Set proper ownership and permissions
             chown postgres:postgres "$PG_DATA_DIR/postgresql.conf"
             chmod 600 "$PG_DATA_DIR/postgresql.conf"
             
-            log "PostgreSQL configuration parameters fixed"
+            log "PostgreSQL configuration completely rebuilt with valid parameters"
         fi
         
         # Configure pg_hba.conf to allow local connections without password for initial setup
@@ -431,6 +567,59 @@ EOF
             sed -i 's/^local.*all.*all.*md5$/local   all             all                                     trust/' "$PG_DATA_DIR/pg_hba.conf"
             
             log "PostgreSQL configured for passwordless setup"
+        fi
+        
+        # Test PostgreSQL startup with detailed error handling
+        log "Testing PostgreSQL startup..."
+        systemctl enable postgresql
+        
+        # Attempt to start PostgreSQL with comprehensive error checking
+        if systemctl start postgresql; then
+            success "PostgreSQL started successfully"
+        else
+            warning "PostgreSQL failed to start, attempting troubleshooting..."
+            
+            # Check detailed error logs
+            log "PostgreSQL service status:"
+            systemctl status postgresql --no-pager -l || true
+            
+            log "PostgreSQL error logs:"
+            journalctl -xeu postgresql.service --no-pager -n 20 || true
+            
+            # Check for common issues
+            log "Checking PostgreSQL data directory permissions..."
+            ls -la /var/lib/pgsql/15/ || true
+            ls -la "$PG_DATA_DIR" || true
+            
+            # Check for port conflicts
+            log "Checking for processes using PostgreSQL port 5432..."
+            netstat -tlnp | grep :5432 || echo "No processes found on port 5432"
+            
+            # Attempt to fix common issues
+            log "Attempting to fix common PostgreSQL startup issues..."
+            
+            # Ensure proper ownership
+            chown -R postgres:postgres /var/lib/pgsql/
+            chmod 700 "$PG_DATA_DIR"
+            chmod 600 "$PG_DATA_DIR"/*.conf 2>/dev/null || true
+            
+            # Check disk space
+            log "Checking disk space..."
+            df -h /var/lib/pgsql/ || true
+            
+            # Try to start again
+            log "Attempting to restart PostgreSQL after fixes..."
+            if systemctl restart postgresql; then
+                success "PostgreSQL restarted successfully after troubleshooting"
+            else
+                error "PostgreSQL still failing to start"
+                log "Final error check:"
+                journalctl -xeu postgresql.service --no-pager -n 50 || true
+                
+                # Continue with deployment but warn user
+                warning "PostgreSQL startup failed - continuing with deployment for manual troubleshooting"
+                warning "You may need to manually fix PostgreSQL configuration after deployment"
+            fi
         fi
         
     else
