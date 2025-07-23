@@ -1,0 +1,43 @@
+[PM2][WARN] Applications cricket-scorer not running, starting...
+[PM2] App [cricket-scorer] launched (1 instances)
+┌────┬───────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name              │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1  │ cricket-scorer    │ default     │ 1.0.0   │ cluster │ 248464   │ 0s     │ 0    │ online    │ 0%       │ 38.5mb   │ root     │ disabled │
+└────┴───────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Module
+┌────┬──────────────────────────────┬───────────────┬──────────┬──────────┬──────┬──────────┬──────────┬──────────┐
+│ id │ module                       │ version       │ pid      │ status   │ ↺    │ cpu      │ mem      │ user     │
+├────┼──────────────────────────────┼───────────────┼──────────┼──────────┼──────┼──────────┼──────────┼──────────┤
+│ 0  │ pm2-logrotate                │ 2.7.0         │ 248428   │ online   │ 0    │ 0%       │ 66.5mb   │ root     │
+└────┴──────────────────────────────┴───────────────┴──────────┴──────────┴──────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+✓ Application started successfully with PM2
+┌────┬───────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name              │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1  │ cricket-scorer    │ default     │ 1.0.0   │ cluster │ 248464   │ 10s    │ 0    │ online    │ 0%       │ 65.3mb   │ root     │ disabled │
+└────┴───────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Module
+┌────┬──────────────────────────────┬───────────────┬──────────┬──────────┬──────┬──────────┬──────────┬──────────┐
+│ id │ module                       │ version       │ pid      │ status   │ ↺    │ cpu      │ mem      │ user     │
+├────┼──────────────────────────────┼───────────────┼──────────┼──────────┼──────┼──────────┼──────────┼──────────┤
+│ 0  │ pm2-logrotate                │ 2.7.0         │ 248428   │ online   │ 0    │ 0%       │ 66.5mb   │ root     │
+└────┴──────────────────────────────┴───────────────┴──────────┴──────────┴──────┴──────────┴──────────┴──────────┘
+[2025-07-23 17:18:18] Testing application response...
+✗ Application started but not responding to API requests
+[2025-07-23 17:18:23] Checking PM2 logs for errors...
+[TAILING] Tailing last 10 lines for [cricket-scorer] process (change the value with --lines option)
+/opt/cricket-scorer/logs/out-1.log last 10 lines:
+/opt/cricket-scorer/logs/err-1.log last 10 lines:
+1|cricket- | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+1|cricket- | Error: OPENAI_API_KEY environment variable is not set
+1|cricket- |     at file:///opt/cricket-scorer/dist/index.js:989:9
+1|cricket- |     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+1|cricket- |     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+1|cricket- | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+1|cricket- | Error: OPENAI_API_KEY environment variable is not set
+1|cricket- |     at file:///opt/cricket-scorer/dist/index.js:989:9
+1|cricket- |     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+1|cricket- |     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)

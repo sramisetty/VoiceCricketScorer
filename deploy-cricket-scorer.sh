@@ -568,7 +568,8 @@ module.exports = {
     env_production: {
       NODE_ENV: 'production',
       PORT: 3000,
-      DATABASE_URL: 'postgresql://cricket_user:simple123@localhost:5432/cricket_scorer'
+      DATABASE_URL: 'postgresql://cricket_user:simple123@localhost:5432/cricket_scorer',
+      OPENAI_API_KEY: '${OPENAI_API_KEY:-""}'
     },
     error_file: '/var/log/cricket-scorer/error.log',
     out_file: '/var/log/cricket-scorer/access.log',
@@ -592,6 +593,22 @@ EOF
     export DATABASE_URL="postgresql://cricket_user:simple123@localhost:5432/cricket_scorer"
     export NODE_ENV=production
     export PORT=3000
+    
+    # Check if we need to set up OpenAI API key
+    if [ -z "$OPENAI_API_KEY" ] && [ -f "fix-openai-key.sh" ]; then
+        log "Setting up OpenAI API key..."
+        # Source the existing .env to get OPENAI_API_KEY if available
+        if [ -f ".env" ] && grep -q "OPENAI_API_KEY=" .env; then
+            export OPENAI_API_KEY=$(grep "OPENAI_API_KEY=" .env | cut -d'=' -f2)
+        fi
+        
+        if [ -n "$OPENAI_API_KEY" ] && [ "$OPENAI_API_KEY" != '""' ]; then
+            log "Found existing OpenAI API key, updating PM2 config..."
+            OPENAI_API_KEY="$OPENAI_API_KEY" ./fix-openai-key.sh
+        else
+            log "No OpenAI API key found. Run ./fix-openai-key.sh manually to set it up."
+        fi
+    fi
     
     pm2 start ecosystem.config.cjs --env production
     

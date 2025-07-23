@@ -45,22 +45,27 @@ if [ -f ".env" ] && grep -q "OPENAI_API_KEY=" .env; then
 fi
 
 if [ "$UPDATE_PM2_ONLY" != "true" ]; then
-    echo "Please enter your OpenAI API key:"
-    echo "(It should start with 'sk-proj-' or 'sk-')"
-    read -s -p "OpenAI API Key: " OPENAI_API_KEY
-    echo
-
-    if [ -z "$OPENAI_API_KEY" ]; then
-        echo "✗ No API key provided"
-        exit 1
-    fi
-
-    if [[ ! "$OPENAI_API_KEY" =~ ^sk- ]]; then
-        echo "⚠ Warning: API key doesn't start with 'sk-'"
-        read -p "Continue anyway? (y/N): " -n 1 -r
+    # Check if OPENAI_API_KEY is provided as environment variable (from deploy script)
+    if [ -n "$OPENAI_API_KEY" ]; then
+        echo "✓ Using OpenAI API key from environment"
+    else
+        echo "Please enter your OpenAI API key:"
+        echo "(It should start with 'sk-proj-' or 'sk-')"
+        read -s -p "OpenAI API Key: " OPENAI_API_KEY
         echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+
+        if [ -z "$OPENAI_API_KEY" ]; then
+            echo "✗ No API key provided"
             exit 1
+        fi
+
+        if [[ ! "$OPENAI_API_KEY" =~ ^sk- ]]; then
+            echo "⚠ Warning: API key doesn't start with 'sk-'"
+            read -p "Continue anyway? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                exit 1
+            fi
         fi
     fi
 
