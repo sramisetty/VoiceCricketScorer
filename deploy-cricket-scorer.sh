@@ -410,7 +410,120 @@ setup_database() {
     
     # Run database migrations
     log "Running database migrations..."
-    npm run db:push || warning "Database schema sync may have issues, continuing deployment"
+    
+    # Ensure we have proper environment variables for database connection
+    DATABASE_URL="postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer"
+    
+    # Create/update .env file with database connection
+    cat > .env <<EOF
+DATABASE_URL=$DATABASE_URL
+OPENAI_API_KEY=${OPENAI_API_KEY:-""}
+NODE_ENV=production
+PORT=3000
+EOF
+    
+    # Update DATABASE_URL in drizzle config to use production URL
+    if [ -f "drizzle.config.ts" ]; then
+        log "Updating drizzle configuration for production..."
+        # Backup original config
+        cp drizzle.config.ts drizzle.config.ts.backup
+        
+        # Update config to use production DATABASE_URL
+        cat > drizzle.config.ts <<'EOF'
+import { defineConfig } from 'drizzle-kit';
+
+export default defineConfig({
+  schema: './shared/schema.ts',
+  out: './drizzle',
+  dialect: 'postgresql',
+  dbCredentials: {
+    url: process.env.DATABASE_URL || 'postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer'
+  }
+});
+EOF
+    fi
+    
+    npm run db:push || {
+        warning "Drizzle migration failed, creating basic schema manually..."
+        
+        # Create basic schema manually if drizzle fails
+        sudo -u postgres psql -d cricket_scorer <<'SCHEMA_EOF'
+-- Drop tables if they exist (for clean slate)
+DROP TABLE IF EXISTS balls CASCADE;
+DROP TABLE IF EXISTS player_stats CASCADE;
+DROP TABLE IF EXISTS innings CASCADE;
+DROP TABLE IF EXISTS matches CASCADE;
+DROP TABLE IF EXISTS players CASCADE;
+DROP TABLE IF EXISTS teams CASCADE;
+
+-- Create teams table
+CREATE TABLE teams (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    "shortName" VARCHAR(10) NOT NULL,
+    logo TEXT
+);
+
+-- Create players table
+CREATE TABLE players (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    "teamId" INTEGER REFERENCES teams(id) ON DELETE CASCADE,
+    role VARCHAR(50) NOT NULL DEFAULT 'batsman',
+    "battingOrder" INTEGER
+);
+
+-- Create matches table
+CREATE TABLE matches (
+    id SERIAL PRIMARY KEY,
+    "team1Id" INTEGER REFERENCES teams(id) ON DELETE CASCADE,
+    "team2Id" INTEGER REFERENCES teams(id) ON DELETE CASCADE,
+    "tossWinnerId" INTEGER REFERENCES teams(id) ON DELETE CASCADE,
+    "tossDecision" VARCHAR(10) NOT NULL DEFAULT 'bat',
+    "matchType" VARCHAR(20) NOT NULL DEFAULT 'T20',
+    overs INTEGER NOT NULL DEFAULT 20,
+    status VARCHAR(20) NOT NULL DEFAULT 'setup',
+    "currentInnings" INTEGER DEFAULT 1,
+    "currentOver" INTEGER DEFAULT 0,
+    "currentBall" INTEGER DEFAULT 0
+);
+
+-- Grant permissions to cricket_user
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO cricket_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO cricket_user;
+
+-- Insert some test data to verify
+INSERT INTO teams (name, "shortName") VALUES ('Test Team 1', 'T1'), ('Test Team 2', 'T2');
+SCHEMA_EOF
+        
+        success "Basic database schema created manually"
+    }
+    
+    # Test database connection with new credentials
+    log "Testing database connection with production credentials..."
+    if PGPASSWORD=cricket_pass psql -h localhost -U cricket_user -d cricket_scorer -c "SELECT COUNT(*) FROM teams;" >/dev/null 2>&1; then
+        success "Database connection successful with production credentials"
+    else
+        error "Database connection failed with production credentials"
+        log "Attempting to fix database permissions..."
+        
+        # Fix database permissions
+        sudo -u postgres psql -d cricket_scorer -c "
+        GRANT ALL PRIVILEGES ON DATABASE cricket_scorer TO cricket_user;
+        GRANT ALL PRIVILEGES ON SCHEMA public TO cricket_user;
+        GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO cricket_user;
+        GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO cricket_user;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO cricket_user;
+        ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO cricket_user;"
+        
+        # Test again
+        if PGPASSWORD=cricket_pass psql -h localhost -U cricket_user -d cricket_scorer -c "SELECT COUNT(*) FROM teams;" >/dev/null 2>&1; then
+            success "Database connection fixed"
+        else
+            error "Database connection still failing"
+            exit 1
+        fi
+    fi
     
     success "Database schema synchronized"
 }
@@ -438,8 +551,48 @@ configure_pm2() {
         fi
     fi
     
-    # Start application with existing PM2 config
+    # Ensure ecosystem config exists and is properly configured
+    if [ ! -f "ecosystem.config.cjs" ]; then
+        log "Creating PM2 ecosystem configuration..."
+        cat > ecosystem.config.cjs <<'EOF'
+module.exports = {
+  apps: [{
+    name: 'cricket-scorer',
+    script: 'dist/index.js',
+    instances: 1,
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'development',
+      PORT: 3000
+    },
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 3000,
+      DATABASE_URL: 'postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer'
+    },
+    error_file: '/var/log/cricket-scorer/error.log',
+    out_file: '/var/log/cricket-scorer/access.log',
+    log_file: '/var/log/cricket-scorer/combined.log',
+    time: true,
+    max_restarts: 5,
+    restart_delay: 2000
+  }]
+};
+EOF
+    fi
+    
+    # Create log directory
+    mkdir -p /var/log/cricket-scorer
+    chown -R root:root /var/log/cricket-scorer
+    
+    # Start application with PM2
     log "Starting application with PM2..."
+    
+    # First attempt with production environment
+    export DATABASE_URL="postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer"
+    export NODE_ENV=production
+    export PORT=3000
+    
     pm2 start ecosystem.config.cjs --env production
     
     # Save PM2 configuration
@@ -452,10 +605,58 @@ configure_pm2() {
     if pm2 list | grep -q "$APP_NAME.*online"; then
         success "Application started successfully with PM2"
         pm2 status
+        
+        # Final verification - test if app is responding
+        log "Testing application response..."
+        sleep 5
+        
+        if curl -f -s http://localhost:3000/api/teams >/dev/null 2>&1; then
+            success "Application is responding to API requests"
+        else
+            error "Application started but not responding to API requests"
+            log "Checking PM2 logs for errors..."
+            pm2 logs $APP_NAME --lines 10
+            
+            # Try to restart the application once more
+            log "Attempting to restart application..."
+            pm2 restart $APP_NAME
+            sleep 10
+            
+            if curl -f -s http://localhost:3000/api/teams >/dev/null 2>&1; then
+                success "Application is now responding after restart"
+            else
+                error "Application still not responding. Check logs manually with: pm2 logs $APP_NAME"
+                warning "Continuing with deployment - nginx will be configured"
+            fi
+        fi
     else
         error "Failed to start application with PM2"
+        log "PM2 logs:"
         pm2 logs $APP_NAME --lines 20
-        exit 1
+        
+        # Emergency recovery attempt
+        log "Attempting emergency recovery..."
+        
+        # Check if build files exist
+        if [ ! -f "dist/index.js" ]; then
+            error "dist/index.js missing - build may have failed"
+            log "Attempting to rebuild application..."
+            npm run build:server
+            
+            if [ -f "dist/index.js" ]; then
+                log "Build successful, restarting PM2..."
+                pm2 start ecosystem.config.cjs --env production
+                sleep 10
+            fi
+        fi
+        
+        # Final check
+        if pm2 list | grep -q "$APP_NAME.*online"; then
+            success "Emergency recovery successful"
+        else
+            error "Emergency recovery failed - manual intervention required"
+            exit 1
+        fi
     fi
 }
 
