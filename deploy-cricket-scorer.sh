@@ -225,25 +225,13 @@ setup_repository() {
         
         log "Backup created at: $BACKUP_DIR"
         
-        # Update existing repository
-        log "Updating existing repository..."
+        # Skip git operations as requested - use existing code
+        log "Using existing code (skipping git operations as requested)..."
         cd "$APP_DIR"
-        git pull origin main || {
-            log "Git pull failed, attempting fresh clone..."
-            cd ..
-            rm -rf "$APP_DIR"
-            git clone https://github.com/ramisetty-venkata/cricket-scorer.git "$APP_DIR" || {
-                error "Failed to clone repository"
-                exit 1
-            }
-        }
     else
-        # Fresh clone
-        log "Cloning Cricket Scorer repository..."
-        git clone https://github.com/ramisetty-venkata/cricket-scorer.git "$APP_DIR" || {
-            error "Failed to clone repository"
-            exit 1
-        }
+        error "Application directory does not exist: $APP_DIR"
+        error "Please ensure the application is already set up"
+        exit 1
     fi
     
     cd "$APP_DIR"
