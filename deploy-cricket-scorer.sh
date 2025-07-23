@@ -403,6 +403,18 @@ setup_database() {
     DATABASE_URL="postgresql://cricket_user:simple123@localhost:5432/cricket_scorer"
     
     # Create/update .env file with database connection
+    # Check if OPENAI_API_KEY is already set in environment
+    if [ -z "$OPENAI_API_KEY" ]; then
+        log "OPENAI_API_KEY not found in environment, checking existing .env..."
+        if [ -f ".env" ] && grep -q "OPENAI_API_KEY=" .env; then
+            EXISTING_KEY=$(grep "OPENAI_API_KEY=" .env | cut -d'=' -f2)
+            if [ -n "$EXISTING_KEY" ] && [ "$EXISTING_KEY" != '""' ]; then
+                OPENAI_API_KEY="$EXISTING_KEY"
+                log "Using existing OPENAI_API_KEY from .env"
+            fi
+        fi
+    fi
+    
     cat > .env <<EOF
 DATABASE_URL=$DATABASE_URL
 OPENAI_API_KEY=${OPENAI_API_KEY:-""}

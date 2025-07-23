@@ -1,0 +1,57 @@
+./check-production-status.sh
+=== Cricket Scorer Production Status Check ===
+Date: Wed Jul 23 05:12:19 PM EDT 2025
+
+✓ Running on production server (67.227.251.94)
+
+=== PM2 Status ===
+┌────┬───────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name              │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1  │ cricket-scorer    │ default     │ 1.0.0   │ cluster │ 247704   │ 113s   │ 0    │ online    │ 0%       │ 64.3mb   │ root     │ disabled │
+└────┴───────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Module
+┌────┬──────────────────────────────┬───────────────┬──────────┬──────────┬──────┬──────────┬──────────┬──────────┐
+│ id │ module                       │ version       │ pid      │ status   │ ↺    │ cpu      │ mem      │ user     │
+├────┼──────────────────────────────┼───────────────┼──────────┼──────────┼──────┼──────────┼──────────┼──────────┤
+│ 0  │ pm2-logrotate                │ 2.7.0         │ 247666   │ online   │ 0    │ 0%       │ 58.8mb   │ root     │
+└────┴──────────────────────────────┴───────────────┴──────────┴──────────┴──────┴──────────┴──────────┴──────────┘
+
+=== Port 3000 Status ===
+✗ Port 3000 is not in use
+
+=== Application Response Test ===
+✗ Application not responding on localhost:3000
+
+=== Attempting to restart application ===
+Loading environment variables...
+OPENAI_API_KEY loaded: sk-proj-...
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [cricket-scorer](ids: [ 1 ])
+[PM2] [cricket-scorer](1) ✓
+┌────┬───────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name              │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1  │ cricket-scorer    │ default     │ 1.0.0   │ cluster │ 247819   │ 0s     │ 1    │ online    │ 0%       │ 41.9mb   │ root     │ disabled │
+└────┴───────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Module
+┌────┬──────────────────────────────┬───────────────┬──────────┬──────────┬──────┬──────────┬──────────┬──────────┐
+│ id │ module                       │ version       │ pid      │ status   │ ↺    │ cpu      │ mem      │ user     │
+├────┼──────────────────────────────┼───────────────┼──────────┼──────────┼──────┼──────────┼──────────┼──────────┤
+│ 0  │ pm2-logrotate                │ 2.7.0         │ 247666   │ online   │ 0    │ 0%       │ 58.9mb   │ root     │
+└────┴──────────────────────────────┴───────────────┴──────────┴──────────┴──────┴──────────┴──────────┴──────────┘
+✗ Application still not responding
+=== PM2 Logs ===
+[TAILING] Tailing last 20 lines for [cricket-scorer] process (change the value with --lines option)
+/opt/cricket-scorer/logs/out-1.log last 20 lines:
+/opt/cricket-scorer/logs/err-1.log last 20 lines:
+1|cricket- | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+1|cricket- | Error: OPENAI_API_KEY environment variable is not set
+1|cricket- |     at file:///opt/cricket-scorer/dist/index.js:989:9
+1|cricket- |     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+1|cricket- |     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+1|cricket- | You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+1|cricket- | Error: OPENAI_API_KEY environment variable is not set
+1|cricket- |     at file:///opt/cricket-scorer/dist/index.js:989:9
+1|cricket- |     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+1|cricket- |     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)

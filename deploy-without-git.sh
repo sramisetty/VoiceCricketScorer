@@ -144,9 +144,15 @@ fi
 
 # Setup environment
 log "Setting up environment..."
+# Check if OPENAI_API_KEY is set
+if [ -z "$OPENAI_API_KEY" ] && [ -f ".env" ]; then
+    OPENAI_API_KEY=$(grep "OPENAI_API_KEY=" .env 2>/dev/null | cut -d'=' -f2 || echo "")
+fi
+
 if [ ! -f ".env" ]; then
     cat > .env <<EOF
 DATABASE_URL=postgresql://cricket_user:simple123@localhost:5432/cricket_scorer
+OPENAI_API_KEY=${OPENAI_API_KEY:-""}
 NODE_ENV=production
 PORT=3000
 EOF
@@ -164,7 +170,8 @@ module.exports = {
     env: {
       NODE_ENV: 'production',
       PORT: 3000,
-      DATABASE_URL: 'postgresql://cricket_user:simple123@localhost:5432/cricket_scorer'
+      DATABASE_URL: 'postgresql://cricket_user:simple123@localhost:5432/cricket_scorer',
+      OPENAI_API_KEY: '${OPENAI_API_KEY:-""}'
     },
     error_file: '/var/log/cricket-scorer-error.log',
     out_file: '/var/log/cricket-scorer-out.log',
