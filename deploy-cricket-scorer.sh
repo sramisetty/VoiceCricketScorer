@@ -386,7 +386,7 @@ setup_database() {
         DO \$\$
         BEGIN
             IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = 'cricket_user') THEN
-                CREATE USER cricket_user WITH PASSWORD 'cricket_pass';
+                CREATE USER cricket_user WITH PASSWORD 'simple123';
                 GRANT ALL PRIVILEGES ON SCHEMA public TO cricket_user;
                 ALTER USER cricket_user CREATEDB;
             END IF;
@@ -412,7 +412,7 @@ setup_database() {
     log "Running database migrations..."
     
     # Ensure we have proper environment variables for database connection
-    DATABASE_URL="postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer"
+    DATABASE_URL="postgresql://cricket_user:simple123@localhost:5432/cricket_scorer"
     
     # Create/update .env file with database connection
     cat > .env <<EOF
@@ -501,7 +501,7 @@ SCHEMA_EOF
     
     # Test database connection with new credentials
     log "Testing database connection with production credentials..."
-    if PGPASSWORD=cricket_pass psql -h localhost -U cricket_user -d cricket_scorer -c "SELECT COUNT(*) FROM teams;" >/dev/null 2>&1; then
+    if PGPASSWORD=simple123 psql -h localhost -U cricket_user -d cricket_scorer -c "SELECT COUNT(*) FROM teams;" >/dev/null 2>&1; then
         success "Database connection successful with production credentials"
     else
         error "Database connection failed with production credentials"
@@ -517,7 +517,7 @@ SCHEMA_EOF
         ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO cricket_user;"
         
         # Test again
-        if PGPASSWORD=cricket_pass psql -h localhost -U cricket_user -d cricket_scorer -c "SELECT COUNT(*) FROM teams;" >/dev/null 2>&1; then
+        if PGPASSWORD=simple123 psql -h localhost -U cricket_user -d cricket_scorer -c "SELECT COUNT(*) FROM teams;" >/dev/null 2>&1; then
             success "Database connection fixed"
         else
             error "Database connection still failing"
@@ -568,7 +568,7 @@ module.exports = {
     env_production: {
       NODE_ENV: 'production',
       PORT: 3000,
-      DATABASE_URL: 'postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer'
+      DATABASE_URL: 'postgresql://cricket_user:simple123@localhost:5432/cricket_scorer'
     },
     error_file: '/var/log/cricket-scorer/error.log',
     out_file: '/var/log/cricket-scorer/access.log',
@@ -589,7 +589,7 @@ EOF
     log "Starting application with PM2..."
     
     # First attempt with production environment
-    export DATABASE_URL="postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer"
+    export DATABASE_URL="postgresql://cricket_user:simple123@localhost:5432/cricket_scorer"
     export NODE_ENV=production
     export PORT=3000
     
