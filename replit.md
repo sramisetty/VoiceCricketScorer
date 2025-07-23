@@ -149,6 +149,7 @@ Preferred communication style: Simple, everyday language.
 - **✓ Production File Management System**: Enhanced deploy-cricket-scorer.sh with automatic backup and restore functionality for critical production files (.env, .env.production, ecosystem.config.cjs, database). Now safely preserves environment variables, API keys, and custom configurations while updating application code during deployments.
 - **✓ Critical Database Connection Fix**: Addressed production database connection failures by implementing comprehensive database setup with proper user credentials, schema creation, and environment variable configuration. Added fallback manual schema creation when Drizzle migrations fail, ensuring reliable database connectivity for match creation functionality.
 - **✓ PM2 Application Recovery System**: Enhanced deploy-cricket-scorer.sh with emergency recovery mechanisms for failed PM2 application starts, including automatic restart attempts, build verification, and comprehensive API response testing to ensure application availability after deployment.
+- **✓ Database Password Standardization**: Updated all database credentials to use standardized simple123 password across deploy-cricket-scorer.sh, reset-database-password.sh, and ecosystem.config.cjs. Created PRODUCTION-DATABASE-COMMANDS.md with clear connection instructions to eliminate confusion between cricket_user (username) and cricket_scorer (database name).
 
 ### January 20, 2025
 - **✓ PostgreSQL Authentication Fix**: Resolved "ident authentication failed" error with proper database setup
