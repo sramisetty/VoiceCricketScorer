@@ -7,19 +7,57 @@ PG_VERSION=""
 PG_DATA_DIR=""
 PG_CONFIG_DIR=""
 
-# Check common PostgreSQL installation paths
-if ls /var/lib/pgsql/*/data/postgresql.conf >/dev/null 2>&1; then
-    PG_VERSION=$(ls /var/lib/pgsql/ | head -1)
-    PG_DATA_DIR="/var/lib/pgsql/$PG_VERSION/data"
-    PG_CONFIG_DIR="$PG_DATA_DIR"
-    echo "Found PostgreSQL $PG_VERSION at $PG_DATA_DIR"
+# Check if we're on production server or development
+if [ "$(hostname -I 2>/dev/null | grep -o '67.227.251.94')" ]; then
+    echo "✓ Running on production server (67.227.251.94)"
+elif [ -d "/nix/store" ]; then
+    echo "⚠ This is the development environment (Replit)"
+    echo "This script is for the production server. Please run on 67.227.251.94"
+    echo ""
+    echo "To fix production database:"
+    echo "1. SSH to production: ssh root@67.227.251.94"
+    echo "2. Go to app directory: cd /opt/cricket-scorer || cd /root/cricket-scorer"
+    echo "3. Run this script: ./emergency-database-fix.sh"
+    exit 0
+else
+    echo "Unknown environment - proceeding with standard PostgreSQL paths"
+fi
+
+# Check common PostgreSQL installation paths on AlmaLinux/RHEL
+if [ -d "/var/lib/pgsql" ]; then
+    # AlmaLinux/RHEL/CentOS style
+    if ls /var/lib/pgsql/*/data/postgresql.conf >/dev/null 2>&1; then
+        PG_VERSION=$(ls /var/lib/pgsql/ | head -1)
+        PG_DATA_DIR="/var/lib/pgsql/$PG_VERSION/data"
+        PG_CONFIG_DIR="$PG_DATA_DIR"
+        echo "Found PostgreSQL $PG_VERSION at $PG_DATA_DIR (AlmaLinux style)"
+    else
+        # No version subdirectory
+        PG_DATA_DIR="/var/lib/pgsql/data"
+        PG_CONFIG_DIR="$PG_DATA_DIR"
+        echo "Found PostgreSQL at $PG_DATA_DIR (Simple AlmaLinux style)"
+    fi
 elif ls /etc/postgresql/*/main/postgresql.conf >/dev/null 2>&1; then
+    # Ubuntu/Debian style
     PG_VERSION=$(ls /etc/postgresql/ | head -1)
     PG_CONFIG_DIR="/etc/postgresql/$PG_VERSION/main"
     PG_DATA_DIR="/var/lib/postgresql/$PG_VERSION/main"
-    echo "Found PostgreSQL $PG_VERSION at $PG_CONFIG_DIR"
+    echo "Found PostgreSQL $PG_VERSION at $PG_CONFIG_DIR (Ubuntu style)"
 else
     echo "PostgreSQL installation not found in standard locations"
+    echo "Searched:"
+    echo "  /var/lib/pgsql/*/data/"
+    echo "  /var/lib/pgsql/data/"
+    echo "  /etc/postgresql/*/main/"
+    echo ""
+    echo "Checking if PostgreSQL is installed..."
+    if command -v psql >/dev/null 2>&1; then
+        echo "psql found at: $(which psql)"
+    else
+        echo "PostgreSQL not installed. Install with:"
+        echo "  dnf install postgresql-server postgresql (AlmaLinux/RHEL)"
+        echo "  apt install postgresql postgresql-contrib (Ubuntu/Debian)"
+    fi
     exit 1
 fi
 
