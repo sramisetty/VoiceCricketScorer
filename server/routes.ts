@@ -209,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User Management API routes (require authentication)
-  app.get('/api/users', authenticateToken, requireRole(['admin', 'coach']), async (req: any, res) => {
+  app.get('/api/users', authenticateToken, requireRole(['admin', 'global_admin']), async (req: any, res) => {
     try {
       const users = await storage.getAllUsers();
       res.json(users);

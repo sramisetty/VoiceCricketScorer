@@ -461,6 +461,26 @@ export function UserList({ franchiseId, onEditUser, onDeleteUser, onLinkPlayer }
     ? [`/api/franchises/${franchiseId}/users`]
     : ['/api/users'];
 
+  // Fetch all franchises to map franchise IDs to names
+  const { data: allFranchises = [] } = useQuery({
+    queryKey: ['/api/franchises'],
+    queryFn: async () => {
+      const response = await fetch('/api/franchises', {
+        headers: {
+          ...(localStorage.getItem('authToken') && {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }),
+        },
+      });
+      
+      if (!response.ok) {
+        return [];
+      }
+      
+      return response.json();
+    },
+  });
+
   const { data: users = [], isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
@@ -543,6 +563,11 @@ export function UserList({ franchiseId, onEditUser, onDeleteUser, onLinkPlayer }
             <div className="text-sm text-muted-foreground">{user.email}</div>
             <div className="text-xs text-muted-foreground mt-1">
               Role: {user.role} | Status: {user.isActive ? 'Active' : 'Inactive'}
+              {user.franchiseId && (
+                <span> | Franchise: {
+                  allFranchises.find((f: any) => f.id === user.franchiseId)?.name || `ID ${user.franchiseId}`
+                }</span>
+              )}
             </div>
           </div>
           <div className="flex gap-2">
