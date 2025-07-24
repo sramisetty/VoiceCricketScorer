@@ -263,8 +263,9 @@ export default function MatchSetup() {
                       // Clear team 1 players when franchise changes
                       setTeam1Players([]);
                     }}
+                    disabled={team1Players.length > 0}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={team1Players.length > 0 ? "opacity-50 cursor-not-allowed" : ""}>
                       <SelectValue placeholder="Select Team 1 Franchise" />
                     </SelectTrigger>
                     <SelectContent>
@@ -275,6 +276,11 @@ export default function MatchSetup() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {team1Players.length > 0 && (
+                    <p className="text-xs text-orange-600 mt-1">
+                      Franchise locked - remove all players to change
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="team2Franchise">Team 2 Franchise</Label>
@@ -286,8 +292,9 @@ export default function MatchSetup() {
                       // Clear team 2 players when franchise changes
                       setTeam2Players([]);
                     }}
+                    disabled={team2Players.length > 0}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={team2Players.length > 0 ? "opacity-50 cursor-not-allowed" : ""}>
                       <SelectValue placeholder="Select Team 2 Franchise" />
                     </SelectTrigger>
                     <SelectContent>
@@ -298,6 +305,11 @@ export default function MatchSetup() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {team2Players.length > 0 && (
+                    <p className="text-xs text-orange-600 mt-1">
+                      Franchise locked - remove all players to change
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
