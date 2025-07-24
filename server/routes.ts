@@ -432,6 +432,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/players/:id', authenticateToken, requireRole(['admin', 'global_admin', 'franchise_admin']), async (req: any, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      const updateData = req.body;
+      console.log('Updating player:', playerId, 'with data:', updateData);
+      const player = await storage.updatePlayer(playerId, updateData);
+      console.log('Updated player:', player);
+      if (!player) {
+        return res.status(404).json({ error: 'Player not found' });
+      }
+      res.json(player);
+    } catch (error) {
+      console.error('Player update error:', error);
+      res.status(500).json({ error: 'Failed to update player' });
+    }
+  });
+
   // Matches API (enhanced with authentication)
   app.get('/api/matches', optionalAuth, async (req: AuthenticatedRequest, res) => {
     try {

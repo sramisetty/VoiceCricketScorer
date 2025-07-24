@@ -151,35 +151,28 @@ export default function MatchSetup() {
       // Create teams first
       const team1Response = await apiRequest('POST', '/api/teams', {
         name: matchData.team1Name,
-        shortName: matchData.team1ShortName || matchData.team1Name.substring(0, 3).toUpperCase()
+        shortName: matchData.team1ShortName || matchData.team1Name.substring(0, 3).toUpperCase(),
+        franchiseId: matchData.team1FranchiseId
       });
       const team1 = await team1Response.json();
 
       const team2Response = await apiRequest('POST', '/api/teams', {
         name: matchData.team2Name,
-        shortName: matchData.team2ShortName || matchData.team2Name.substring(0, 3).toUpperCase()
+        shortName: matchData.team2ShortName || matchData.team2Name.substring(0, 3).toUpperCase(),
+        franchiseId: matchData.team2FranchiseId
       });
       const team2 = await team2Response.json();
 
-      // Create players for team 1
-      for (let i = 0; i < team1Players.length; i++) {
-        await apiRequest('POST', '/api/players', {
-          name: team1Players[i].name,
-          franchiseId: matchData.team1FranchiseId,
-          teamId: team1.id,
-          role: i === 0 ? 'captain' : team1Players[i].role,
-          battingOrder: i + 1
+      // Update selected players to assign them to their respective teams
+      for (const player of team1Players) {
+        await apiRequest('PUT', `/api/players/${player.id}`, {
+          teamId: team1.id
         });
       }
 
-      // Create players for team 2
-      for (let i = 0; i < team2Players.length; i++) {
-        await apiRequest('POST', '/api/players', {
-          name: team2Players[i].name,
-          franchiseId: matchData.team2FranchiseId,
-          teamId: team2.id,
-          role: i === 0 ? 'captain' : team2Players[i].role,
-          battingOrder: i + 1
+      for (const player of team2Players) {
+        await apiRequest('PUT', `/api/players/${player.id}`, {
+          teamId: team2.id
         });
       }
 
