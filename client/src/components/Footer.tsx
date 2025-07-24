@@ -1,18 +1,16 @@
 export default function Footer() {
   return (
-    <footer className="bg-gray-100 border-t border-gray-200 py-6 mt-auto">
-      <div className="container mx-auto px-4">
+    <footer className="mt-auto border-t bg-white">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <img 
-              src="/ramisetty-logo.png" 
-              alt="Ramisetty.net" 
-              className="h-8 w-auto"
-            />
-          </div>
-          <div className="text-sm text-gray-600">
+          <img 
+            src="/ramisetty-logo.png" 
+            alt="ramisetty.net logo" 
+            className="h-16 w-auto"
+          />
+          <span className="text-sm text-gray-600">
             © 2025 ramisetty.net. All rights reserved.
-          </div>
+          </span>
         </div>
       </div>
     </footer>
