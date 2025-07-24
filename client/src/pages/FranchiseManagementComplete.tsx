@@ -3,17 +3,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertFranchiseSchema, type Franchise, type InsertFranchise, type User } from "@shared/schema";
+import { insertFranchiseSchema, insertPlayerSchema, type Franchise, type InsertFranchise, type User, type PlayerWithStats, type InsertPlayer } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { UserManagementDialog, UserList, LinkPlayerDialog } from "@/components/UserManagementDialog";
-import { Plus, Users, Trophy, Building, Edit, Trash2, Settings } from "lucide-react";
+import { Plus, Users, Trophy, Building, Edit, Trash2, Settings, Search, UserPlus } from "lucide-react";
 
 export default function FranchiseManagementComplete() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -846,6 +849,7 @@ function FranchiseTeams({ franchiseId }: { franchiseId: number }) {
 }
 
 function FranchisePlayers({ franchiseId }: { franchiseId: number }) {
+  const [isAddPlayerDialogOpen, setIsAddPlayerDialogOpen] = useState(false);
   const { data: players, isLoading } = useQuery({
     queryKey: [`/api/franchises/${franchiseId}/players`],
   });
@@ -858,10 +862,22 @@ function FranchisePlayers({ franchiseId }: { franchiseId: number }) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h4 className="font-medium">Franchise Players</h4>
-        <Button size="sm">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Player
-        </Button>
+        <Dialog open={isAddPlayerDialogOpen} onOpenChange={setIsAddPlayerDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Player
+            </Button>
+          </DialogTrigger>
+          <PlayerAddDialog 
+            franchiseId={franchiseId}
+            onClose={() => setIsAddPlayerDialogOpen(false)}
+            onSuccess={() => {
+              setIsAddPlayerDialogOpen(false);
+              // Refresh players list will happen automatically via queryClient invalidation
+            }}
+          />
+        </Dialog>
       </div>
       
       {(players as any)?.length > 0 ? (
@@ -889,5 +905,282 @@ function FranchisePlayers({ franchiseId }: { franchiseId: number }) {
         </div>
       )}
     </div>
+  );
+}
+
+// Player Add Dialog Component
+interface PlayerAddDialogProps {
+  franchiseId: number;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function PlayerAddDialog({ franchiseId, onClose, onSuccess }: PlayerAddDialogProps) {
+  const [activeTab, setActiveTab] = useState('create');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Form for creating new player
+  const form = useForm<InsertPlayer>({
+    resolver: zodResolver(insertPlayerSchema.omit({ franchiseId: true })),
+    defaultValues: {
+      name: '',
+      role: 'batsman',
+      battingOrder: null,
+      userId: null,
+      contactInfo: null,
+      availability: true,
+      preferredPosition: null,
+    },
+  });
+
+  // Search existing players
+  const { data: searchResults = [], refetch: searchPlayers, isLoading: searchLoading } = useQuery({
+    queryKey: ['/api/players/search', searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return [];
+      const response = await fetch(`/api/players/search?q=${encodeURIComponent(searchQuery)}`);
+      if (!response.ok) throw new Error('Failed to search players');
+      return response.json();
+    },
+    enabled: false,
+  });
+
+  // Create new player mutation
+  const createPlayerMutation = useMutation({
+    mutationFn: async (data: InsertPlayer) => {
+      const response = await fetch('/api/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, franchiseId }),
+      });
+      if (!response.ok) throw new Error('Failed to create player');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Player created successfully" });
+      queryClient.invalidateQueries({ queryKey: [`/api/franchises/${franchiseId}/players`] });
+      onSuccess();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Add existing player to franchise mutation
+  const addExistingPlayerMutation = useMutation({
+    mutationFn: async (playerId: number) => {
+      const response = await fetch(`/api/franchises/${franchiseId}/players/${playerId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to add player to franchise');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Player added to franchise successfully" });
+      queryClient.invalidateQueries({ queryKey: [`/api/franchises/${franchiseId}/players`] });
+      onSuccess();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleCreatePlayer = (data: InsertPlayer) => {
+    createPlayerMutation.mutate(data);
+  };
+
+  const handleSearchPlayers = () => {
+    if (searchQuery.trim()) {
+      searchPlayers();
+    }
+  };
+
+  const handleAddExistingPlayer = () => {
+    if (selectedPlayerId) {
+      addExistingPlayerMutation.mutate(selectedPlayerId);
+    }
+  };
+
+  return (
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Add Player to Franchise</DialogTitle>
+        <DialogDescription>
+          Create a new player or add an existing player from the system to this franchise.
+        </DialogDescription>
+      </DialogHeader>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="create">
+            <UserPlus className="w-4 h-4 mr-2" />
+            Create New Player
+          </TabsTrigger>
+          <TabsTrigger value="existing">
+            <Search className="w-4 h-4 mr-2" />
+            Add Existing Player
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="create" className="space-y-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleCreatePlayer)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Player Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Virat Kohli" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="batsman">Batsman</SelectItem>
+                          <SelectItem value="bowler">Bowler</SelectItem>
+                          <SelectItem value="allrounder">All-rounder</SelectItem>
+                          <SelectItem value="wicketkeeper">Wicket Keeper</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="battingOrder"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Batting Order</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="1-11" 
+                          {...field}
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="preferredPosition"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferred Position</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select position" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="opening">Opening</SelectItem>
+                          <SelectItem value="middle">Middle Order</SelectItem>
+                          <SelectItem value="tail">Tail Ender</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createPlayerMutation.isPending}>
+                  {createPlayerMutation.isPending ? "Creating..." : "Create Player"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </TabsContent>
+
+        <TabsContent value="existing" className="space-y-4">
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Search players by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearchPlayers()}
+              />
+              <Button onClick={handleSearchPlayers} disabled={searchLoading}>
+                <Search className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {searchResults.length > 0 && (
+              <div className="space-y-2">
+                <Label>Search Results:</Label>
+                <div className="max-h-60 overflow-y-auto space-y-2">
+                  {searchResults.map((player: PlayerWithStats) => (
+                    <Card 
+                      key={player.id} 
+                      className={`p-3 cursor-pointer transition-colors ${
+                        selectedPlayerId === player.id ? 'ring-2 ring-primary' : 'hover:bg-muted'
+                      }`}
+                      onClick={() => setSelectedPlayerId(player.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">{player.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {player.role} • Franchise ID: {player.franchiseId}
+                          </div>
+                        </div>
+                        <Badge variant="outline">
+                          {player.stats ? `${(player.stats as any).totalMatches || 0} matches` : 'New player'}
+                        </Badge>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAddExistingPlayer} 
+                disabled={!selectedPlayerId || addExistingPlayerMutation.isPending}
+              >
+                {addExistingPlayerMutation.isPending ? "Adding..." : "Add Selected Player"}
+              </Button>
+            </DialogFooter>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </DialogContent>
   );
 }

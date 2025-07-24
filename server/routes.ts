@@ -269,6 +269,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Player search endpoint
+  app.get('/api/players/search', async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || query.trim().length === 0) {
+        return res.json([]);
+      }
+      
+      const players = await storage.searchPlayers(query.trim());
+      res.json(players);
+    } catch (error) {
+      console.error("Error searching players:", error);
+      res.status(500).json({ message: "Failed to search players" });
+    }
+  });
+
+  // Add existing player to franchise
+  app.post('/api/franchises/:franchiseId/players/:playerId', authenticateToken, requireRole(['admin', 'coach', 'franchise_admin']), async (req: any, res) => {
+    try {
+      const franchiseId = parseInt(req.params.franchiseId);
+      const playerId = parseInt(req.params.playerId);
+      
+      const success = await storage.addPlayerToFranchise(playerId, franchiseId);
+      
+      if (!success) {
+        return res.status(400).json({ message: "Failed to add player to franchise" });
+      }
+      
+      res.json({ message: "Player added to franchise successfully" });
+    } catch (error) {
+      console.error("Error adding player to franchise:", error);
+      res.status(500).json({ message: "Failed to add player to franchise" });
+    }
+  });
+
   // WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   

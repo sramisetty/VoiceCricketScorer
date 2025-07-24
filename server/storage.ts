@@ -5,7 +5,7 @@ import {
   type MatchWithTeams, type InningsWithStats, type LiveMatchData, type PlayerWithStats, type MatchWithDetails
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, asc, isNull, max, sum, count, sql, ilike } from "drizzle-orm";
 import { cricketRules, type CricketRuleValidation } from "./cricket-rules";
 
 export interface IStorage {
@@ -43,6 +43,7 @@ export interface IStorage {
   deletePlayer(id: number): Promise<boolean>;
   canDeletePlayer(id: number): Promise<boolean>;
   searchPlayers(query: string): Promise<PlayerWithStats[]>;
+  addPlayerToFranchise(playerId: number, franchiseId: number): Promise<boolean>;
 
   // Matches (Enhanced with user creation)
   createMatch(match: InsertMatch): Promise<Match>;
@@ -723,21 +724,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchPlayers(query: string): Promise<PlayerWithStats[]> {
-    // This is a simplified search - in production you'd use full-text search
-    const searchResults = await db.select().from(players)
-      .where(and(
-        eq(players.isActive, true),
-        // Note: This is a basic search, would need proper SQL search in production
-      ));
-    
-    const filteredPlayers = searchResults.filter(player => 
-      player.name.toLowerCase().includes(query.toLowerCase()) ||
-      player.role.toLowerCase().includes(query.toLowerCase())
-    );
+    // Search players by name using ILIKE for PostgreSQL case-insensitive search
+    const searchResults = await db.select()
+      .from(players)
+      .where(
+        and(
+          eq(players.isActive, true),
+          ilike(players.name, `%${query}%`)
+        )
+      );
     
     const result: PlayerWithStats[] = [];
     
-    for (const player of filteredPlayers) {
+    for (const player of searchResults) {
       const stats = player.stats as any || {};
       result.push({
         ...player,
@@ -751,6 +750,32 @@ export class DatabaseStorage implements IStorage {
     }
     
     return result;
+  }
+
+  async addPlayerToFranchise(playerId: number, franchiseId: number): Promise<boolean> {
+    try {
+      // Check if player exists
+      const player = await this.getPlayer(playerId);
+      if (!player) {
+        return false;
+      }
+
+      // Check if franchise exists
+      const franchise = await this.getFranchise(franchiseId);
+      if (!franchise) {
+        return false;
+      }
+
+      // Update player's franchise ID
+      await db.update(players)
+        .set({ franchiseId: franchiseId })
+        .where(eq(players.id, playerId));
+
+      return true;
+    } catch (error) {
+      console.error("Error adding player to franchise:", error);
+      return false;
+    }
   }
 
   // Matches
