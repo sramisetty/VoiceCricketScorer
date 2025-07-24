@@ -437,6 +437,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const playerId = parseInt(req.params.id);
       const updateData = req.body;
       console.log('Updating player:', playerId, 'with data:', updateData);
+      
+      // Check if assigning to a team and validate no duplicates
+      if (updateData.teamId) {
+        const existingPlayer = await storage.getPlayer(playerId);
+        if (!existingPlayer) {
+          return res.status(404).json({ error: 'Player not found' });
+        }
+        
+        // If player is already assigned to this team, that's fine
+        if (existingPlayer.teamId !== updateData.teamId) {
+          // Check if player is already assigned to another team
+          const teamPlayers = await storage.getPlayersByTeam(updateData.teamId);
+          const isDuplicate = teamPlayers.some(p => p.id === playerId);
+          
+          if (isDuplicate) {
+            return res.status(400).json({ 
+              error: 'Player already assigned to this team' 
+            });
+          }
+        }
+      }
+      
       const player = await storage.updatePlayer(playerId, updateData);
       console.log('Updated player:', player);
       if (!player) {

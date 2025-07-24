@@ -291,6 +291,21 @@ export default function MatchSetup() {
         return;
       }
 
+      // Check for duplicate players with other team
+      const otherTeamPlayers = currentTeamForSelection === 'team1' ? team2Players : team1Players;
+      const duplicates = teamPlayers.filter((player: any) => 
+        otherTeamPlayers.some(p => p.id === player.id)
+      );
+
+      if (duplicates.length > 0) {
+        toast({
+          title: "Duplicate Players Found",
+          description: `${duplicates.length} player(s) from this team are already selected for the other team. Please resolve conflicts first.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Update team data and players
       if (currentTeamForSelection === 'team1') {
         setMatchData(prev => ({
@@ -334,6 +349,21 @@ export default function MatchSetup() {
         toast({
           title: "Error",
           description: "Team not found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check for duplicate players with other team
+      const otherTeamPlayers = currentTeamForSelection === 'team1' ? team2Players : team1Players;
+      const duplicates = teamPlayers.filter((player: any) => 
+        otherTeamPlayers.some(p => p.id === player.id)
+      );
+
+      if (duplicates.length > 0) {
+        toast({
+          title: "Duplicate Players Found",
+          description: `${duplicates.length} player(s) from this team are already selected for the other team. Please resolve conflicts first.`,
           variant: "destructive",
         });
         return;
