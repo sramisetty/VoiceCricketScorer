@@ -413,6 +413,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+
   // Players API
   app.post('/api/players', authenticateToken, requireRole(['admin', 'global_admin', 'franchise_admin']), async (req: any, res) => {
     try {

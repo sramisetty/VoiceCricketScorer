@@ -148,35 +148,64 @@ export default function MatchSetup() {
     }
 
     try {
-      // Create teams first
-      const team1Response = await apiRequest('POST', '/api/teams', {
-        name: matchData.team1Name,
-        shortName: matchData.team1ShortName || matchData.team1Name.substring(0, 3).toUpperCase(),
-        franchiseId: matchData.team1FranchiseId
-      });
-      const team1 = await team1Response.json();
+      // Find or create teams for this match
+      // First, check if teams with the same name and franchise already exist
+      const existingTeam1 = await apiRequestJson(`/api/franchises/${matchData.team1FranchiseId}/teams`)
+        .then(teams => teams.find((t: any) => t.name === matchData.team1Name))
+        .catch(() => null);
 
-      const team2Response = await apiRequest('POST', '/api/teams', {
-        name: matchData.team2Name,
-        shortName: matchData.team2ShortName || matchData.team2Name.substring(0, 3).toUpperCase(),
-        franchiseId: matchData.team2FranchiseId
-      });
-      const team2 = await team2Response.json();
+      const existingTeam2 = await apiRequestJson(`/api/franchises/${matchData.team2FranchiseId}/teams`)
+        .then(teams => teams.find((t: any) => t.name === matchData.team2Name))
+        .catch(() => null);
 
-      // Update selected players to assign them to their respective teams
-      for (const player of team1Players) {
-        await apiRequest('PUT', `/api/players/${player.id}`, {
-          teamId: team1.id
+      let team1 = existingTeam1;
+      let team2 = existingTeam2;
+
+      // Only create teams if they don't exist
+      if (!team1) {
+        const team1Response = await apiRequest('POST', '/api/teams', {
+          name: matchData.team1Name,
+          shortName: matchData.team1ShortName || matchData.team1Name.substring(0, 3).toUpperCase(),
+          franchiseId: matchData.team1FranchiseId
         });
+        team1 = await team1Response.json();
+        console.log('Created new team 1:', team1.name);
+      } else {
+        console.log('Using existing team 1:', team1.name);
       }
 
-      for (const player of team2Players) {
-        await apiRequest('PUT', `/api/players/${player.id}`, {
-          teamId: team2.id
+      if (!team2) {
+        const team2Response = await apiRequest('POST', '/api/teams', {
+          name: matchData.team2Name,
+          shortName: matchData.team2ShortName || matchData.team2Name.substring(0, 3).toUpperCase(),
+          franchiseId: matchData.team2FranchiseId
         });
+        team2 = await team2Response.json();
+        console.log('Created new team 2:', team2.name);
+      } else {
+        console.log('Using existing team 2:', team2.name);
       }
 
-      // Create match without toss data - it will be set when match starts
+      // Only assign players to teams if players are selected and teams are newly created or need updates
+      if (team1Players.length > 0) {
+        console.log(`Assigning ${team1Players.length} players to ${team1.name}`);
+        for (const player of team1Players) {
+          await apiRequest('PUT', `/api/players/${player.id}`, {
+            teamId: team1.id
+          });
+        }
+      }
+
+      if (team2Players.length > 0) {
+        console.log(`Assigning ${team2Players.length} players to ${team2.name}`);
+        for (const player of team2Players) {
+          await apiRequest('PUT', `/api/players/${player.id}`, {
+            teamId: team2.id
+          });
+        }
+      }
+
+      // Create match
       createMatchMutation.mutate({
         title: matchData.title || `${matchData.team1Name} vs ${matchData.team2Name}`,
         team1Id: team1.id,
@@ -188,9 +217,10 @@ export default function MatchSetup() {
       });
 
     } catch (error) {
+      console.error('Error creating match:', error);
       toast({
         title: "Error",
-        description: "Failed to create teams and players. Please try again.",
+        description: "Failed to create match. Please try again.",
         variant: "destructive",
       });
     }
