@@ -144,7 +144,13 @@ export function UserManagementDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form 
+            onSubmit={(e) => {
+              console.log('Form onSubmit triggered');
+              form.handleSubmit(onSubmit)(e);
+            }} 
+            className="space-y-4"
+          >
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -253,7 +259,16 @@ export function UserManagementDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={userMutation.isPending}>
+              <Button 
+                type="submit" 
+                disabled={userMutation.isPending}
+                onClick={(e) => {
+                  console.log('Submit button clicked');
+                  console.log('Form valid:', form.formState.isValid);
+                  console.log('Form errors:', form.formState.errors);
+                  // Let the form's handleSubmit do its work
+                }}
+              >
                 {userMutation.isPending 
                   ? (mode === 'create' ? 'Creating...' : 'Updating...') 
                   : (mode === 'create' ? 'Create User' : 'Update User')
