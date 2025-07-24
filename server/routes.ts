@@ -414,7 +414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Players API
-  app.post('/api/players', async (req, res) => {
+  app.post('/api/players', authenticateToken, requireRole(['admin', 'coach', 'franchise_admin']), async (req: any, res) => {
     try {
       const playerData = insertPlayerSchema.parse(req.body);
       const player = await storage.createPlayer(playerData);

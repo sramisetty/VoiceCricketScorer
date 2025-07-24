@@ -953,7 +953,10 @@ function PlayerAddDialog({ franchiseId, onClose, onSuccess }: PlayerAddDialogPro
     mutationFn: async (data: InsertPlayer) => {
       const response = await fetch('/api/players', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        },
         body: JSON.stringify({ ...data, franchiseId }),
       });
       if (!response.ok) throw new Error('Failed to create player');
@@ -974,7 +977,10 @@ function PlayerAddDialog({ franchiseId, onClose, onSuccess }: PlayerAddDialogPro
     mutationFn: async (playerId: number) => {
       const response = await fetch(`/api/franchises/${franchiseId}/players/${playerId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        },
       });
       if (!response.ok) throw new Error('Failed to add player to franchise');
       return response.json();
