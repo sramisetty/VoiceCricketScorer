@@ -206,7 +206,7 @@ export default function UserManagement() {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role as any,
-      isActive: user.isActive,
+      isActive: user.isActive ?? true,
       linkedPlayerId: (user as any).linkedPlayerId || null
     });
     setIsEditDialogOpen(true);
@@ -214,6 +214,13 @@ export default function UserManagement() {
 
   const handleLinkPlayer = (user: UserType) => {
     setSelectedUser(user);
+    setEditUser({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role as any,
+      isActive: user.isActive ?? true,
+      linkedPlayerId: (user as any).linkedPlayerId || null
+    });
     setIsLinkPlayerDialogOpen(true);
   };
 
@@ -228,7 +235,7 @@ export default function UserManagement() {
     }
   };
 
-  const filteredUsers = users.filter(user =>
+  const filteredUsers = users.filter((user: any) =>
     user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -236,9 +243,9 @@ export default function UserManagement() {
   );
 
   const getLinkedPlayer = (userId: number) => {
-    const user = users.find(u => u.id === userId) as any;
+    const user = users.find((u: any) => u.id === userId) as any;
     if (!user?.linkedPlayerId) return null;
-    return availablePlayers.find(p => p.id === user.linkedPlayerId);
+    return availablePlayers.find((p: any) => p.id === user.linkedPlayerId);
   };
 
   return (
@@ -364,7 +371,7 @@ export default function UserManagement() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredUsers.map((user) => {
+          {filteredUsers.map((user: any) => {
             const linkedPlayer = getLinkedPlayer(user.id);
             return (
               <Card key={user.id} className="hover:shadow-lg transition-shadow">
@@ -526,10 +533,10 @@ export default function UserManagement() {
                     <SelectValue placeholder="Select a player to link" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No link (remove connection)</SelectItem>
-                    {availablePlayers.map((player) => (
+                    <SelectItem value="">None (Remove link)</SelectItem>
+                    {availablePlayers.map((player: any) => (
                       <SelectItem key={player.id} value={player.id.toString()}>
-                        {player.name} - {player.role} ({player.totalMatches} matches)
+                        {player.name} - {player.role}
                       </SelectItem>
                     ))}
                   </SelectContent>
