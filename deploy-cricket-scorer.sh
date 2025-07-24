@@ -400,7 +400,7 @@ setup_database() {
     log "Running database migrations..."
     
     # Ensure we have proper environment variables for database connection
-    DATABASE_URL="postgresql://cricket_user:simple123@localhost:5432/cricket_scorer"
+    DATABASE_URL="postgresql://cricket_user:simple123@localhost:5432/cricket_scorer?sslmode=disable"
     
     # Create/update .env file with database connection
     # Check if OPENAI_API_KEY is already set in environment

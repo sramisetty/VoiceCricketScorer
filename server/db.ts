@@ -11,5 +11,16 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Configure pool with SSL settings for production
+const poolConfig = {
+  connectionString: process.env.DATABASE_URL,
+  // Disable SSL verification for local PostgreSQL connections
+  ssl: process.env.NODE_ENV === 'production' && process.env.DATABASE_URL?.includes('localhost') 
+    ? false 
+    : process.env.NODE_ENV === 'production' 
+    ? { rejectUnauthorized: false }
+    : false
+};
+
+export const pool = new Pool(poolConfig);
 export const db = drizzle({ client: pool, schema });
