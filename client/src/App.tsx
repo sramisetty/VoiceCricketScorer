@@ -18,6 +18,7 @@ import Archives from "@/pages/Archives";
 import PlayerStats from "@/pages/PlayerStats";
 import NotFound from "@/pages/not-found";
 import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
 
 function Router() {
   return (
@@ -43,128 +44,144 @@ function Router() {
 
 function Dashboard() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
         <Matches />
       </div>
+      <Footer />
     </div>
   );
 }
 
 function MatchesWithNav() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
         <Matches />
       </div>
+      <Footer />
     </div>
   );
 }
 
 function MatchSetupWithNav() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
         <MatchSetup />
       </div>
+      <Footer />
     </div>
   );
 }
 
 function ScorerWithNav({ params }: { params: { matchId: string } }) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <Scorer params={params} />
+      <div className="flex-1">
+        <Scorer params={params} />
+      </div>
+      <Footer />
     </div>
   );
 }
 
 function ScoreboardWithNav({ params }: { params: { matchId: string } }) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <Scoreboard params={params} />
+      <div className="flex-1">
+        <Scoreboard params={params} />
+      </div>
+      <Footer />
     </div>
   );
 }
 
 function PlayerManagementWithNav() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
         <PlayerManagement />
       </div>
+      <Footer />
     </div>
   );
 }
 
 function UserManagementWithNav() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
         <UserManagement />
       </div>
+      <Footer />
     </div>
   );
 }
 
 function FranchiseManagementWithNav() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
         <FranchiseManagementComplete />
       </div>
+      <Footer />
     </div>
   );
 }
 
 function MatchStatsWithNav() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
         <MatchStats />
       </div>
+      <Footer />
     </div>
   );
 }
 
 function ArchivesWithNav() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
         <Archives />
       </div>
+      <Footer />
     </div>
   );
 }
 
 function PlayerStatsWithNav() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
         <PlayerStats />
       </div>
+      <Footer />
     </div>
   );
 }
 
 function MatchSettingsWithNav({ params }: { params: { matchId: string } }) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
         <MatchSettings params={params} />
       </div>
+      <Footer />
     </div>
   );
 }
