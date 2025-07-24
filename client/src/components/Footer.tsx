@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-white py-6 mt-auto">
+    <footer className="bg-gray-100 border-t border-gray-200 py-6 mt-auto">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
@@ -10,7 +10,7 @@ export default function Footer() {
               className="h-8 w-auto"
             />
           </div>
-          <div className="text-sm text-gray-300">
+          <div className="text-sm text-gray-600">
             © 2025 ramisetty.net. All rights reserved.
           </div>
         </div>

@@ -67,16 +67,24 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex items-center space-x-3">
               <img 
                 src="/logo.svg" 
                 alt="CricketScore Pro" 
-                className="h-12 w-auto" 
+                className="h-10 w-auto" 
                 onError={(e) => {
-                  console.error('Logo failed to load');
+                  console.error('Logo failed to load, showing fallback');
                   e.currentTarget.style.display = 'none';
+                  const fallback = document.createElement('div');
+                  fallback.className = 'flex items-center space-x-2';
+                  fallback.innerHTML = '<div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center"><span class="text-white font-bold text-sm">C</span></div>';
+                  e.currentTarget.parentElement?.appendChild(fallback);
                 }}
               />
+              <div className="flex flex-col">
+                <h1 className="text-xl font-bold text-gray-900">CricketScore Pro</h1>
+                <p className="text-xs text-gray-500">Professional Cricket Scoring</p>
+              </div>
             </div>
           </div>
 

@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { Plus, Play, Eye, Calendar, Clock, Users, Trophy, Target, LogIn, Trash2 } from 'lucide-react';
 import type { MatchWithTeams, Team } from '@shared/schema';
+import Footer from '@/components/Footer';
 
 export default function Matches() {
   const { toast } = useToast();
@@ -102,7 +103,7 @@ export default function Matches() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-cricket-primary text-white shadow-lg">
         <div className="container mx-auto px-4 py-6">
@@ -121,7 +122,7 @@ export default function Matches() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 flex-1">
         {/* Live Matches */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
@@ -381,6 +382,7 @@ export default function Matches() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }
