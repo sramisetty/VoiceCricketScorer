@@ -106,7 +106,7 @@ export default function Matches() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-cricket-primary text-white shadow-lg">
-        <div className="container mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Cricket Matches</h1>
@@ -122,7 +122,7 @@ export default function Matches() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6 flex-1">
+      <div className="max-w-7xl mx-auto px-4 py-8 flex-1">
         {/* Live Matches */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">

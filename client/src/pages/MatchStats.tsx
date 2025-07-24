@@ -42,7 +42,7 @@ export default function MatchStats() {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-lg">Loading match statistics...</div>
         </div>
@@ -53,7 +53,7 @@ export default function MatchStats() {
   // Show error state
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-red-600">Error loading match statistics: {error.message}</div>
         </div>
