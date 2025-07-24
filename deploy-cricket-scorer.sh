@@ -415,12 +415,38 @@ setup_database() {
         fi
     fi
     
-    cat > .env <<EOF
+    # Only update .env if it doesn't exist or is missing critical keys
+    if [ ! -f ".env" ]; then
+        log "Creating new .env file..."
+        cat > .env <<EOF
 DATABASE_URL=$DATABASE_URL
 OPENAI_API_KEY=${OPENAI_API_KEY:-""}
 NODE_ENV=production
 PORT=3000
 EOF
+    else
+        log "Preserving existing .env file and updating only DATABASE_URL..."
+        # Update DATABASE_URL but preserve other settings
+        if grep -q "DATABASE_URL=" .env; then
+            sed -i "s|DATABASE_URL=.*|DATABASE_URL=$DATABASE_URL|" .env
+        else
+            echo "DATABASE_URL=$DATABASE_URL" >> .env
+        fi
+        
+        # Ensure NODE_ENV is set to production
+        if grep -q "NODE_ENV=" .env; then
+            sed -i "s|NODE_ENV=.*|NODE_ENV=production|" .env
+        else
+            echo "NODE_ENV=production" >> .env
+        fi
+        
+        # Ensure PORT is set
+        if ! grep -q "PORT=" .env; then
+            echo "PORT=3000" >> .env
+        fi
+        
+        log "✓ Preserved existing .env file with updated DATABASE_URL"
+    fi
     
     # Update DATABASE_URL in drizzle config to use production URL
     if [ -f "drizzle.config.ts" ]; then

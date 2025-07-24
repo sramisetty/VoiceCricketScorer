@@ -141,7 +141,7 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (January 2025)
 ### January 24, 2025
 - **✓ Production OpenAI API Key Integration**: Successfully resolved production application crashes by integrating OpenAI API key into PM2 environment configuration, eliminating "OPENAI_API_KEY environment variable is not set" errors and enabling application startup
-- **→ Critical Production Database Schema Issue**: Application experiencing 500/400 errors due to schema migration conflicts between Drizzle TypeScript definitions and production database column names - immediate fix in progress with emergency schema restoration scripts
+- **→ Production Deployment .env Overwrite Issue**: Deployment script is overwriting user-configured .env file causing loss of OpenAI API key and 502 gateway errors - fixed script to preserve existing .env files while updating only necessary database connection settings
 
 ### January 21, 2025
 - **✓ PostgreSQL Configuration Error Resolution**: Fixed invalid parameter errors (shared_buffers and effective_cache_size with "0 8kB" values) by implementing automatic detection and replacement with minimal working PostgreSQL configuration, ensuring reliable database service startup
