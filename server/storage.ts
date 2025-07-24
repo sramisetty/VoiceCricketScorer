@@ -1943,22 +1943,60 @@ export class DatabaseStorage implements IStorage {
   // Player-Franchise Links
   async createPlayerFranchiseLink(link: InsertPlayerFranchiseLink): Promise<PlayerFranchiseLink> {
     try {
+      // Check if link already exists
+      const existing = await db.select()
+        .from(playerFranchiseLinks)
+        .where(and(
+          eq(playerFranchiseLinks.playerId, link.playerId),
+          eq(playerFranchiseLinks.franchiseId, link.franchiseId)
+        ));
+
+      if (existing.length > 0) {
+        // If exists but inactive, reactivate it
+        if (!existing[0].isActive) {
+          const [updatedLink] = await db.update(playerFranchiseLinks)
+            .set({ isActive: true })
+            .where(eq(playerFranchiseLinks.id, existing[0].id))
+            .returning();
+          return updatedLink;
+        } else {
+          throw new Error('Player is already associated with this franchise');
+        }
+      }
+
       const [newLink] = await db.insert(playerFranchiseLinks)
         .values(link)
         .returning();
       return newLink;
     } catch (error) {
       console.error('Error creating player-franchise link:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
       throw new Error('Failed to create player-franchise link');
     }
   }
 
-  async getPlayerFranchiseLinks(playerId: number): Promise<PlayerFranchiseLink[]> {
+  async getPlayerFranchiseLinks(playerId: number): Promise<any[]> {
     try {
-      return await db.select()
+      return await db.select({
+        id: playerFranchiseLinks.id,
+        playerId: playerFranchiseLinks.playerId,
+        franchiseId: playerFranchiseLinks.franchiseId,
+        isActive: playerFranchiseLinks.isActive,
+        createdAt: playerFranchiseLinks.createdAt,
+        franchise: {
+          id: franchises.id,
+          name: franchises.name,
+          shortName: franchises.shortName
+        }
+      })
         .from(playerFranchiseLinks)
-        .where(eq(playerFranchiseLinks.playerId, playerId))
-        .where(eq(playerFranchiseLinks.isActive, true));
+        .leftJoin(franchises, eq(playerFranchiseLinks.franchiseId, franchises.id))
+        .where(and(
+          eq(playerFranchiseLinks.playerId, playerId),
+          eq(playerFranchiseLinks.isActive, true)
+        ));
     } catch (error) {
       console.error('Error fetching player-franchise links:', error);
       return [];

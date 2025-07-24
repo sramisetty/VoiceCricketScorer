@@ -120,9 +120,10 @@ export default function PlayerManagement() {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/players'] });
       queryClient.invalidateQueries({ queryKey: ['/api/players/available'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/player-franchise-links', variables.playerId] });
       toast({ title: 'Success', description: 'Player added to franchise successfully!' });
     },
     onError: (error: any) => {
@@ -137,9 +138,10 @@ export default function PlayerManagement() {
         method: 'DELETE',
         body: JSON.stringify({ playerId, franchiseId }),
       }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/players'] });
       queryClient.invalidateQueries({ queryKey: ['/api/players/available'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/player-franchise-links', variables.playerId] });
       toast({ title: 'Success', description: 'Player removed from franchise successfully!' });
     },
     onError: (error: any) => {
@@ -467,30 +469,27 @@ export default function PlayerManagement() {
                 <h4 className="font-medium mb-2">Current Franchise Associations:</h4>
                 <div className="space-y-2">
                   {playerFranchises.length > 0 ? (
-                    playerFranchises.map((link: PlayerFranchiseLink) => {
-                      const franchise = franchises.find(f => f.id === link.franchiseId);
-                      return franchise ? (
-                        <div key={link.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <div className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4" />
-                            <span>{franchise.name} ({franchise.shortName})</span>
-                            {link.isActive && <Badge variant="outline" className="text-xs">Active</Badge>}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removePlayerFromFranchiseMutation.mutate({
-                              playerId: managingFranchisesFor.id,
-                              franchiseId: franchise.id
-                            })}
-                            disabled={removePlayerFromFranchiseMutation.isPending}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                    playerFranchises.map((link: any) => (
+                      <div key={link.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4" />
+                          <span>{link.franchise ? `${link.franchise.name} (${link.franchise.shortName})` : 'Unknown Franchise'}</span>
+                          {link.isActive && <Badge variant="outline" className="text-xs">Active</Badge>}
                         </div>
-                      ) : null;
-                    })
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePlayerFromFranchiseMutation.mutate({
+                            playerId: managingFranchisesFor.id,
+                            franchiseId: link.franchiseId
+                          })}
+                          disabled={removePlayerFromFranchiseMutation.isPending}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))
                   ) : (
                     <div className="text-sm text-gray-500 p-2">
                       No franchise associations found.
@@ -519,7 +518,7 @@ export default function PlayerManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       {franchises
-                        .filter(franchise => !playerFranchises.some(link => link.franchiseId === franchise.id))
+                        .filter(franchise => !playerFranchises.some((link: any) => link.franchiseId === franchise.id))
                         .map((franchise: Franchise) => (
                           <SelectItem key={franchise.id} value={franchise.id.toString()}>
                             {franchise.name} ({franchise.shortName})
@@ -528,7 +527,7 @@ export default function PlayerManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                {franchises.filter(franchise => !playerFranchises.some(link => link.franchiseId === franchise.id)).length === 0 && (
+                {franchises.filter(franchise => !playerFranchises.some((link: any) => link.franchiseId === franchise.id)).length === 0 && (
                   <div className="text-sm text-gray-500 mt-2">
                     Player is already associated with all available franchises.
                   </div>
