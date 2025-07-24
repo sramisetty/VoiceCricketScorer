@@ -7,6 +7,7 @@ import { transcribeAudio, validateAudioFormat } from "./whisper";
 import { optionalAuth, AuthenticatedRequest, authenticateToken, requireRole } from "./auth";
 import authRoutes from "./authRoutes";
 import playerRoutes from "./playerRoutes";
+import { registerStatsRoutes } from "./statsRoutes";
 import multer from "multer";
 
 // Configure multer for in-memory storage - accept all files, validate later
@@ -21,6 +22,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register authentication and player management routes
   app.use('/api', authRoutes);
   app.use('/api', playerRoutes);
+  
+  // Register statistics routes
+  registerStatsRoutes(app);
 
   // User Management API routes (require authentication)
   app.get('/api/users', authenticateToken, requireRole(['admin', 'coach']), async (req: any, res) => {

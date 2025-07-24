@@ -81,6 +81,13 @@ export interface IStorage {
   
   // Match Reset
   clearMatchData(matchId: number): Promise<void>;
+
+  // Statistics Methods
+  getMatchStatistics(matchId: number | null, timeRange: string): Promise<any>;
+  getArchivedMatches(filters: { search?: string; status?: string; sort?: string }): Promise<any[]>;
+  exportMatchData(matchId: number): Promise<any>;
+  getPlayerStatistics(filters: { search?: string; team?: string; role?: string }): Promise<any[]>;
+  getDetailedPlayerStats(playerId: number): Promise<any>;
 }
 
 export class MemStorage implements IStorage {
@@ -1651,6 +1658,194 @@ export class DatabaseStorage implements IStorage {
     await db.delete(innings).where(eq(innings.matchId, matchId));
 
     console.log(`Match ${matchId} data cleared successfully`);
+  }
+
+  // Statistics Methods Implementation
+  async getMatchStatistics(matchId: number | null, timeRange: string): Promise<any> {
+    try {
+      const stats = {
+        totalMatches: 0,
+        totalRuns: 0,
+        totalWickets: 0,
+        totalBoundaries: 0,
+        fours: 0,
+        sixes: 0,
+        team1Runs: 0,
+        team2Runs: 0,
+        team1Wickets: 0,
+        team2Wickets: 0,
+        team1Boundaries: 0,
+        team2Boundaries: 0,
+        team1RunRate: '0.00',
+        team2RunRate: '0.00',
+        overallRunRate: '0.00',
+        runsPerOver: [],
+        wicketsPerOver: [],
+        boundaryStats: [
+          { type: 'Fours', count: 0 },
+          { type: 'Sixes', count: 0 }
+        ],
+        bowlerStats: [],
+        batsmanStats: []
+      };
+
+      // If matchId is specified, get stats for that match only
+      const matchCondition = matchId ? eq(matches.id, matchId) : undefined;
+      const matchesData = await db.select().from(matches).where(matchCondition);
+      
+      stats.totalMatches = matchesData.length;
+
+      for (const match of matchesData) {
+        const matchInnings = await db.select().from(innings).where(eq(innings.matchId, match.id));
+        
+        for (const inning of matchInnings) {
+          const inningBalls = await db.select().from(balls).where(eq(balls.inningsId, inning.id));
+          const inningStats = await db.select().from(playerStats).where(eq(playerStats.inningsId, inning.id));
+          
+          // Calculate runs and wickets
+          const runs = inningBalls.reduce((sum, ball) => sum + (ball.runs || 0), 0);
+          const wickets = inningBalls.filter(ball => ball.isWicket).length;
+          const boundaries = inningBalls.filter(ball => ball.runs === 4 || ball.runs === 6).length;
+          const fours = inningBalls.filter(ball => ball.runs === 4).length;
+          const sixes = inningBalls.filter(ball => ball.runs === 6).length;
+          
+          stats.totalRuns += runs;
+          stats.totalWickets += wickets;
+          stats.totalBoundaries += boundaries;
+          stats.fours += fours;
+          stats.sixes += sixes;
+          
+          // Team-specific stats
+          if (inning.battingTeamId === match.team1Id) {
+            stats.team1Runs += runs;
+            stats.team1Wickets += wickets;
+            stats.team1Boundaries += boundaries;
+          } else {
+            stats.team2Runs += runs;
+            stats.team2Wickets += wickets;
+            stats.team2Boundaries += boundaries;
+          }
+        }
+      }
+
+      // Update boundary stats
+      stats.boundaryStats[0].count = stats.fours;
+      stats.boundaryStats[1].count = stats.sixes;
+
+      return stats;
+    } catch (error) {
+      console.error('Error calculating match statistics:', error);
+      return {};
+    }
+  }
+
+  async getArchivedMatches(filters: { search?: string; status?: string; sort?: string }): Promise<any[]> {
+    try {
+      const allMatches = await this.getAllMatches();
+      
+      return allMatches.map(match => ({
+        ...match,
+        totalRuns: 0, // Calculate from balls if needed
+        totalWickets: 0, // Calculate from wickets if needed  
+        totalOvers: 0, // Calculate from balls if needed
+        totalBoundaries: 0, // Calculate from boundaries if needed
+        runRate: '0.00', // Calculate run rate if needed
+        winner: null, // Determine winner if needed
+        highlights: [] // Add match highlights if available
+      }));
+    } catch (error) {
+      console.error('Error fetching archived matches:', error);
+      return [];
+    }
+  }
+
+  async exportMatchData(matchId: number): Promise<any> {
+    try {
+      const match = await this.getMatchWithDetails(matchId);
+      if (!match) {
+        throw new Error('Match not found');
+      }
+
+      const matchInnings = await db.select().from(innings).where(eq(innings.matchId, matchId));
+      const exportData = {
+        match,
+        innings: [],
+        balls: [],
+        playerStats: []
+      };
+
+      for (const inning of matchInnings) {
+        const inningBalls = await db.select().from(balls).where(eq(balls.inningsId, inning.id));
+        const inningStats = await db.select().from(playerStats).where(eq(playerStats.inningsId, inning.id));
+        
+        exportData.innings.push(inning);
+        exportData.balls.push(...inningBalls);
+        exportData.playerStats.push(...inningStats);
+      }
+
+      return exportData;
+    } catch (error) {
+      console.error('Error exporting match data:', error);
+      return {};
+    }
+  }
+
+  async getPlayerStatistics(filters: { search?: string; team?: string; role?: string }): Promise<any[]> {
+    try {
+      const allPlayers = await this.getAllPlayers();
+      
+      return allPlayers.map(player => ({
+        ...player,
+        stats: {
+          totalMatches: 0,
+          totalRuns: 0,
+          totalWickets: 0,
+          battingAverage: 0,
+          strikeRate: 0,
+          highestScore: 0,
+          bestBowling: '0/0',
+          boundaries: 0,
+          economyRate: 0,
+          consistency: 0,
+          recentForm: 0,
+          trophies: 0
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching player statistics:', error);
+      return [];
+    }
+  }
+
+  async getDetailedPlayerStats(playerId: number): Promise<any> {
+    try {
+      const player = await this.getPlayer(playerId);
+      if (!player) {
+        throw new Error('Player not found');
+      }
+
+      return {
+        ...player,
+        stats: {
+          totalMatches: 0,
+          totalRuns: 0,
+          totalWickets: 0,
+          battingAverage: 0,
+          strikeRate: 0,
+          highestScore: 0,
+          bestBowling: '0/0',
+          boundaries: 0,
+          economyRate: 0,
+          consistency: 0,
+          recentForm: 0,
+          trophies: 0
+        },
+        matchHistory: [] // Recent match performance data
+      };
+    } catch (error) {
+      console.error('Error fetching detailed player stats:', error);
+      return {};
+    }
   }
 }
 

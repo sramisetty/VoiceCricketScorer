@@ -12,6 +12,9 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import PlayerManagement from "@/pages/PlayerManagement";
 import UserManagement from "@/pages/UserManagement";
+import MatchStats from "@/pages/MatchStats";
+import Archives from "@/pages/Archives";
+import PlayerStats from "@/pages/PlayerStats";
 import NotFound from "@/pages/not-found";
 import Navigation from "@/components/Navigation";
 
@@ -28,6 +31,9 @@ function Router() {
       <Route path="/scoreboard/:matchId" component={ScoreboardWithNav} />
       <Route path="/players" component={PlayerManagementWithNav} />
       <Route path="/user-management" component={UserManagementWithNav} />
+      <Route path="/match-stats" component={MatchStatsWithNav} />
+      <Route path="/archives" component={ArchivesWithNav} />
+      <Route path="/player-stats" component={PlayerStatsWithNav} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -101,6 +107,39 @@ function UserManagementWithNav() {
       <Navigation />
       <div className="max-w-7xl mx-auto py-8 px-4">
         <UserManagement />
+      </div>
+    </div>
+  );
+}
+
+function MatchStatsWithNav() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto py-8 px-4">
+        <MatchStats />
+      </div>
+    </div>
+  );
+}
+
+function ArchivesWithNav() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto py-8 px-4">
+        <Archives />
+      </div>
+    </div>
+  );
+}
+
+function PlayerStatsWithNav() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto py-8 px-4">
+        <PlayerStats />
       </div>
     </div>
   );
