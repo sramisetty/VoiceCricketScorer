@@ -108,7 +108,7 @@ export default function Navigation() {
               </Button>
             )}
 
-            {user && (user.role === 'admin' || user.role === 'coach' || user.role === 'global_admin' || user.role === 'franchise_admin') && (
+            {user && (user.role === 'admin' || user.role === 'global_admin') && (
               <Button
                 variant="ghost"
                 onClick={() => setLocation('/user-management')}
