@@ -140,6 +140,8 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 ### January 24, 2025
+- **✓ Dialog Accessibility Compliance**: Fixed all Dialog component accessibility warnings by adding proper DialogDescription components to all Dialog instances across the application (FranchiseManagementComplete.tsx, UserManagementDialog.tsx, PlayerManagement.tsx), ensuring complete accessibility compliance with screen readers and ARIA standards
+- **✓ Player Creation Franchise Association Fix**: Resolved TypeScript error in PlayerManagement.tsx by adding required franchiseId field to player creation payload, ensuring new players are properly associated with selected franchise during creation process
 - **✓ Role-Based Scoring Access Control**: Implemented comprehensive role-based access control restricting live match scoring functionality to only scorers and admins, while providing scoreboard view access to all users. Enhanced both frontend UI (conditional action buttons) and backend API routes (authentication middleware) for complete security coverage
 - **✓ Protected Scoring API Endpoints**: Added authentication and role validation to all scoring-related API routes including ball creation, match start/reset, undo functionality, bowler changes, timeout calls, strike switching, opener selection, audio transcription, and match management operations
 - **✓ Dynamic UI Based on User Role**: Updated matches page to show different action buttons based on user authentication and role - scoring buttons for admins/scorers, scoreboard-only access for other users, ensuring proper user experience aligned with permissions

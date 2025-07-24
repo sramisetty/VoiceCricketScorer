@@ -128,9 +128,11 @@ export default function PlayerManagement() {
     createPlayerMutation.mutate({
       name: data.name,
       role: data.role,
+      franchiseId: selectedFranchiseId === 'all' ? 1 : parseInt(selectedFranchiseId), // Default to first franchise if 'all' is selected
       teamId: data.teamId ? parseInt(data.teamId) : null,
       battingOrder: data.battingOrder ? parseInt(data.battingOrder) : null,
       preferredPosition: data.preferredPosition,
+      availability: data.availability === 'true',
       contactInfo: data.email ? { email: data.email, phone: data.phone } : null,
     });
   };

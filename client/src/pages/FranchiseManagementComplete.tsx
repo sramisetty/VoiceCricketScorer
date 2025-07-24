@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -223,6 +223,9 @@ export default function FranchiseManagementComplete() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Create New Franchise</DialogTitle>
+              <DialogDescription>
+                Add a new franchise to the cricket league with all necessary details and contact information.
+              </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -363,6 +366,9 @@ export default function FranchiseManagementComplete() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Franchise</DialogTitle>
+            <DialogDescription>
+              Update franchise information, contact details, and settings.
+            </DialogDescription>
           </DialogHeader>
           <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
@@ -502,6 +508,9 @@ export default function FranchiseManagementComplete() {
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Manage {selectedFranchise?.name}</DialogTitle>
+            <DialogDescription>
+              Manage franchise users, teams, players, and detailed settings for this franchise.
+            </DialogDescription>
           </DialogHeader>
           {selectedFranchise && (
             <FranchiseDetailsManager franchise={selectedFranchise} />
