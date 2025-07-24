@@ -10,8 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequestJson } from '@/lib/queryClient';
-import { PlayerWithStats, InsertPlayer, Team, Franchise } from '@shared/schema';
-import { Plus, Search, Edit, Trash2, User, Trophy, Target } from 'lucide-react';
+import { PlayerWithStats, InsertPlayer, Franchise, PlayerFranchiseLink, InsertPlayerFranchiseLink } from '@shared/schema';
+import { Plus, Search, Edit, Trash2, User, Trophy, Target, Building2, Link, X } from 'lucide-react';
 
 export default function PlayerManagement() {
   const { toast } = useToast();
@@ -20,6 +20,7 @@ export default function PlayerManagement() {
   const [selectedFranchiseId, setSelectedFranchiseId] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<PlayerWithStats | null>(null);
+  const [managingFranchisesFor, setManagingFranchisesFor] = useState<PlayerWithStats | null>(null);
 
   // Fetch all players
   const { data: players = [], isLoading } = useQuery({
@@ -33,11 +34,7 @@ export default function PlayerManagement() {
     queryFn: () => apiRequestJson('/api/players/available'),
   });
 
-  // Fetch teams for dropdown
-  const { data: teams = [] } = useQuery({
-    queryKey: ['/api/teams'],
-    queryFn: () => apiRequestJson('/api/teams'),
-  });
+  // Remove teams query since we're not using team associations
 
   // Fetch franchises for filter dropdown
   const { data: franchises = [] } = useQuery({
@@ -117,6 +114,46 @@ export default function PlayerManagement() {
     }
   });
 
+  // Add player to franchise mutation
+  const addPlayerToFranchiseMutation = useMutation({
+    mutationFn: (data: InsertPlayerFranchiseLink) => apiRequestJson('/api/player-franchise-links', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/players'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/players/available'] });
+      toast({ title: 'Success', description: 'Player added to franchise successfully!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  });
+
+  // Remove player from franchise mutation
+  const removePlayerFromFranchiseMutation = useMutation({
+    mutationFn: ({ playerId, franchiseId }: { playerId: number; franchiseId: number }) => 
+      apiRequestJson('/api/player-franchise-links', {
+        method: 'DELETE',
+        body: JSON.stringify({ playerId, franchiseId }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/players'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/players/available'] });
+      toast({ title: 'Success', description: 'Player removed from franchise successfully!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  });
+
+  // Fetch player's franchise associations
+  const { data: playerFranchises = [] } = useQuery({
+    queryKey: ['/api/player-franchise-links', managingFranchisesFor?.id],
+    queryFn: () => apiRequestJson(`/api/player-franchise-links/${managingFranchisesFor?.id}`),
+    enabled: !!managingFranchisesFor,
+  });
+
   const handleSearch = () => {
     if (searchQuery.trim()) {
       searchPlayers();
@@ -129,7 +166,6 @@ export default function PlayerManagement() {
       name: data.name,
       role: data.role,
       franchiseId: selectedFranchiseId === 'all' ? 1 : parseInt(selectedFranchiseId), // Default to first franchise if 'all' is selected
-      teamId: data.teamId ? parseInt(data.teamId) : null,
       battingOrder: data.battingOrder ? parseInt(data.battingOrder) : null,
       preferredPosition: data.preferredPosition,
       availability: data.availability === 'true',
@@ -146,7 +182,6 @@ export default function PlayerManagement() {
       data: {
         name: data.name,
         role: data.role,
-        teamId: data.teamId ? parseInt(data.teamId) : null,
         battingOrder: data.battingOrder ? parseInt(data.battingOrder) : null,
         preferredPosition: data.preferredPosition,
         availability: data.availability === 'true',
@@ -199,21 +234,7 @@ export default function PlayerManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="teamId">Team (Optional)</Label>
-                  <Select name="teamId">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select team" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {teams.map((team: Team) => (
-                        <SelectItem key={team.id} value={team.id.toString()}>
-                          {team.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+
                 <div>
                   <Label htmlFor="preferredPosition">Preferred Position</Label>
                   <Select name="preferredPosition">
@@ -292,6 +313,8 @@ export default function PlayerManagement() {
                 player={player} 
                 onEdit={() => setEditingPlayer(player)}
                 onDelete={() => deletePlayerMutation.mutate(player.id)}
+                onManageFranchises={() => setManagingFranchisesFor(player)}
+                franchises={franchises}
               />
             ))}
           </div>
@@ -312,6 +335,8 @@ export default function PlayerManagement() {
                 player={player} 
                 onEdit={() => setEditingPlayer(player)}
                 onDelete={() => deletePlayerMutation.mutate(player.id)}
+                onManageFranchises={() => setManagingFranchisesFor(player)}
+                franchises={franchises}
               />
             ))}
           </div>
@@ -349,6 +374,8 @@ export default function PlayerManagement() {
                 player={player} 
                 onEdit={() => setEditingPlayer(player)}
                 onDelete={() => deletePlayerMutation.mutate(player.id)}
+                onManageFranchises={() => setManagingFranchisesFor(player)}
+                franchises={franchises}
               />
             ))}
           </div>
@@ -423,6 +450,97 @@ export default function PlayerManagement() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Manage Franchise Associations Dialog */}
+      {managingFranchisesFor && (
+        <Dialog open={!!managingFranchisesFor} onOpenChange={() => setManagingFranchisesFor(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Manage Franchise Associations</DialogTitle>
+              <DialogDescription>
+                Add or remove {managingFranchisesFor.name} from franchises
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Current Associations */}
+              <div>
+                <h4 className="font-medium mb-2">Current Franchise Associations:</h4>
+                <div className="space-y-2">
+                  {playerFranchises.length > 0 ? (
+                    playerFranchises.map((link: PlayerFranchiseLink) => {
+                      const franchise = franchises.find(f => f.id === link.franchiseId);
+                      return franchise ? (
+                        <div key={link.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4" />
+                            <span>{franchise.name} ({franchise.shortName})</span>
+                            {link.isActive && <Badge variant="outline" className="text-xs">Active</Badge>}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removePlayerFromFranchiseMutation.mutate({
+                              playerId: managingFranchisesFor.id,
+                              franchiseId: franchise.id
+                            })}
+                            disabled={removePlayerFromFranchiseMutation.isPending}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : null;
+                    })
+                  ) : (
+                    <div className="text-sm text-gray-500 p-2">
+                      No franchise associations found.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Add New Association */}
+              <div>
+                <h4 className="font-medium mb-2">Add to Franchise:</h4>
+                <div className="flex gap-2">
+                  <Select 
+                    onValueChange={(franchiseId) => {
+                      if (franchiseId) {
+                        addPlayerToFranchiseMutation.mutate({
+                          playerId: managingFranchisesFor.id,
+                          franchiseId: parseInt(franchiseId),
+                          isActive: true
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select franchise to add" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {franchises
+                        .filter(franchise => !playerFranchises.some(link => link.franchiseId === franchise.id))
+                        .map((franchise: Franchise) => (
+                          <SelectItem key={franchise.id} value={franchise.id.toString()}>
+                            {franchise.name} ({franchise.shortName})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {franchises.filter(franchise => !playerFranchises.some(link => link.franchiseId === franchise.id)).length === 0 && (
+                  <div className="text-sm text-gray-500 mt-2">
+                    Player is already associated with all available franchises.
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setManagingFranchisesFor(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -430,17 +548,16 @@ export default function PlayerManagement() {
 function PlayerCard({ 
   player, 
   onEdit, 
-  onDelete 
+  onDelete,
+  onManageFranchises,
+  franchises
 }: { 
   player: PlayerWithStats; 
   onEdit: () => void; 
   onDelete: () => void; 
+  onManageFranchises: () => void;
+  franchises: Franchise[];
 }) {
-  const { data: franchises = [] } = useQuery({
-    queryKey: ['/api/franchises'],
-    queryFn: () => apiRequestJson('/api/franchises'),
-  });
-
   const playerFranchise = franchises.find((f: Franchise) => f.id === player.franchiseId);
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -461,6 +578,9 @@ function PlayerCard({
             <CardTitle className="text-lg">{player.name}</CardTitle>
           </div>
           <div className="flex gap-1">
+            <Button variant="ghost" size="sm" onClick={onManageFranchises} title="Manage Franchises">
+              <Building2 className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="sm" onClick={onEdit}>
               <Edit className="w-4 h-4" />
             </Button>

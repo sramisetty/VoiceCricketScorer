@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, uuid, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, uuid, date, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -48,7 +48,7 @@ export const teams = pgTable("teams", {
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  franchiseId: integer("franchise_id").references(() => franchises.id).notNull(), // Players must belong to a franchise
+  franchiseId: integer("franchise_id").references(() => franchises.id), // Primary franchise (optional, can be managed via links)
   teamId: integer("team_id").references(() => teams.id), // Current team assignment (can change)
   role: text("role").notNull(), // batsman, bowler, allrounder, wicketkeeper
   battingOrder: integer("batting_order"),
@@ -75,6 +75,18 @@ export const userPlayerLinks = pgTable("user_player_links", {
   playerId: integer("player_id").references(() => players.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Player-Franchise association table to support multiple franchise memberships
+export const playerFranchiseLinks = pgTable("player_franchise_links", {
+  id: serial("id").primaryKey(),
+  playerId: integer("player_id").references(() => players.id).notNull(),
+  franchiseId: integer("franchise_id").references(() => franchises.id).notNull(),
+  isActive: boolean("is_active").default(true),
+  joinedAt: timestamp("joined_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  uniquePlayerFranchise: uniqueIndex("unique_player_franchise").on(table.playerId, table.franchiseId),
+}));
 
 export const matches = pgTable("matches", {
   id: serial("id").primaryKey(),
@@ -270,3 +282,8 @@ export const registerSchema = z.object({
 
 export type LoginForm = z.infer<typeof loginSchema>;
 export type RegisterForm = z.infer<typeof registerSchema>;
+
+// Export schema for player-franchise links
+export const insertPlayerFranchiseLinkSchema = createInsertSchema(playerFranchiseLinks);
+export type PlayerFranchiseLink = typeof playerFranchiseLinks.$inferSelect;
+export type InsertPlayerFranchiseLink = z.infer<typeof insertPlayerFranchiseLinkSchema>;

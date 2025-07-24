@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertFranchiseSchema, insertUserSchema, insertMatchSchema, insertTeamSchema, insertPlayerSchema, insertBallSchema } from "@shared/schema";
+import { insertFranchiseSchema, insertUserSchema, insertMatchSchema, insertTeamSchema, insertPlayerSchema, insertBallSchema, insertPlayerFranchiseLinkSchema } from "@shared/schema";
 import { transcribeAudio, validateAudioFormat } from "./whisper";
 import { optionalAuth, AuthenticatedRequest, authenticateToken, requireRole, hashPassword } from "./auth";
 import authRoutes from "./authRoutes";
@@ -205,6 +205,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting franchise:", error);
       res.status(500).json({ message: "Failed to delete franchise" });
+    }
+  });
+
+  // Player-Franchise Link Management API routes
+  app.post('/api/player-franchise-links', authenticateToken, requireRole(['admin', 'global_admin']), async (req: any, res) => {
+    try {
+      const linkData = insertPlayerFranchiseLinkSchema.parse(req.body);
+      const link = await storage.createPlayerFranchiseLink(linkData);
+      res.status(201).json(link);
+    } catch (error) {
+      console.error("Error creating player-franchise link:", error);
+      res.status(500).json({ message: "Failed to create player-franchise link" });
+    }
+  });
+
+  app.get('/api/player-franchise-links/:playerId', async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.playerId);
+      const links = await storage.getPlayerFranchiseLinks(playerId);
+      res.json(links);
+    } catch (error) {
+      console.error("Error fetching player-franchise links:", error);
+      res.status(500).json({ message: "Failed to fetch player-franchise links" });
+    }
+  });
+
+  app.delete('/api/player-franchise-links', authenticateToken, requireRole(['admin', 'global_admin']), async (req: any, res) => {
+    try {
+      const { playerId, franchiseId } = req.body;
+      const removed = await storage.removePlayerFranchiseLink(playerId, franchiseId);
+      
+      if (!removed) {
+        return res.status(404).json({ message: "Player-franchise link not found" });
+      }
+      
+      res.json({ message: "Player-franchise link removed successfully" });
+    } catch (error) {
+      console.error("Error removing player-franchise link:", error);
+      res.status(500).json({ message: "Failed to remove player-franchise link" });
     }
   });
 

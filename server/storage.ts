@@ -1,7 +1,7 @@
 import { 
-  franchises, teams, players, matches, innings, balls, playerStats, users, matchPlayerSelections, userPlayerLinks,
-  type Franchise, type Team, type Player, type Match, type Innings, type Ball, type PlayerStats, type User, type MatchPlayerSelection,
-  type InsertFranchise, type InsertTeam, type InsertPlayer, type InsertMatch, type InsertInnings, type InsertBall, type InsertPlayerStats, type InsertUser, type InsertMatchPlayerSelection,
+  franchises, teams, players, matches, innings, balls, playerStats, users, matchPlayerSelections, userPlayerLinks, playerFranchiseLinks,
+  type Franchise, type Team, type Player, type Match, type Innings, type Ball, type PlayerStats, type User, type MatchPlayerSelection, type PlayerFranchiseLink,
+  type InsertFranchise, type InsertTeam, type InsertPlayer, type InsertMatch, type InsertInnings, type InsertBall, type InsertPlayerStats, type InsertUser, type InsertMatchPlayerSelection, type InsertPlayerFranchiseLink,
   type MatchWithTeams, type InningsWithStats, type LiveMatchData, type PlayerWithStats, type MatchWithDetails
 } from "@shared/schema";
 import { db } from "./db";
@@ -44,6 +44,11 @@ export interface IStorage {
   canDeletePlayer(id: number): Promise<boolean>;
   searchPlayers(query: string): Promise<PlayerWithStats[]>;
   addPlayerToFranchise(playerId: number, franchiseId: number): Promise<boolean>;
+
+  // Player-Franchise Links
+  createPlayerFranchiseLink(link: InsertPlayerFranchiseLink): Promise<PlayerFranchiseLink>;
+  getPlayerFranchiseLinks(playerId: number): Promise<PlayerFranchiseLink[]>;
+  removePlayerFranchiseLink(playerId: number, franchiseId: number): Promise<boolean>;
 
   // Matches (Enhanced with user creation)
   createMatch(match: InsertMatch): Promise<Match>;
@@ -1932,6 +1937,45 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching detailed player stats:', error);
       return {};
+    }
+  }
+
+  // Player-Franchise Links
+  async createPlayerFranchiseLink(link: InsertPlayerFranchiseLink): Promise<PlayerFranchiseLink> {
+    try {
+      const [newLink] = await db.insert(playerFranchiseLinks)
+        .values(link)
+        .returning();
+      return newLink;
+    } catch (error) {
+      console.error('Error creating player-franchise link:', error);
+      throw new Error('Failed to create player-franchise link');
+    }
+  }
+
+  async getPlayerFranchiseLinks(playerId: number): Promise<PlayerFranchiseLink[]> {
+    try {
+      return await db.select()
+        .from(playerFranchiseLinks)
+        .where(eq(playerFranchiseLinks.playerId, playerId))
+        .where(eq(playerFranchiseLinks.isActive, true));
+    } catch (error) {
+      console.error('Error fetching player-franchise links:', error);
+      return [];
+    }
+  }
+
+  async removePlayerFranchiseLink(playerId: number, franchiseId: number): Promise<boolean> {
+    try {
+      const result = await db.delete(playerFranchiseLinks)
+        .where(and(
+          eq(playerFranchiseLinks.playerId, playerId),
+          eq(playerFranchiseLinks.franchiseId, franchiseId)
+        ));
+      return result.rowCount !== null && result.rowCount > 0;
+    } catch (error) {
+      console.error('Error removing player-franchise link:', error);
+      return false;
     }
   }
 }
