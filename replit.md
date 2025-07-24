@@ -139,6 +139,10 @@ Preferred communication style: Simple, everyday language.
 - **Cricket-Specific**: Tailored for cricket scoring terminology and rules
 
 ## Recent Changes (January 2025)
+### January 24, 2025
+- **✓ Production OpenAI API Key Integration**: Successfully resolved production application crashes by integrating OpenAI API key into PM2 environment configuration, eliminating "OPENAI_API_KEY environment variable is not set" errors and enabling application startup
+- **→ Critical Production Database Schema Issue**: Application experiencing 500/400 errors due to schema migration conflicts between Drizzle TypeScript definitions and production database column names - immediate fix in progress with emergency schema restoration scripts
+
 ### January 21, 2025
 - **✓ PostgreSQL Configuration Error Resolution**: Fixed invalid parameter errors (shared_buffers and effective_cache_size with "0 8kB" values) by implementing automatic detection and replacement with minimal working PostgreSQL configuration, ensuring reliable database service startup
 - **✓ Comprehensive Service Recovery System**: Enhanced deploy-cricket-scorer.sh with automatic PostgreSQL config validation, nginx port conflict resolution, and service restart logic to handle both database and web server failures in single deployment run
