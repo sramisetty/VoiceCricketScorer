@@ -1,8 +1,8 @@
-# Voice-Enabled Cricket Scoring App
+# CricketScore Pro - Professional Cricket Scoring & Analytics
 
 ## Overview
 
-This is a full-stack web application for real-time cricket scoring with voice recognition capabilities. The app enables users to score cricket matches using voice commands, manual input, or a combination of both, while providing live scoreboard updates through WebSocket connections.
+This is a comprehensive full-stack cricket management platform designed for professional cricket scoring, player management, and franchise administration. The application combines voice recognition technology with advanced analytics to provide a complete cricket ecosystem supporting multiple franchises, leagues, and detailed match insights.
 
 ## User Preferences
 

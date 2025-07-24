@@ -43,9 +43,9 @@ export default function Matches() {
 
   // Check if user has permission to create matches (system admins or franchise admins)
   const canCreateMatches = user && (
-    user.role === 'global_admin' || 
-    user.role === 'admin' ||
-    user.role === 'franchise_admin'
+    (user as any).role === 'global_admin' || 
+    (user as any).role === 'admin' ||
+    (user as any).role === 'franchise_admin'
   );
 
   // Fetch all matches
@@ -182,7 +182,8 @@ export default function Matches() {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Unknown';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -204,7 +205,7 @@ export default function Matches() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Cricket Matches</h1>
-              <p className="text-cricket-light mt-2">Manage your cricket matches and scoring</p>
+              <p className="text-cricket-light mt-2">Professional match management and live scoring</p>
             </div>
             <div className="flex gap-2">
               {!userLoading && canCreateMatches && (

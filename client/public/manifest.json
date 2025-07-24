@@ -1,0 +1,17 @@
+{
+  "name": "CricketScore Pro - Professional Cricket Scoring & Analytics",
+  "short_name": "CricketScore",
+  "description": "Professional cricket scoring application with voice recognition, player management, franchise support, and comprehensive match analytics",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1e40af",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary"
+}
