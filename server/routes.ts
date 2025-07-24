@@ -120,7 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update franchise user
-  app.put('/api/franchises/:franchiseId/users/:userId', async (req: any, res) => {
+  app.put('/api/franchises/:franchiseId/users/:userId', authenticateToken, async (req: any, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const franchiseId = parseInt(req.params.franchiseId);

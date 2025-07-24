@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,11 +14,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Link, Edit, Trash2 } from 'lucide-react';
 import { z } from 'zod';
 
-const userFormSchema = insertUserSchema.omit({ passwordHash: true }).extend({
+const createUserFormSchema = insertUserSchema.omit({ passwordHash: true }).extend({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-type UserFormData = z.infer<typeof userFormSchema>;
+const editUserFormSchema = insertUserSchema.omit({ passwordHash: true }).extend({
+  password: z.string().optional(),
+});
+
+type UserFormData = z.infer<typeof createUserFormSchema>;
 
 interface UserManagementDialogProps {
   isOpen: boolean;
@@ -41,7 +45,7 @@ export function UserManagementDialog({
   const queryClient = useQueryClient();
 
   const form = useForm<UserFormData>({
-    resolver: zodResolver(userFormSchema),
+    resolver: zodResolver(mode === 'create' ? createUserFormSchema : editUserFormSchema),
     defaultValues: {
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
@@ -118,9 +122,24 @@ export function UserManagementDialog({
 
   const onSubmit = (data: UserFormData) => {
     console.log('Form submitted with data:', data);
+    console.log('Mode:', mode);
     console.log('Form errors:', form.formState.errors);
+    console.log('Endpoint will be:', getApiEndpoint());
     userMutation.mutate(data);
   };
+
+  // Reset form when mode or user changes
+  useEffect(() => {
+    form.reset({
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      email: user?.email || '',
+      password: '',
+      role: user?.role || 'player',
+      franchiseId: franchiseId || user?.franchiseId || null,
+      isActive: user?.isActive ?? true,
+    });
+  }, [mode, user, franchiseId, form]);
 
   const handleClose = () => {
     form.reset();
