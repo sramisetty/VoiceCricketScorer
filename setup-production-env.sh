@@ -83,6 +83,7 @@ echo ""
 # Database Configuration
 echo -e "${GREEN}=== Database Configuration ===${NC}"
 echo "Enter your PostgreSQL database connection details:"
+echo "(SSL will be disabled for local PostgreSQL connections)"
 
 prompt_input "Database Host (e.g., localhost, your-db-host.com)" DB_HOST true
 prompt_input "Database Port (default: 5432)" DB_PORT false
@@ -92,8 +93,8 @@ prompt_input "Database Name" DB_NAME true
 prompt_input "Database Username" DB_USER true
 prompt_input "Database Password" DB_PASSWORD true true
 
-# Construct DATABASE_URL
-DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+# Construct DATABASE_URL without SSL
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
 
 echo ""
 
@@ -112,9 +113,10 @@ echo -e "${GREEN}✓ Session secret generated automatically${NC}"
 
 echo ""
 
-# SSL/TLS Configuration (optional)
-echo -e "${GREEN}=== Optional SSL Configuration ===${NC}"
-prompt_input "Enable SSL in production? (y/N)" ENABLE_SSL false
+# Web Server SSL Configuration (optional)
+echo -e "${GREEN}=== Optional Web Server SSL Configuration ===${NC}"
+echo "(Note: Database connections use no SSL regardless of this setting)"
+prompt_input "Enable SSL for web server? (y/N)" ENABLE_SSL false
 if [ "$ENABLE_SSL" = "y" ] || [ "$ENABLE_SSL" = "Y" ]; then
     prompt_input "SSL Certificate Path" SSL_CERT false
     prompt_input "SSL Private Key Path" SSL_KEY false
@@ -131,6 +133,7 @@ echo "Database Port: $DB_PORT"
 echo "Database Name: $DB_NAME"
 echo "Database User: $DB_USER"
 echo "Database Password: ****"
+echo "Database SSL: Disabled"
 echo "OpenAI API Key: ${OPENAI_API_KEY:0:10}..."
 echo "Session Secret: Generated (32 characters)"
 if [ "$ENABLE_SSL" = "y" ] || [ "$ENABLE_SSL" = "Y" ]; then
@@ -193,11 +196,12 @@ echo ""
 # Test database connection
 echo "Testing database connection..."
 if command -v psql &> /dev/null; then
-    if psql "$DATABASE_URL" -c "SELECT 1;" &> /dev/null; then
-        echo -e "${GREEN}✓ Database connection successful${NC}"
+    if PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" -c "SELECT 1;" &> /dev/null; then
+        echo -e "${GREEN}✓ Database connection successful (SSL disabled)${NC}"
     else
         echo -e "${RED}✗ Database connection failed${NC}"
         echo "Please verify your database credentials and ensure the database is running."
+        echo "Note: SSL is disabled for this connection."
     fi
 else
     echo -e "${YELLOW}⚠ psql not found. Skipping database connection test.${NC}"
