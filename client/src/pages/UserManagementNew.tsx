@@ -30,7 +30,7 @@ export default function UserManagement() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
-          <p className="text-gray-600">Manage system users and their access permissions</p>
+          <p className="text-gray-600">Manage users and their access permissions</p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
           <UserPlus className="w-4 h-4 mr-2" />
@@ -42,7 +42,7 @@ export default function UserManagement() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
-            System Users
+            All Users
           </CardTitle>
         </CardHeader>
         <CardContent>
