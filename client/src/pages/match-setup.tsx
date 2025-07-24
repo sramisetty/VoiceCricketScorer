@@ -165,6 +165,7 @@ export default function MatchSetup() {
       for (let i = 0; i < team1Players.length; i++) {
         await apiRequest('POST', '/api/players', {
           name: team1Players[i].name,
+          franchiseId: matchData.team1FranchiseId,
           teamId: team1.id,
           role: i === 0 ? 'captain' : team1Players[i].role,
           battingOrder: i + 1
@@ -175,6 +176,7 @@ export default function MatchSetup() {
       for (let i = 0; i < team2Players.length; i++) {
         await apiRequest('POST', '/api/players', {
           name: team2Players[i].name,
+          franchiseId: matchData.team2FranchiseId,
           teamId: team2.id,
           role: i === 0 ? 'captain' : team2Players[i].role,
           battingOrder: i + 1

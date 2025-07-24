@@ -416,11 +416,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Players API
   app.post('/api/players', authenticateToken, requireRole(['admin', 'global_admin', 'franchise_admin']), async (req: any, res) => {
     try {
+      console.log('Received player data:', req.body);
       const playerData = insertPlayerSchema.parse(req.body);
+      console.log('Parsed player data:', playerData);
       const player = await storage.createPlayer(playerData);
+      console.log('Created player:', player);
       res.json(player);
     } catch (error) {
-      res.status(400).json({ error: 'Invalid player data' });
+      console.error('Player validation error:', error);
+      if (error instanceof Error) {
+        res.status(400).json({ error: 'Validation failed', details: error.message });
+      } else {
+        res.status(400).json({ error: 'Invalid player data' });
+      }
     }
   });
 
