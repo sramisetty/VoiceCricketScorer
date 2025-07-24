@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,13 +24,46 @@ export default function FranchiseManagementComplete() {
   const [editingFranchise, setEditingFranchise] = useState<Franchise | null>(null);
   const [selectedFranchise, setSelectedFranchise] = useState<Franchise | null>(null);
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Get current user from localStorage
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setCurrentUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
+
   // Fetch franchises
-  const { data: franchises, isLoading: isLoadingFranchises } = useQuery({
+  const { data: allFranchises, isLoading: isLoadingFranchises } = useQuery({
     queryKey: ['/api/franchises'],
   });
+
+  // Filter franchises based on user role
+  const franchises = useMemo(() => {
+    if (!allFranchises || !currentUser) return [];
+    
+    // Global admins can see all franchises
+    if (currentUser.role === 'admin' || currentUser.role === 'global_admin') {
+      return allFranchises;
+    }
+    
+    // Franchise admins can only see franchises they're associated with
+    if (currentUser.role === 'franchise_admin') {
+      return allFranchises.filter((franchise: Franchise) => 
+        franchise.id === currentUser.franchiseId
+      );
+    }
+    
+    // Other roles cannot see any franchises
+    return [];
+  }, [allFranchises, currentUser]);
 
   // Create franchise mutation
   const createFranchiseMutation = useMutation({
@@ -216,13 +249,15 @@ export default function FranchiseManagementComplete() {
             Manage cricket franchises, teams, and players in your league
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Franchise
-            </Button>
-          </DialogTrigger>
+        {/* Only Global Admins can create franchises */}
+        {currentUser && (currentUser.role === 'admin' || currentUser.role === 'global_admin') && (
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Franchise
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Create New Franchise</DialogTitle>
@@ -362,6 +397,7 @@ export default function FranchiseManagementComplete() {
             </Form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* Edit Franchise Dialog */}
@@ -527,6 +563,7 @@ export default function FranchiseManagementComplete() {
           <FranchiseCard 
             key={franchise.id} 
             franchise={franchise}
+            currentUser={currentUser}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onManage={handleManage}
@@ -547,11 +584,13 @@ export default function FranchiseManagementComplete() {
 
 function FranchiseCard({ 
   franchise, 
+  currentUser,
   onEdit, 
   onDelete, 
   onManage 
 }: { 
   franchise: Franchise;
+  currentUser: User | null;
   onEdit: (franchise: Franchise) => void;
   onDelete: (franchiseId: number) => void;
   onManage: (franchise: Franchise) => void;
@@ -618,15 +657,18 @@ function FranchiseCard({
         </div>
 
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onEdit(franchise)}
-            className="flex-1"
-          >
-            <Edit className="w-3 h-3 mr-1" />
-            Edit
-          </Button>
+          {/* Only Global Admins can edit franchises */}
+          {currentUser && (currentUser.role === 'admin' || currentUser.role === 'global_admin') && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onEdit(franchise)}
+              className="flex-1"
+            >
+              <Edit className="w-3 h-3 mr-1" />
+              Edit
+            </Button>
+          )}
           <Button 
             variant="outline" 
             size="sm" 
@@ -636,12 +678,14 @@ function FranchiseCard({
             <Settings className="w-3 h-3 mr-1" />
             Manage
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Trash2 className="w-3 h-3" />
-              </Button>
-            </AlertDialogTrigger>
+          {/* Only Global Admins can delete franchises */}
+          {currentUser && (currentUser.role === 'admin' || currentUser.role === 'global_admin') && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Franchise</AlertDialogTitle>
@@ -660,6 +704,7 @@ function FranchiseCard({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          )}
         </div>
       </CardContent>
     </Card>
