@@ -17,8 +17,8 @@ router.get('/players', authenticateToken, requireRole(['admin', 'global_admin'])
   }
 });
 
-// Get available players (for match selection) - admin and global_admin only
-router.get('/players/available', authenticateToken, requireRole(['admin', 'global_admin']), async (req: AuthenticatedRequest, res) => {
+// Get available players (for match selection) - needed for match creation
+router.get('/players/available', authenticateToken, requireRole(['admin', 'global_admin', 'franchise_admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const players = await storage.getAvailablePlayers();
     res.json(players);
