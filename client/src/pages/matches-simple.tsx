@@ -76,9 +76,7 @@ export default function Matches() {
   // Delete match mutation
   const deleteMatchMutation = useMutation({
     mutationFn: async (matchId: number) => {
-      const response = await apiRequest(`/api/matches/${matchId}`, {
-        method: 'DELETE',
-      });
+      const response = await apiRequest('DELETE', `/api/matches/${matchId}`);
       return response;
     },
     onSuccess: () => {
@@ -88,10 +86,10 @@ export default function Matches() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/matches'] });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to delete match",
+        description: error.message || "Failed to delete match",
         variant: "destructive",
       });
     },
