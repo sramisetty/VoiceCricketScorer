@@ -8,11 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
+
 import { useToast } from '@/hooks/use-toast';
 import { apiRequestJson, apiRequest } from '@/lib/queryClient';
 import { Users, UserPlus, Edit, Trash2, Shield, ShieldCheck, User, Link } from 'lucide-react';
-import type { User as UserType, PlayerWithStats } from '@shared/schema';
+import type { User as UserType } from '@shared/schema';
 
 export default function UserManagement() {
   const { toast } = useToast();
@@ -21,9 +21,7 @@ export default function UserManagement() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isLinkPlayerDialogOpen, setIsLinkPlayerDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
-  const [selectedPlayer, setSelectedPlayer] = useState<PlayerWithStats | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [playerSearchTerm, setPlayerSearchTerm] = useState('');
 
   // Fetch all users
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -47,11 +45,7 @@ export default function UserManagement() {
     queryFn: () => apiRequestJson('/api/players/available'),
   });
 
-  // Fetch all players for management
-  const { data: allPlayers = [] } = useQuery({
-    queryKey: ['/api/players'],
-    queryFn: () => apiRequestJson('/api/players'),
-  });
+
 
   const [newUser, setNewUser] = useState({
     email: '',
@@ -208,45 +202,7 @@ export default function UserManagement() {
     },
   });
 
-  // Player deletion mutation
-  const deletePlayerMutation = useMutation({
-    mutationFn: async (playerId: number) => {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`/api/players/${playerId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete player');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/players'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/players/available'] });
-      toast({
-        title: "Success",
-        description: "Player deleted successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Cannot Delete Player",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
-  const handleDeletePlayer = (player: PlayerWithStats) => {
-    if (confirm(`Are you sure you want to delete player "${player.name}"? This action cannot be undone and will only work if the player has never been selected for any match.`)) {
-      deletePlayerMutation.mutate(player.id);
-    }
-  };
 
   const handleEditUser = (user: UserType) => {
     setSelectedUser(user);
@@ -290,11 +246,7 @@ export default function UserManagement() {
     user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Filter players based on search
-  const filteredPlayers = allPlayers.filter((player: any) =>
-    player.name?.toLowerCase().includes(playerSearchTerm.toLowerCase()) ||
-    player.role?.toLowerCase().includes(playerSearchTerm.toLowerCase())
-  );
+
 
   const getLinkedPlayer = (userId: number) => {
     const user = users.find((u: any) => u.id === userId) as any;
@@ -492,94 +444,6 @@ export default function UserManagement() {
             <Card>
               <CardContent className="py-8">
                 <p className="text-center text-gray-500">No users found</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Player Management Section */}
-      <Separator className="my-8" />
-      
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Player Management</h2>
-        <p className="text-gray-600">Manage cricket players in the system</p>
-      </div>
-
-      {/* Player Search */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Players ({filteredPlayers.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Search players by name or role..."
-                value={playerSearchTerm}
-                onChange={(e) => setPlayerSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Players List */}
-      {allPlayers.length === 0 ? (
-        <Card>
-          <CardContent className="py-8">
-            <p className="text-center text-gray-500">No players found</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 mb-8">
-          {filteredPlayers.map((player: any) => (
-            <Card key={player.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-cricket-primary/10 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-cricket-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">{player.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge className="bg-cricket-primary text-white">
-                          {player.role}
-                        </Badge>
-                        {!player.isActive && (
-                          <Badge variant="destructive">Inactive</Badge>
-                        )}
-                        {player.stats && (
-                          <Badge variant="outline">
-                            {player.stats.totalMatches} matches, {player.stats.totalRuns} runs
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={() => handleDeletePlayer(player)}
-                      size="sm"
-                      variant="destructive"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      disabled={deletePlayerMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          {filteredPlayers.length === 0 && (
-            <Card>
-              <CardContent className="py-8">
-                <p className="text-center text-gray-500">No players match your search</p>
               </CardContent>
             </Card>
           )}
