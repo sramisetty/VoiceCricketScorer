@@ -68,7 +68,15 @@ export default function Navigation() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <img src="/logo.svg" alt="CricketScore Pro" className="h-10 w-auto" />
+              <img 
+                src="/logo.svg" 
+                alt="CricketScore Pro" 
+                className="h-12 w-auto" 
+                onError={(e) => {
+                  console.error('Logo failed to load');
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
             </div>
           </div>
 
