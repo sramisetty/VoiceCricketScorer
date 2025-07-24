@@ -5,14 +5,27 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 export function TestDialog() {
   const [isOpen, setIsOpen] = useState(false);
 
+  const handleOpen = () => {
+    console.log('Opening test dialog...');
+    setIsOpen(true);
+    console.log('Dialog state should be:', true);
+  };
+
+  const handleClose = () => {
+    console.log('Closing test dialog...');
+    setIsOpen(false);
+  };
+
+  console.log('Test Dialog render, isOpen:', isOpen);
+
   return (
     <>
-      <Button onClick={() => setIsOpen(true)} variant="outline">
+      <Button onClick={handleOpen} variant="outline">
         Test Simple Dialog
       </Button>
       
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
+        <DialogContent style={{ zIndex: 9999 }}>
           <DialogHeader>
             <DialogTitle>Test Dialog</DialogTitle>
             <DialogDescription>
@@ -22,9 +35,10 @@ export function TestDialog() {
           <div className="space-y-4">
             <p>If you can see this dialog, the dialog system is working correctly.</p>
             <p>Dialog state: {isOpen ? 'Open' : 'Closed'}</p>
+            <p>Current time: {new Date().toLocaleTimeString()}</p>
           </div>
           <DialogFooter>
-            <Button onClick={() => setIsOpen(false)}>Close</Button>
+            <Button onClick={handleClose}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

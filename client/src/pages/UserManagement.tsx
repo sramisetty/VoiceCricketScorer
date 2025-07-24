@@ -292,6 +292,16 @@ export default function UserManagement() {
               Test Link Dialog
             </Button>
             <TestDialog />
+            <Button 
+              onClick={() => {
+                alert('Direct test: This alert should work if JavaScript is running');
+                console.log('Alert test button clicked');
+              }}
+              size="sm" 
+              variant="destructive"
+            >
+              Test Alert
+            </Button>
           </div>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -554,8 +564,113 @@ export default function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Link Player Dialog */}
-      <Dialog open={isLinkPlayerDialogOpen} onOpenChange={setIsLinkPlayerDialogOpen}>
+      {/* Direct Modal Test */}
+      {isLinkPlayerDialogOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onClick={() => setIsLinkPlayerDialogOpen(false)}
+        >
+          <div 
+            style={{
+              backgroundColor: 'white',
+              padding: '2rem',
+              borderRadius: '8px',
+              maxWidth: '500px',
+              width: '90%',
+              maxHeight: '80vh',
+              overflow: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+              Link Player Account (Direct Modal)
+            </h2>
+            <p style={{ marginBottom: '1rem', color: '#666' }}>
+              This is a direct modal test to bypass the Dialog component
+            </p>
+            {selectedUser && (
+              <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                <strong>User:</strong> {selectedUser.firstName} {selectedUser.lastName} ({selectedUser.email})
+              </div>
+            )}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                Available Players ({availablePlayers.length}):
+              </label>
+              {playersLoading ? (
+                <p>Loading players...</p>
+              ) : playersError ? (
+                <p style={{ color: 'red' }}>Error loading players</p>
+              ) : (
+                <select 
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.5rem', 
+                    border: '1px solid #ccc', 
+                    borderRadius: '4px' 
+                  }}
+                  value={editUser.linkedPlayerId?.toString() || ''}
+                  onChange={(e) => setEditUser(prev => ({ 
+                    ...prev, 
+                    linkedPlayerId: e.target.value ? parseInt(e.target.value) : null 
+                  }))}
+                >
+                  <option value="">None (Remove link)</option>
+                  {availablePlayers.map((player: any) => (
+                    <option key={player.id} value={player.id.toString()}>
+                      {player.name} - {player.role}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setIsLinkPlayerDialogOpen(false)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  backgroundColor: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                style={{
+                  padding: '0.5rem 1rem',
+                  border: 'none',
+                  borderRadius: '4px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  console.log('Link player action would happen here');
+                  setIsLinkPlayerDialogOpen(false);
+                }}
+              >
+                Link Player
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Original Link Player Dialog (Hidden for debugging) */}
+      <Dialog open={false} onOpenChange={setIsLinkPlayerDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Link Player Account</DialogTitle>
