@@ -147,17 +147,7 @@ export default function Navigation() {
               Player Stats
             </Button>
             
-            {/* Show for all authenticated users */}
-            {user && (
-              <Button
-                variant="ghost"
-                onClick={() => setLocation('/match-setup')}
-                className="flex items-center gap-2"
-              >
-                <Trophy className="w-4 h-4" />
-                New Match
-              </Button>
-            )}
+
 
             {/* User Menu or Login */}
             {user ? (

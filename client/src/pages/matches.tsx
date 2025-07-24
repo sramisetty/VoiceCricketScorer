@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import type { MatchWithTeams, Team } from '@shared/schema';
 export default function Matches() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [isNewMatchDialogOpen, setIsNewMatchDialogOpen] = useState(false);
   const [newMatchData, setNewMatchData] = useState({
     team1Id: '',
@@ -27,6 +28,15 @@ export default function Matches() {
     tossWinnerId: '',
     tossDecision: 'bat' as 'bat' | 'bowl'
   });
+
+  // Fetch user for role-based access control
+  const { data: user } = useQuery({
+    queryKey: ['/api/auth/user'],
+    retry: false,
+  });
+
+  // Check if user has permission to create matches (admin or global_admin only)
+  const canCreateMatches = user?.role === 'admin' || user?.role === 'global_admin';
 
   // Fetch all matches
   const { data: matches = [], isLoading: matchesLoading } = useQuery<MatchWithTeams[]>({
@@ -144,13 +154,24 @@ export default function Matches() {
               <h1 className="text-3xl font-bold">Cricket Matches</h1>
               <p className="text-cricket-light mt-2">Manage your cricket matches and scoring</p>
             </div>
-            <Dialog open={isNewMatchDialogOpen} onOpenChange={setIsNewMatchDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-cricket-accent hover:bg-orange-600">
+            <div className="flex gap-2">
+              {canCreateMatches && (
+                <Button 
+                  onClick={() => setLocation('/match-setup')}
+                  className="bg-cricket-accent hover:bg-orange-600"
+                >
                   <Plus className="w-4 h-4 mr-2" />
-                  New Match
+                  Create New Match
                 </Button>
-              </DialogTrigger>
+              )}
+              {canCreateMatches && (
+                <Dialog open={isNewMatchDialogOpen} onOpenChange={setIsNewMatchDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="border-white text-white hover:bg-white hover:text-cricket-primary">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Quick Match
+                    </Button>
+                  </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Create New Match</DialogTitle>
@@ -275,6 +296,8 @@ export default function Matches() {
                 </div>
               </DialogContent>
             </Dialog>
+              )}
+            </div>
           </div>
         </div>
       </header>

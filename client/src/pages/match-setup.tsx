@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest, apiRequestJson } from '@/lib/queryClient';
-import { Users, UserPlus, X, Trophy } from 'lucide-react';
+import { Users, UserPlus, X, Trophy, AlertTriangle } from 'lucide-react';
 import type { PlayerWithStats } from '@shared/schema';
 
 export default function MatchSetup() {
@@ -41,11 +41,40 @@ export default function MatchSetup() {
   const [isTeamSelectionDialogOpen, setIsTeamSelectionDialogOpen] = useState(false);
   const [currentTeamForSelection, setCurrentTeamForSelection] = useState<'team1' | 'team2'>('team1');
 
+  // Fetch user for role-based access control
+  const { data: user, isLoading: userLoading } = useQuery({
+    queryKey: ['/api/auth/user'],
+    retry: false,
+  });
+
+  // Check if user has permission to create matches (admin or global_admin only)
+  const canCreateMatches = user?.role === 'admin' || user?.role === 'global_admin';
+
+  // Filter franchises based on user role
+  const getFilteredFranchises = (allFranchises: any[]) => {
+    if (!user) return [];
+    
+    // Global admins see all franchises
+    if (user.role === 'global_admin' || (user.role === 'admin' && !user.franchiseId)) {
+      return allFranchises;
+    }
+    
+    // Franchise admins only see their associated franchise
+    if (user.role === 'admin' && user.franchiseId) {
+      return allFranchises.filter(franchise => franchise.id === user.franchiseId);
+    }
+    
+    // Other roles cannot create matches
+    return [];
+  };
+
   // Fetch all franchises
-  const { data: franchises = [], isLoading: franchisesLoading } = useQuery({
+  const { data: allFranchises = [], isLoading: franchisesLoading } = useQuery({
     queryKey: ['/api/franchises'],
     queryFn: () => apiRequestJson('/api/franchises'),
   });
+
+  const franchises = getFilteredFranchises(allFranchises);
 
   // Fetch available players (filtered by selected franchise in dialog)
   const { data: availablePlayers = [], isLoading: playersLoading } = useQuery({
@@ -356,6 +385,49 @@ export default function MatchSetup() {
     
     return filteredPlayers.filter(player => !selectedPlayerIds.includes(player.id));
   };
+
+  // Redirect non-authorized users
+  useEffect(() => {
+    if (!userLoading && (!user || !canCreateMatches)) {
+      toast({
+        title: "Access Denied",
+        description: "Only admins can create matches.",
+        variant: "destructive",
+      });
+      setLocation('/');
+    }
+  }, [user, userLoading, canCreateMatches, setLocation, toast]);
+
+  // Show loading or access denied
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Loading...</h2>
+          <p className="text-gray-600">Checking permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !canCreateMatches) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+              <p className="text-gray-600 mb-4">Only administrators can create new cricket matches.</p>
+              <Button onClick={() => setLocation('/')} variant="outline">
+                Return to Home
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-6">
