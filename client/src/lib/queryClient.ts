@@ -24,8 +24,8 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  // Handle unauthorized responses
-  if (res.status === 401) {
+  // Handle unauthorized responses (both 401 and 403)
+  if (res.status === 401 || res.status === 403) {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
     window.location.href = '/login';
@@ -51,8 +51,8 @@ export async function apiRequestJson(url: string, options: RequestInit = {}): Pr
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
     
-    // Handle unauthorized responses
-    if (response.status === 401) {
+    // Handle unauthorized responses (both 401 and 403)
+    if (response.status === 401 || response.status === 403) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -70,12 +70,24 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const token = localStorage.getItem('authToken');
+    
     const res = await fetch(queryKey.join("/") as string, {
+      headers: {
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+      },
       credentials: "include",
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+    if (unauthorizedBehavior === "returnNull" && (res.status === 401 || res.status === 403)) {
       return null;
+    }
+
+    // Handle unauthorized responses
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
     }
 
     await throwIfResNotOk(res);
