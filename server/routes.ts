@@ -435,13 +435,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches', optionalAuth, async (req: AuthenticatedRequest, res) => {
+  app.post('/api/matches', authenticateToken, requireRole(['admin', 'global_admin']), async (req: AuthenticatedRequest, res) => {
     try {
       const matchData = insertMatchSchema.parse(req.body);
-      // If user is authenticated, set them as the creator
-      const finalMatchData = req.user 
-        ? { ...matchData, createdBy: req.user.id }
-        : { ...matchData, createdBy: 1 }; // Default admin user for non-authenticated users
+      // Set authenticated user as the creator
+      const finalMatchData = { ...matchData, createdBy: req.user!.id };
       
       const match = await storage.createMatch(finalMatchData);
       

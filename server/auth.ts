@@ -137,15 +137,7 @@ export function requireRole(roles: string[]) {
       return;
     }
 
-    // Map old roles to new roles for backward compatibility
-    const normalizedRoles = roles.map(role => {
-      if (role === 'admin') return 'global_admin';
-      if (role === 'coach') return 'franchise_admin';
-      if (role === 'user') return 'viewer';
-      return role;
-    });
-
-    if (!normalizedRoles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role)) {
       res.status(403).json({ error: 'Insufficient permissions' });
       return;
     }
