@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Link, Edit, Trash2 } from 'lucide-react';
 import { z } from 'zod';
 
-const userFormSchema = insertUserSchema.extend({
+const userFormSchema = insertUserSchema.omit({ passwordHash: true }).extend({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
@@ -144,13 +144,7 @@ export function UserManagementDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form 
-            onSubmit={(e) => {
-              console.log('Form onSubmit triggered');
-              form.handleSubmit(onSubmit)(e);
-            }} 
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -259,16 +253,7 @@ export function UserManagementDialog({
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
-                disabled={userMutation.isPending}
-                onClick={(e) => {
-                  console.log('Submit button clicked');
-                  console.log('Form valid:', form.formState.isValid);
-                  console.log('Form errors:', form.formState.errors);
-                  // Let the form's handleSubmit do its work
-                }}
-              >
+              <Button type="submit" disabled={userMutation.isPending}>
                 {userMutation.isPending 
                   ? (mode === 'create' ? 'Creating...' : 'Updating...') 
                   : (mode === 'create' ? 'Create User' : 'Update User')
