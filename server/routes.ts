@@ -86,10 +86,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/teams', async (req, res) => {
     try {
       const teams = await storage.getAllTeams();
+      console.log('Successfully fetched teams:', teams.length);
       res.json(teams);
     } catch (error) {
       console.error('Error fetching teams:', error);
-      res.status(500).json({ error: 'Failed to fetch teams' });
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ error: 'Failed to fetch teams', details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
