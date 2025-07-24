@@ -95,11 +95,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/teams', async (req, res) => {
     try {
+      console.log('Received team data:', req.body);
       const teamData = insertTeamSchema.parse(req.body);
+      console.log('Parsed team data:', teamData);
       const team = await storage.createTeam(teamData);
+      console.log('Created team:', team);
       res.json(team);
     } catch (error) {
-      res.status(400).json({ error: 'Invalid team data' });
+      console.error('Team validation error:', error);
+      if (error instanceof Error) {
+        res.status(400).json({ error: 'Invalid team data', details: error.message });
+      } else {
+        res.status(400).json({ error: 'Invalid team data' });
+      }
     }
   });
 
