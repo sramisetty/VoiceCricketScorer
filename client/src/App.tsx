@@ -46,7 +46,7 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
+      <div className="flex-1">
         <Matches />
       </div>
       <Footer />
