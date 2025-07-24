@@ -24,8 +24,10 @@ export default function MatchSetup() {
   const [matchData, setMatchData] = useState({
     team1Name: '',
     team1ShortName: '',
+    team1FranchiseId: null as number | null,
     team2Name: '',
     team2ShortName: '',
+    team2FranchiseId: null as number | null,
     matchType: 'T20',
     overs: 20,
     tossWinner: '',
@@ -37,7 +39,13 @@ export default function MatchSetup() {
   const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
   const [currentTeam, setCurrentTeam] = useState<'team1' | 'team2'>('team1');
 
-  // Fetch available players
+  // Fetch all franchises
+  const { data: franchises = [], isLoading: franchisesLoading } = useQuery({
+    queryKey: ['/api/franchises'],
+    queryFn: () => apiRequestJson('/api/franchises'),
+  });
+
+  // Fetch available players (filtered by selected franchise in dialog)
   const { data: availablePlayers = [], isLoading: playersLoading } = useQuery({
     queryKey: ['/api/players/available'],
     queryFn: () => apiRequestJson('/api/players/available'),
@@ -70,6 +78,15 @@ export default function MatchSetup() {
       toast({
         title: "Validation Error",
         description: "Please enter both team names.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!matchData.team1FranchiseId || !matchData.team2FranchiseId) {
+      toast({
+        title: "Validation Error",
+        description: "Please select franchises for both teams.",
         variant: "destructive",
       });
       return;
@@ -141,6 +158,17 @@ export default function MatchSetup() {
   };
 
   const openPlayerDialog = (team: 'team1' | 'team2') => {
+    const franchiseId = team === 'team1' ? matchData.team1FranchiseId : matchData.team2FranchiseId;
+    
+    if (!franchiseId) {
+      toast({
+        title: "Select Franchise First",
+        description: `Please select a franchise for ${team === 'team1' ? 'Team 1' : 'Team 2'} before adding players.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setCurrentTeam(team);
     setIsPlayerDialogOpen(true);
   };
@@ -193,7 +221,15 @@ export default function MatchSetup() {
 
   const getAvailablePlayersForSelection = () => {
     const selectedPlayerIds = [...team1Players, ...team2Players].map(p => p.id);
-    return availablePlayers.filter(player => !selectedPlayerIds.includes(player.id));
+    const franchiseId = currentTeam === 'team1' ? matchData.team1FranchiseId : matchData.team2FranchiseId;
+    
+    // Filter by franchise first, then exclude already selected players
+    let filteredPlayers = availablePlayers;
+    if (franchiseId) {
+      filteredPlayers = availablePlayers.filter(player => player.franchiseId === franchiseId);
+    }
+    
+    return filteredPlayers.filter(player => !selectedPlayerIds.includes(player.id));
   };
 
   return (
@@ -213,9 +249,67 @@ export default function MatchSetup() {
             <CardTitle>Match Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="team1Name">Team 1 Name</Label>
+            {/* Franchise Selection Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Franchise Selection</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="team1Franchise">Team 1 Franchise</Label>
+                  <Select 
+                    value={matchData.team1FranchiseId?.toString() || ""} 
+                    onValueChange={(value) => {
+                      const franchiseId = value ? parseInt(value) : null;
+                      setMatchData(prev => ({ ...prev, team1FranchiseId: franchiseId }));
+                      // Clear team 1 players when franchise changes
+                      setTeam1Players([]);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Team 1 Franchise" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {franchises.map((franchise) => (
+                        <SelectItem key={franchise.id} value={franchise.id.toString()}>
+                          {franchise.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="team2Franchise">Team 2 Franchise</Label>
+                  <Select 
+                    value={matchData.team2FranchiseId?.toString() || ""} 
+                    onValueChange={(value) => {
+                      const franchiseId = value ? parseInt(value) : null;
+                      setMatchData(prev => ({ ...prev, team2FranchiseId: franchiseId }));
+                      // Clear team 2 players when franchise changes
+                      setTeam2Players([]);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Team 2 Franchise" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {franchises.map((franchise) => (
+                        <SelectItem key={franchise.id} value={franchise.id.toString()}>
+                          {franchise.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Team Details Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Team Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="team1Name">Team 1 Name</Label>
                 <Input
                   id="team1Name"
                   value={matchData.team1Name}
@@ -252,6 +346,7 @@ export default function MatchSetup() {
                   maxLength={3}
                 />
               </div>
+            </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -441,7 +536,11 @@ export default function MatchSetup() {
                 Select Players for {currentTeam === 'team1' ? matchData.team1Name || 'Team 1' : matchData.team2Name || 'Team 2'}
               </DialogTitle>
               <DialogDescription>
-                Choose from available players in the system. Selected players: {currentTeam === 'team1' ? team1Players.length : team2Players.length}/11
+                {(() => {
+                  const franchiseId = currentTeam === 'team1' ? matchData.team1FranchiseId : matchData.team2FranchiseId;
+                  const franchise = franchises.find(f => f.id === franchiseId);
+                  return `Showing players from ${franchise?.name || 'selected franchise'}. Selected players: ${currentTeam === 'team1' ? team1Players.length : team2Players.length}/11`;
+                })()}
               </DialogDescription>
             </DialogHeader>
             
