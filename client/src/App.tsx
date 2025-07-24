@@ -12,7 +12,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import PlayerManagement from "@/pages/PlayerManagement";
 import UserManagement from "@/pages/UserManagement";
-import FranchiseManagement from "@/pages/FranchiseManagement";
+import FranchiseManagementComplete from "@/pages/FranchiseManagementComplete";
 import MatchStats from "@/pages/MatchStats";
 import Archives from "@/pages/Archives";
 import PlayerStats from "@/pages/PlayerStats";
@@ -119,7 +119,7 @@ function FranchiseManagementWithNav() {
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       <div className="max-w-7xl mx-auto py-8 px-4">
-        <FranchiseManagement />
+        <FranchiseManagementComplete />
       </div>
     </div>
   );

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +14,7 @@ import { insertFranchiseSchema, type Franchise, type InsertFranchise } from "@sh
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Users, Trophy, Building, Edit, Trash2, Settings } from "lucide-react";
 
-export default function FranchiseManagement() {
+export default function FranchiseManagementComplete() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingFranchise, setEditingFranchise] = useState<Franchise | null>(null);
@@ -197,22 +196,22 @@ export default function FranchiseManagement() {
 
   if (isLoadingFranchises) {
     return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-lg">Loading franchises...</div>
+      <div className="container mx-auto p-6">
+        <div className="text-center">Loading franchises...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Franchise Management</h1>
           <p className="text-muted-foreground mt-2">
-            Manage cricket franchises and their associated teams and players
+            Manage cricket franchises, teams, and players in your league
           </p>
         </div>
-
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -524,15 +523,9 @@ export default function FranchiseManagement() {
 
       {!(franchises as Franchise[])?.length && (
         <div className="text-center py-12">
-          <Building className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Franchises Yet</h3>
-          <p className="text-muted-foreground mb-4">
-            Create your first franchise to start organizing teams and players
-          </p>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add First Franchise
-          </Button>
+          <Building className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-semibold text-gray-900">No franchises</h3>
+          <p className="mt-1 text-sm text-gray-500">Get started by creating a new franchise.</p>
         </div>
       )}
     </div>
@@ -560,37 +553,29 @@ function FranchiseCard({
 
   const { data: users } = useQuery({
     queryKey: [`/api/franchises/${franchise.id}/users`],
-    retry: false, // Don't retry failed auth requests
+    retry: false,
   });
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-xl">{franchise.name}</CardTitle>
-            <CardDescription className="mt-1">
-              <Badge variant="secondary">{franchise.shortName}</Badge>
-            </CardDescription>
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Building className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">{franchise.name}</CardTitle>
+              <CardDescription>{franchise.shortName}</CardDescription>
+            </div>
           </div>
-          {franchise.logo && (
-            <img 
-              src={franchise.logo} 
-              alt={`${franchise.name} logo`} 
-              className="w-12 h-12 rounded object-cover"
-            />
-          )}
+          <Badge variant="secondary">Active</Badge>
         </div>
-        {franchise.description && (
-          <p className="text-sm text-muted-foreground mt-2">
-            {franchise.description}
-          </p>
-        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {franchise.location && (
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Building className="w-4 h-4 mr-2" />
+          <div className="text-sm text-muted-foreground flex items-center gap-1">
+            <Building className="w-3 h-3" />
             {franchise.location}
           </div>
         )}
@@ -665,5 +650,207 @@ function FranchiseCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function FranchiseDetailsManager({ franchise }: { franchise: Franchise }) {
+  const [activeTab, setActiveTab] = useState<'users' | 'teams' | 'players'>('users');
+  
+  return (
+    <div className="space-y-6">
+      {/* Franchise Info */}
+      <div className="bg-muted/50 p-4 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">{franchise.name}</h3>
+            <p className="text-sm text-muted-foreground">{franchise.location}</p>
+          </div>
+          <Badge variant="secondary">{franchise.shortName}</Badge>
+        </div>
+        {franchise.description && (
+          <p className="text-sm mt-2">{franchise.description}</p>
+        )}
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 bg-muted p-1 rounded-lg">
+        <Button
+          variant={activeTab === 'users' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveTab('users')}
+          className="flex-1"
+        >
+          <Users className="w-4 h-4 mr-2" />
+          Users
+        </Button>
+        <Button
+          variant={activeTab === 'teams' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveTab('teams')}
+          className="flex-1"
+        >
+          <Trophy className="w-4 h-4 mr-2" />
+          Teams
+        </Button>
+        <Button
+          variant={activeTab === 'players' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveTab('players')}
+          className="flex-1"
+        >
+          <Users className="w-4 h-4 mr-2" />
+          Players
+        </Button>
+      </div>
+
+      {/* Tab Content */}
+      <div className="min-h-[300px]">
+        {activeTab === 'users' && <FranchiseUsers franchiseId={franchise.id} />}
+        {activeTab === 'teams' && <FranchiseTeams franchiseId={franchise.id} />}
+        {activeTab === 'players' && <FranchisePlayers franchiseId={franchise.id} />}
+      </div>
+    </div>
+  );
+}
+
+function FranchiseUsers({ franchiseId }: { franchiseId: number }) {
+  const { data: users, isLoading } = useQuery({
+    queryKey: [`/api/franchises/${franchiseId}/users`],
+    retry: false,
+  });
+
+  if (isLoading) {
+    return <div>Loading users...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h4 className="font-medium">Franchise Users</h4>
+        <Button size="sm">
+          <Plus className="w-4 h-4 mr-2" />
+          Add User
+        </Button>
+      </div>
+      
+      {(users as any)?.length > 0 ? (
+        <div className="space-y-2">
+          {(users as any).map((user: any) => (
+            <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div>
+                <div className="font-medium">{user.firstName} {user.lastName}</div>
+                <div className="text-sm text-muted-foreground">{user.email}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{user.role}</Badge>
+                <Button variant="ghost" size="sm">
+                  <Edit className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          No users assigned to this franchise yet.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FranchiseTeams({ franchiseId }: { franchiseId: number }) {
+  const { data: teams, isLoading } = useQuery({
+    queryKey: [`/api/franchises/${franchiseId}/teams`],
+  });
+
+  if (isLoading) {
+    return <div>Loading teams...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h4 className="font-medium">Franchise Teams</h4>
+        <Button size="sm">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Team
+        </Button>
+      </div>
+      
+      {(teams as any)?.length > 0 ? (
+        <div className="grid gap-4">
+          {(teams as any).map((team: any) => (
+            <Card key={team.id} className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{team.name}</div>
+                  <div className="text-sm text-muted-foreground">{team.shortName}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    View Players
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          No teams in this franchise yet.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FranchisePlayers({ franchiseId }: { franchiseId: number }) {
+  const { data: players, isLoading } = useQuery({
+    queryKey: [`/api/franchises/${franchiseId}/players`],
+  });
+
+  if (isLoading) {
+    return <div>Loading players...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h4 className="font-medium">Franchise Players</h4>
+        <Button size="sm">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Player
+        </Button>
+      </div>
+      
+      {(players as any)?.length > 0 ? (
+        <div className="grid gap-4">
+          {(players as any).map((player: any) => (
+            <Card key={player.id} className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{player.name}</div>
+                  <div className="text-sm text-muted-foreground">{player.role}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{player.battingStyle}</Badge>
+                  <Button variant="outline" size="sm">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          No players in this franchise yet.
+        </div>
+      )}
+    </div>
   );
 }

@@ -114,6 +114,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/franchises/:id', authenticateToken, requireRole(['global_admin']), async (req: any, res) => {
+    try {
+      const franchiseId = parseInt(req.params.id);
+      const success = await storage.deleteFranchise(franchiseId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Franchise not found" });
+      }
+      
+      res.json({ message: "Franchise deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting franchise:", error);
+      res.status(500).json({ message: "Failed to delete franchise" });
+    }
+  });
+
   // User Management API routes (require authentication)
   app.get('/api/users', authenticateToken, requireRole(['admin', 'coach']), async (req: any, res) => {
     try {
