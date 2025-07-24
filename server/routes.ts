@@ -81,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/franchises/:id/users', authenticateToken, requireRole(['global_admin', 'franchise_admin']), async (req: any, res) => {
+  app.get('/api/franchises/:id/users', async (req, res) => {
     try {
       const franchiseId = parseInt(req.params.id);
       const users = await storage.getFranchiseUsers(franchiseId);
@@ -89,6 +89,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching franchise users:", error);
       res.status(500).json({ message: "Failed to fetch franchise users" });
+    }
+  });
+
+  // Add user to franchise
+  app.post('/api/franchises/:id/users', authenticateToken, requireRole(['global_admin', 'franchise_admin']), async (req: any, res) => {
+    try {
+      const franchiseId = parseInt(req.params.id);
+      const userData = insertUserSchema.parse({
+        ...req.body,
+        franchiseId: franchiseId
+      });
+      
+      const user = await storage.createUser(userData);
+      res.status(201).json(user);
+    } catch (error) {
+      console.error("Error creating franchise user:", error);
+      res.status(500).json({ message: "Failed to create franchise user" });
+    }
+  });
+
+  // Update franchise user
+  app.put('/api/franchises/:franchiseId/users/:userId', authenticateToken, requireRole(['global_admin', 'franchise_admin']), async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const franchiseId = parseInt(req.params.franchiseId);
+      
+      // Ensure user belongs to this franchise
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser || existingUser.franchiseId !== franchiseId) {
+        return res.status(404).json({ message: "User not found in this franchise" });
+      }
+      
+      const updateData = req.body;
+      const updatedUser = await storage.updateUser(userId, updateData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating franchise user:", error);
+      res.status(500).json({ message: "Failed to update franchise user" });
+    }
+  });
+
+  // Delete franchise user
+  app.delete('/api/franchises/:franchiseId/users/:userId', authenticateToken, requireRole(['global_admin', 'franchise_admin']), async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const franchiseId = parseInt(req.params.franchiseId);
+      
+      // Ensure user belongs to this franchise
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser || existingUser.franchiseId !== franchiseId) {
+        return res.status(404).json({ message: "User not found in this franchise" });
+      }
+      
+      const success = await storage.deleteUser(userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting franchise user:", error);
+      res.status(500).json({ message: "Failed to delete franchise user" });
     }
   });
 

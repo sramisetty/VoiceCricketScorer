@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertFranchiseSchema, type Franchise, type InsertFranchise } from "@shared/schema";
+import { insertFranchiseSchema, type Franchise, type InsertFranchise, type User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { UserManagementDialog, UserList } from "@/components/UserManagementDialog";
 import { Plus, Users, Trophy, Building, Edit, Trash2, Settings } from "lucide-react";
 
 export default function FranchiseManagementComplete() {
@@ -714,46 +715,55 @@ function FranchiseDetailsManager({ franchise }: { franchise: Franchise }) {
 }
 
 function FranchiseUsers({ franchiseId }: { franchiseId: number }) {
-  const { data: users, isLoading } = useQuery({
-    queryKey: [`/api/franchises/${franchiseId}/users`],
-    retry: false,
-  });
+  const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  if (isLoading) {
-    return <div>Loading users...</div>;
-  }
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsEditUserDialogOpen(true);
+  };
+
+  const handleDeleteUser = (user: User) => {
+    // The UserList component handles deletion internally
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h4 className="font-medium">Franchise Users</h4>
-        <Button size="sm">
+        <Button size="sm" onClick={() => setIsCreateUserDialogOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add User
         </Button>
       </div>
       
-      {(users as any)?.length > 0 ? (
-        <div className="space-y-2">
-          {(users as any).map((user: any) => (
-            <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <div className="font-medium">{user.firstName} {user.lastName}</div>
-                <div className="text-sm text-muted-foreground">{user.email}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">{user.role}</Badge>
-                <Button variant="ghost" size="sm">
-                  <Edit className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8 text-muted-foreground">
-          No users assigned to this franchise yet.
-        </div>
+      <UserList 
+        franchiseId={franchiseId}
+        onEditUser={handleEditUser}
+        onDeleteUser={handleDeleteUser}
+      />
+
+      {/* Create User Dialog */}
+      <UserManagementDialog
+        isOpen={isCreateUserDialogOpen}
+        onClose={() => setIsCreateUserDialogOpen(false)}
+        mode="create"
+        franchiseId={franchiseId}
+      />
+
+      {/* Edit User Dialog */}
+      {selectedUser && (
+        <UserManagementDialog
+          isOpen={isEditUserDialogOpen}
+          onClose={() => {
+            setIsEditUserDialogOpen(false);
+            setSelectedUser(null);
+          }}
+          mode="edit"
+          user={selectedUser}
+          franchiseId={franchiseId}
+        />
       )}
     </div>
   );

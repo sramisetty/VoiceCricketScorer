@@ -11,7 +11,7 @@ import Scoreboard from "@/pages/scoreboard";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import PlayerManagement from "@/pages/PlayerManagement";
-import UserManagement from "@/pages/UserManagement";
+import UserManagement from "@/pages/UserManagementNew";
 import FranchiseManagementComplete from "@/pages/FranchiseManagementComplete";
 import MatchStats from "@/pages/MatchStats";
 import Archives from "@/pages/Archives";

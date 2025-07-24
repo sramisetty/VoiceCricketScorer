@@ -525,9 +525,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFranchiseUsers(franchiseId: number): Promise<User[]> {
-    // Note: This requires a franchise_user_roles table which we'll implement later
-    // For now, return empty array to avoid auth errors
-    return [];
+    return await db.select().from(users).where(eq(users.franchiseId, franchiseId));
   }
 
   async getFranchiseTeams(franchiseId: number): Promise<Team[]> {
