@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertMatchSchema, insertTeamSchema, insertPlayerSchema, insertBallSchema } from "@shared/schema";
+import { insertFranchiseSchema, insertMatchSchema, insertTeamSchema, insertPlayerSchema, insertBallSchema } from "@shared/schema";
 import { transcribeAudio, validateAudioFormat } from "./whisper";
 import { optionalAuth, AuthenticatedRequest, authenticateToken, requireRole } from "./auth";
 import authRoutes from "./authRoutes";
@@ -25,6 +25,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register statistics routes
   registerStatsRoutes(app);
+
+  // Franchise Management API routes
+  app.get('/api/franchises', async (req, res) => {
+    try {
+      const franchises = await storage.getAllFranchises();
+      res.json(franchises);
+    } catch (error) {
+      console.error("Error fetching franchises:", error);
+      res.status(500).json({ message: "Failed to fetch franchises" });
+    }
+  });
+
+  app.post('/api/franchises', authenticateToken, requireRole(['global_admin']), async (req: any, res) => {
+    try {
+      const franchiseData = insertFranchiseSchema.parse(req.body);
+      const franchise = await storage.createFranchise(franchiseData);
+      res.status(201).json(franchise);
+    } catch (error) {
+      console.error("Error creating franchise:", error);
+      res.status(500).json({ message: "Failed to create franchise" });
+    }
+  });
+
+  app.get('/api/franchises/:id', async (req, res) => {
+    try {
+      const franchiseId = parseInt(req.params.id);
+      const franchise = await storage.getFranchise(franchiseId);
+      
+      if (!franchise) {
+        return res.status(404).json({ message: "Franchise not found" });
+      }
+      
+      res.json(franchise);
+    } catch (error) {
+      console.error("Error fetching franchise:", error);
+      res.status(500).json({ message: "Failed to fetch franchise" });
+    }
+  });
+
+  app.put('/api/franchises/:id', authenticateToken, requireRole(['global_admin']), async (req: any, res) => {
+    try {
+      const franchiseId = parseInt(req.params.id);
+      const updateData = req.body;
+      const updatedFranchise = await storage.updateFranchise(franchiseId, updateData);
+      
+      if (!updatedFranchise) {
+        return res.status(404).json({ message: "Franchise not found" });
+      }
+      
+      res.json(updatedFranchise);
+    } catch (error) {
+      console.error("Error updating franchise:", error);
+      res.status(500).json({ message: "Failed to update franchise" });
+    }
+  });
+
+  app.get('/api/franchises/:id/users', authenticateToken, requireRole(['global_admin', 'franchise_admin']), async (req: any, res) => {
+    try {
+      const franchiseId = parseInt(req.params.id);
+      const users = await storage.getFranchiseUsers(franchiseId);
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching franchise users:", error);
+      res.status(500).json({ message: "Failed to fetch franchise users" });
+    }
+  });
+
+  app.get('/api/franchises/:id/teams', async (req, res) => {
+    try {
+      const franchiseId = parseInt(req.params.id);
+      const teams = await storage.getFranchiseTeams(franchiseId);
+      res.json(teams);
+    } catch (error) {
+      console.error("Error fetching franchise teams:", error);
+      res.status(500).json({ message: "Failed to fetch franchise teams" });
+    }
+  });
+
+  app.get('/api/franchises/:id/players', async (req, res) => {
+    try {
+      const franchiseId = parseInt(req.params.id);
+      const players = await storage.getFranchisePlayers(franchiseId);
+      res.json(players);
+    } catch (error) {
+      console.error("Error fetching franchise players:", error);
+      res.status(500).json({ message: "Failed to fetch franchise players" });
+    }
+  });
 
   // User Management API routes (require authentication)
   app.get('/api/users', authenticateToken, requireRole(['admin', 'coach']), async (req: any, res) => {

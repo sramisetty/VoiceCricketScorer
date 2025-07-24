@@ -137,7 +137,15 @@ export function requireRole(roles: string[]) {
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    // Map old roles to new roles for backward compatibility
+    const normalizedRoles = roles.map(role => {
+      if (role === 'admin') return 'global_admin';
+      if (role === 'coach') return 'franchise_admin';
+      if (role === 'user') return 'viewer';
+      return role;
+    });
+
+    if (!normalizedRoles.includes(req.user.role)) {
       res.status(403).json({ error: 'Insufficient permissions' });
       return;
     }
@@ -157,7 +165,7 @@ export function requireOwnershipOrAdmin(getResourceUserId: (req: AuthenticatedRe
     try {
       const resourceUserId = await getResourceUserId(req);
       
-      if (req.user.role === 'admin' || req.user.id === resourceUserId) {
+      if (req.user.role === 'global_admin' || req.user.role === 'admin' || req.user.id === resourceUserId) {
         next();
       } else {
         res.status(403).json({ error: 'Access denied' });

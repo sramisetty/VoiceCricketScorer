@@ -1,7 +1,7 @@
 import { 
-  teams, players, matches, innings, balls, playerStats, users, matchPlayerSelections, userPlayerLinks,
-  type Team, type Player, type Match, type Innings, type Ball, type PlayerStats, type User, type MatchPlayerSelection,
-  type InsertTeam, type InsertPlayer, type InsertMatch, type InsertInnings, type InsertBall, type InsertPlayerStats, type InsertUser, type InsertMatchPlayerSelection,
+  franchises, teams, players, matches, innings, balls, playerStats, users, matchPlayerSelections, userPlayerLinks,
+  type Franchise, type Team, type Player, type Match, type Innings, type Ball, type PlayerStats, type User, type MatchPlayerSelection,
+  type InsertFranchise, type InsertTeam, type InsertPlayer, type InsertMatch, type InsertInnings, type InsertBall, type InsertPlayerStats, type InsertUser, type InsertMatchPlayerSelection,
   type MatchWithTeams, type InningsWithStats, type LiveMatchData, type PlayerWithStats, type MatchWithDetails
 } from "@shared/schema";
 import { db } from "./db";
@@ -9,6 +9,16 @@ import { eq, and, desc } from "drizzle-orm";
 import { cricketRules, type CricketRuleValidation } from "./cricket-rules";
 
 export interface IStorage {
+  // Franchises
+  createFranchise(franchise: InsertFranchise): Promise<Franchise>;
+  getFranchise(id: number): Promise<Franchise | undefined>;
+  getAllFranchises(): Promise<Franchise[]>;
+  updateFranchise(id: number, franchise: Partial<Franchise>): Promise<Franchise | undefined>;
+  deleteFranchise(id: number): Promise<boolean>;
+  getFranchiseUsers(franchiseId: number): Promise<User[]>;
+  getFranchiseTeams(franchiseId: number): Promise<Team[]>;
+  getFranchisePlayers(franchiseId: number): Promise<Player[]>;
+
   // Users (Authentication & Management)
   createUser(user: InsertUser): Promise<User>;
   getUser(id: number): Promise<User | undefined>;
@@ -478,6 +488,52 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Franchise operations
+  async createFranchise(franchise: InsertFranchise): Promise<Franchise> {
+    const [result] = await db.insert(franchises).values(franchise).returning();
+    return result;
+  }
+
+  async getFranchise(id: number): Promise<Franchise | undefined> {
+    const [result] = await db.select().from(franchises).where(eq(franchises.id, id));
+    return result;
+  }
+
+  async getAllFranchises(): Promise<Franchise[]> {
+    return await db.select().from(franchises).where(eq(franchises.isActive, true));
+  }
+
+  async updateFranchise(id: number, franchise: Partial<Franchise>): Promise<Franchise | undefined> {
+    const [result] = await db
+      .update(franchises)
+      .set({ ...franchise, updatedAt: new Date() })
+      .where(eq(franchises.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteFranchise(id: number): Promise<boolean> {
+    try {
+      await db.update(franchises).set({ isActive: false }).where(eq(franchises.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting franchise:', error);
+      return false;
+    }
+  }
+
+  async getFranchiseUsers(franchiseId: number): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.franchiseId, franchiseId));
+  }
+
+  async getFranchiseTeams(franchiseId: number): Promise<Team[]> {
+    return await db.select().from(teams).where(eq(teams.franchiseId, franchiseId));
+  }
+
+  async getFranchisePlayers(franchiseId: number): Promise<Player[]> {
+    return await db.select().from(players).where(eq(players.franchiseId, franchiseId));
+  }
+
   // Users (Authentication)
   async createUser(user: InsertUser): Promise<User> {
     const [newUser] = await db.insert(users).values(user).returning();

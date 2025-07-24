@@ -48,6 +48,8 @@ export default function Navigation() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
+      case 'global_admin': return 'bg-red-100 text-red-800';
+      case 'franchise_admin': return 'bg-blue-100 text-blue-800';
       case 'coach': return 'bg-blue-100 text-blue-800';
       case 'scorer': return 'bg-green-100 text-green-800';
       case 'player': return 'bg-purple-100 text-purple-800';
@@ -84,7 +86,7 @@ export default function Navigation() {
               Matches
             </Button>
 
-            {user && (user.role === 'admin' || user.role === 'coach' || user.role === 'scorer') && (
+            {user && (user.role === 'admin' || user.role === 'coach' || user.role === 'scorer' || user.role === 'global_admin' || user.role === 'franchise_admin') && (
               <Button
                 variant="ghost"
                 onClick={() => setLocation('/players')}
@@ -95,7 +97,18 @@ export default function Navigation() {
               </Button>
             )}
 
-            {user && (user.role === 'admin' || user.role === 'coach') && (
+            {user && (user.role === 'admin' || user.role === 'global_admin') && (
+              <Button
+                variant="ghost"
+                onClick={() => setLocation('/franchises')}
+                className="flex items-center gap-2"
+              >
+                <Shield className="w-4 h-4" />
+                Franchises
+              </Button>
+            )}
+
+            {user && (user.role === 'admin' || user.role === 'coach' || user.role === 'global_admin' || user.role === 'franchise_admin') && (
               <Button
                 variant="ghost"
                 onClick={() => setLocation('/user-management')}
