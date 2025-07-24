@@ -1,9 +1,6 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
-
-neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -11,16 +8,10 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configure pool with SSL settings for production
-const poolConfig = {
+// Simple PostgreSQL connection without SSL for local database
+export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  // Disable SSL verification for local PostgreSQL connections
-  ssl: process.env.NODE_ENV === 'production' && process.env.DATABASE_URL?.includes('localhost') 
-    ? false 
-    : process.env.NODE_ENV === 'production' 
-    ? { rejectUnauthorized: false }
-    : false
-};
+  ssl: false
+});
 
-export const pool = new Pool(poolConfig);
-export const db = drizzle({ client: pool, schema });
+export const db = drizzle(pool, { schema });

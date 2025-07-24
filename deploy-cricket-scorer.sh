@@ -454,7 +454,7 @@ EOF
         # Backup original config
         cp drizzle.config.ts drizzle.config.ts.backup
         
-        # Update config to use production DATABASE_URL
+        # Update config to use production DATABASE_URL without SSL
         cat > drizzle.config.ts <<'EOF'
 import { defineConfig } from 'drizzle-kit';
 
@@ -463,7 +463,7 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgresql://cricket_user:cricket_pass@localhost:5432/cricket_scorer'
+    url: process.env.DATABASE_URL || 'postgresql://cricket_user:simple123@localhost:5432/cricket_scorer?sslmode=disable'
   }
 });
 EOF
