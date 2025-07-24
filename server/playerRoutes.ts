@@ -171,16 +171,17 @@ router.delete('/players/:id', authenticateToken, requireRole(['admin']), async (
       return res.status(400).json({ error: 'Invalid player ID' });
     }
 
-    const result = await storage.deletePlayer(id);
+    const success = await storage.deletePlayer(id);
     
-    if (!result.success) {
-      if (result.error === 'Player not found') {
-        return res.status(404).json({ error: result.error });
+    if (!success) {
+      // Check if player can be deleted first to give specific error message
+      const canDelete = await storage.canDeletePlayer(id);
+      if (!canDelete) {
+        return res.status(400).json({ 
+          error: 'Cannot delete player - they are part of existing matches. Players can only be deleted if they have never been selected for any match.' 
+        });
       }
-      if (result.error?.includes('part of active matches')) {
-        return res.status(400).json({ error: result.error });
-      }
-      return res.status(500).json({ error: result.error || 'Failed to delete player' });
+      return res.status(404).json({ error: 'Player not found or failed to delete' });
     }
 
     res.json({ 

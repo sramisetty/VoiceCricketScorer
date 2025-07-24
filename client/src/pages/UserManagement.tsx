@@ -39,8 +39,8 @@ export default function UserManagement() {
     },
   });
 
-  // Fetch available players
-  const { data: availablePlayers = [] } = useQuery({
+  // Fetch available players  
+  const { data: availablePlayers = [], isLoading: playersLoading, error: playersError } = useQuery({
     queryKey: ['/api/players/available'],
     queryFn: () => apiRequestJson('/api/players/available'),
   });
@@ -529,25 +529,51 @@ export default function UserManagement() {
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-4">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-sm text-gray-700">
+                  <strong>User:</strong> {selectedUser.firstName} {selectedUser.lastName} ({selectedUser.email})
+                </p>
+              </div>
+              
               <div>
                 <Label>Select Player</Label>
-                <Select 
-                  value={editUser.linkedPlayerId?.toString() || ''} 
-                  onValueChange={(value) => setEditUser(prev => ({ ...prev, linkedPlayerId: value ? parseInt(value) : null }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a player to link" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">None (Remove link)</SelectItem>
-                    {availablePlayers.map((player: any) => (
-                      <SelectItem key={player.id} value={player.id.toString()}>
-                        {player.name} - {player.role}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {playersLoading ? (
+                  <div className="p-3 text-center text-gray-500">
+                    Loading players...
+                  </div>
+                ) : playersError ? (
+                  <div className="p-3 text-center text-red-500">
+                    Error loading players. Please try again.
+                  </div>
+                ) : (
+                  <Select 
+                    value={editUser.linkedPlayerId?.toString() || ''} 
+                    onValueChange={(value) => setEditUser(prev => ({ ...prev, linkedPlayerId: value ? parseInt(value) : null }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a player to link" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None (Remove link)</SelectItem>
+                      {availablePlayers.map((player: any) => (
+                        <SelectItem key={player.id} value={player.id.toString()}>
+                          {player.name} - {player.role} ({player.teamId ? 'Team ID: ' + player.teamId : 'No team'})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
+              
+              {availablePlayers.length === 0 && !playersLoading && (
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    <strong>No players available:</strong> All players are already linked to user accounts. 
+                    Create new players in Player Management to link them here.
+                  </p>
+                </div>
+              )}
+              
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm text-blue-800">
                   <strong>Benefits of linking:</strong> When a user is linked to a player profile, 
