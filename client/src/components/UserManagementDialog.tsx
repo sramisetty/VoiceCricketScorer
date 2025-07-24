@@ -6,10 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Badge } from '@/components/ui/badge';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { insertUserSchema, type User, type InsertUser } from '@shared/schema';
+import { insertUserSchema, type User, type InsertUser, type PlayerWithStats } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { Link, Edit, Trash2 } from 'lucide-react';
 import { z } from 'zod';
 
 const userFormSchema = insertUserSchema.extend({
@@ -261,14 +263,169 @@ export function UserManagementDialog({
   );
 }
 
+// Link Player Dialog Component
+interface LinkPlayerDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  user: User | null;
+  franchiseId?: number;
+  onSuccess?: () => void;
+}
+
+export function LinkPlayerDialog({ isOpen, onClose, user, franchiseId, onSuccess }: LinkPlayerDialogProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+
+  // Fetch available players based on context
+  const { data: availablePlayers = [], isLoading: playersLoading } = useQuery({
+    queryKey: franchiseId ? [`/api/franchises/${franchiseId}/players`] : ['/api/players/available'],
+    queryFn: async () => {
+      const endpoint = franchiseId 
+        ? `/api/franchises/${franchiseId}/players`
+        : '/api/players/available';
+      
+      const response = await fetch(endpoint, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch players');
+      }
+      
+      return response.json();
+    },
+    enabled: isOpen && !!user,
+  });
+
+  // Link player mutation
+  const linkPlayerMutation = useMutation({
+    mutationFn: async (playerId: number | null) => {
+      if (!user) throw new Error('No user selected');
+      
+      const response = await fetch(`/api/users/${user.id}/link-player`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        },
+        body: JSON.stringify({ playerId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to link player');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      const queryKey = franchiseId 
+        ? [`/api/franchises/${franchiseId}/users`]
+        : ['/api/users'];
+      queryClient.invalidateQueries({ queryKey });
+      
+      toast({
+        title: "Success",
+        description: selectedPlayerId 
+          ? "Player linked successfully" 
+          : "Player unlinked successfully",
+      });
+      onSuccess?.();
+      onClose();
+      setSelectedPlayerId(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = () => {
+    linkPlayerMutation.mutate(selectedPlayerId);
+  };
+
+  const handleClose = () => {
+    setSelectedPlayerId(null);
+    onClose();
+  };
+
+  if (!user) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Link Player to User</DialogTitle>
+          <DialogDescription>
+            Associate {user.firstName} {user.lastName} with a player profile
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="player-select">Select Player</Label>
+            {playersLoading ? (
+              <div className="text-sm text-muted-foreground">Loading players...</div>
+            ) : (
+              <Select 
+                value={selectedPlayerId?.toString() || "none"} 
+                onValueChange={(value) => setSelectedPlayerId(value === "none" ? null : parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a player" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Player (Unlink)</SelectItem>
+                  {availablePlayers.map((player: PlayerWithStats) => (
+                    <SelectItem key={player.id} value={player.id.toString()}>
+                      {player.name} - {player.role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClose}
+            disabled={linkPlayerMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={linkPlayerMutation.isPending || playersLoading}
+          >
+            {linkPlayerMutation.isPending 
+              ? 'Linking...' 
+              : selectedPlayerId ? 'Link Player' : 'Unlink Player'
+            }
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // User list component that can be reused
 interface UserListProps {
   franchiseId?: number;
   onEditUser?: (user: User) => void;
   onDeleteUser?: (user: User) => void;
+  onLinkPlayer?: (user: User) => void;
 }
 
-export function UserList({ franchiseId, onEditUser, onDeleteUser }: UserListProps) {
+export function UserList({ franchiseId, onEditUser, onDeleteUser, onLinkPlayer }: UserListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -357,13 +514,24 @@ export function UserList({ franchiseId, onEditUser, onDeleteUser }: UserListProp
             </div>
           </div>
           <div className="flex gap-2">
+            {onLinkPlayer && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onLinkPlayer(user)}
+                title="Link to Player"
+              >
+                <Link className="w-4 h-4" />
+              </Button>
+            )}
             {onEditUser && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onEditUser(user)}
+                title="Edit User"
               >
-                Edit
+                <Edit className="w-4 h-4" />
               </Button>
             )}
             {onDeleteUser && (
@@ -372,8 +540,9 @@ export function UserList({ franchiseId, onEditUser, onDeleteUser }: UserListProp
                 size="sm"
                 onClick={() => deleteUserMutation.mutate(user)}
                 disabled={deleteUserMutation.isPending}
+                title="Delete User"
               >
-                Delete
+                <Trash2 className="w-4 h-4" />
               </Button>
             )}
           </div>

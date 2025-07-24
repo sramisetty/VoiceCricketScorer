@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { UserManagementDialog, UserList } from '@/components/UserManagementDialog';
+import { UserManagementDialog, UserList, LinkPlayerDialog } from '@/components/UserManagementDialog';
 import { Users, UserPlus } from 'lucide-react';
 import type { User as UserType } from '@shared/schema';
 
 export default function UserManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isLinkPlayerDialogOpen, setIsLinkPlayerDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
 
   const handleEditUser = (user: UserType) => {
@@ -17,6 +18,11 @@ export default function UserManagement() {
 
   const handleDeleteUser = (user: UserType) => {
     // The UserList component handles deletion internally
+  };
+
+  const handleLinkPlayer = (user: UserType) => {
+    setSelectedUser(user);
+    setIsLinkPlayerDialogOpen(true);
   };
 
   return (
@@ -43,6 +49,7 @@ export default function UserManagement() {
           <UserList 
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
+            onLinkPlayer={handleLinkPlayer}
           />
         </CardContent>
       </Card>
@@ -66,6 +73,16 @@ export default function UserManagement() {
           user={selectedUser}
         />
       )}
+
+      {/* Link Player Dialog */}
+      <LinkPlayerDialog
+        isOpen={isLinkPlayerDialogOpen}
+        onClose={() => {
+          setIsLinkPlayerDialogOpen(false);
+          setSelectedUser(null);
+        }}
+        user={selectedUser}
+      />
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertFranchiseSchema, type Franchise, type InsertFranchise, type User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { UserManagementDialog, UserList } from "@/components/UserManagementDialog";
+import { UserManagementDialog, UserList, LinkPlayerDialog } from "@/components/UserManagementDialog";
 import { Plus, Users, Trophy, Building, Edit, Trash2, Settings } from "lucide-react";
 
 export default function FranchiseManagementComplete() {
@@ -717,6 +717,7 @@ function FranchiseDetailsManager({ franchise }: { franchise: Franchise }) {
 function FranchiseUsers({ franchiseId }: { franchiseId: number }) {
   const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [isLinkPlayerDialogOpen, setIsLinkPlayerDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const handleEditUser = (user: User) => {
@@ -726,6 +727,11 @@ function FranchiseUsers({ franchiseId }: { franchiseId: number }) {
 
   const handleDeleteUser = (user: User) => {
     // The UserList component handles deletion internally
+  };
+
+  const handleLinkPlayer = (user: User) => {
+    setSelectedUser(user);
+    setIsLinkPlayerDialogOpen(true);
   };
 
   return (
@@ -742,6 +748,7 @@ function FranchiseUsers({ franchiseId }: { franchiseId: number }) {
         franchiseId={franchiseId}
         onEditUser={handleEditUser}
         onDeleteUser={handleDeleteUser}
+        onLinkPlayer={handleLinkPlayer}
       />
 
       {/* Create User Dialog */}
@@ -765,6 +772,17 @@ function FranchiseUsers({ franchiseId }: { franchiseId: number }) {
           franchiseId={franchiseId}
         />
       )}
+
+      {/* Link Player Dialog */}
+      <LinkPlayerDialog
+        isOpen={isLinkPlayerDialogOpen}
+        onClose={() => {
+          setIsLinkPlayerDialogOpen(false);
+          setSelectedUser(null);
+        }}
+        user={selectedUser}
+        franchiseId={franchiseId}
+      />
     </div>
   );
 }
