@@ -230,9 +230,12 @@ export function UserManagementDialog({
                       <SelectItem value="coach">Coach</SelectItem>
                       <SelectItem value="manager">Manager</SelectItem>
                       <SelectItem value="scorer">Scorer</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      {franchiseId && (
+                        <SelectItem value="franchise_admin">Franchise Admin</SelectItem>
+                      )}
                       {!franchiseId && (
                         <>
+                          <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="franchise_admin">Franchise Admin</SelectItem>
                           <SelectItem value="global_admin">Global Admin</SelectItem>
                         </>
