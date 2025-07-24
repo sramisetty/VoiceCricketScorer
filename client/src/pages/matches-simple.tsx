@@ -144,7 +144,7 @@ export default function Matches() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {liveMatches.map((match) => (
                 <Card key={match.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-3">
@@ -238,7 +238,7 @@ export default function Matches() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {setupMatches.map((match) => (
                 <Card key={match.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-3">
@@ -323,7 +323,7 @@ export default function Matches() {
               <Badge variant="secondary">{completedMatches.length}</Badge>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {completedMatches.map((match) => (
                 <Card key={match.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-3">
