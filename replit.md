@@ -140,6 +140,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 ### January 24, 2025
+- **✓ Role-Based Scoring Access Control**: Implemented comprehensive role-based access control restricting live match scoring functionality to only scorers and admins, while providing scoreboard view access to all users. Enhanced both frontend UI (conditional action buttons) and backend API routes (authentication middleware) for complete security coverage
+- **✓ Protected Scoring API Endpoints**: Added authentication and role validation to all scoring-related API routes including ball creation, match start/reset, undo functionality, bowler changes, timeout calls, strike switching, opener selection, audio transcription, and match management operations
+- **✓ Dynamic UI Based on User Role**: Updated matches page to show different action buttons based on user authentication and role - scoring buttons for admins/scorers, scoreboard-only access for other users, ensuring proper user experience aligned with permissions
 - **✓ Match Setup Integration with Player Management System**: Completely transformed match creation workflow from text input to sophisticated player selector using available players from player management system, including role-based filtering, duplicate prevention, team capacity limits, and visual player cards with statistics display
 - **✓ Enhanced Player Selection UI**: Implemented comprehensive player selection dialog with real-time availability filtering, player statistics display (matches, runs, role), automatic duplicate detection across teams, and intuitive add/remove functionality with visual confirmation
 - **✓ Authentication-Based Navigation**: Updated navigation system to show Player Management and New Match links based on user authentication status and role permissions (admin, coach, scorer access to Player Management)

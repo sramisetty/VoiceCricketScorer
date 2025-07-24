@@ -70,6 +70,9 @@ export default function Matches() {
   const setupMatches = matches.filter(match => match.status === 'setup');
   const completedMatches = matches.filter(match => match.status === 'completed');
 
+  // Check if user can score (admin or scorer only)
+  const canScore = user && (user.role === 'admin' || user.role === 'scorer');
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -145,17 +148,28 @@ export default function Matches() {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Link href={`/scorer/${match.id}`} className="flex-1">
-                          <Button className="w-full bg-cricket-primary hover:bg-cricket-secondary">
-                            <Play className="w-4 h-4 mr-2" />
-                            Score
-                          </Button>
-                        </Link>
-                        <Link href={`/scoreboard/${match.id}`}>
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </Link>
+                        {canScore ? (
+                          <>
+                            <Link href={`/scorer/${match.id}`} className="flex-1">
+                              <Button className="w-full bg-cricket-primary hover:bg-cricket-secondary">
+                                <Play className="w-4 h-4 mr-2" />
+                                Score
+                              </Button>
+                            </Link>
+                            <Link href={`/scoreboard/${match.id}`}>
+                              <Button variant="outline" size="sm">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </Link>
+                          </>
+                        ) : (
+                          <Link href={`/scoreboard/${match.id}`} className="flex-1">
+                            <Button variant="outline" className="w-full">
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Scoreboard
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -219,17 +233,28 @@ export default function Matches() {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Link href={`/scorer/${match.id}`} className="flex-1">
-                          <Button className="w-full bg-green-500 hover:bg-green-600">
-                            <Play className="w-4 h-4 mr-2" />
-                            Start Match
-                          </Button>
-                        </Link>
-                        <Link href={`/scoreboard/${match.id}`}>
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </Link>
+                        {canScore ? (
+                          <>
+                            <Link href={`/scorer/${match.id}`} className="flex-1">
+                              <Button className="w-full bg-green-500 hover:bg-green-600">
+                                <Play className="w-4 h-4 mr-2" />
+                                Start Match
+                              </Button>
+                            </Link>
+                            <Link href={`/scoreboard/${match.id}`}>
+                              <Button variant="outline" size="sm">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </Link>
+                          </>
+                        ) : (
+                          <Link href={`/scoreboard/${match.id}`} className="flex-1">
+                            <Button variant="outline" className="w-full">
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Scoreboard
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </CardContent>
