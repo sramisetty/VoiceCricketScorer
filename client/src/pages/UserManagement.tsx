@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequestJson, apiRequest } from '@/lib/queryClient';
 import { Users, UserPlus, Edit, Trash2, Shield, ShieldCheck, User, Link } from 'lucide-react';
 import type { User as UserType } from '@shared/schema';
+import { TestDialog } from '@/components/TestDialog';
 
 export default function UserManagement() {
   const { toast } = useToast();
@@ -263,33 +264,35 @@ export default function UserManagement() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
           <p className="text-gray-600">Manage system users and their access permissions</p>
-          <Button 
-            onClick={() => {
-              console.log('Force opening Link Player dialog');
-              // Set a dummy user for testing
-              setSelectedUser({
-                id: 1,
-                firstName: 'Test',
-                lastName: 'User',
-                email: 'test@test.com',
-                role: 'admin',
-                isActive: true
-              } as any);
-              setEditUser({
-                firstName: 'Test',
-                lastName: 'User',
-                role: 'admin',
-                isActive: true,
-                linkedPlayerId: null
-              });
-              setIsLinkPlayerDialogOpen(true);
-            }} 
-            size="sm" 
-            variant="outline" 
-            className="mt-2"
-          >
-            Test Link Dialog
-          </Button>
+          <div className="flex gap-2 mt-2">
+            <Button 
+              onClick={() => {
+                console.log('Force opening Link Player dialog');
+                // Set a dummy user for testing
+                setSelectedUser({
+                  id: 1,
+                  firstName: 'Test',
+                  lastName: 'User',
+                  email: 'test@test.com',
+                  role: 'admin',
+                  isActive: true
+                } as any);
+                setEditUser({
+                  firstName: 'Test',
+                  lastName: 'User',
+                  role: 'admin' as any,
+                  isActive: true,
+                  linkedPlayerId: null
+                });
+                setIsLinkPlayerDialogOpen(true);
+              }} 
+              size="sm" 
+              variant="outline"
+            >
+              Test Link Dialog
+            </Button>
+            <TestDialog />
+          </div>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
