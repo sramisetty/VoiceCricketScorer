@@ -31,6 +31,7 @@ export interface IStorage {
   getAvailablePlayers(): Promise<PlayerWithStats[]>;
   updatePlayer(id: number, player: Partial<Player>): Promise<Player | undefined>;
   deletePlayer(id: number): Promise<boolean>;
+  canDeletePlayer(id: number): Promise<boolean>;
   searchPlayers(query: string): Promise<PlayerWithStats[]>;
 
   // Matches (Enhanced with user creation)
@@ -39,6 +40,7 @@ export interface IStorage {
   getMatchWithTeams(id: number): Promise<MatchWithTeams | undefined>;
   getMatchWithDetails(id: number): Promise<MatchWithDetails | undefined>;
   updateMatch(id: number, match: Partial<Match>): Promise<Match | undefined>;
+  deleteMatch(id: number): Promise<boolean>;
   getAllMatches(): Promise<MatchWithTeams[]>;
   getMatchesByUser(userId: number): Promise<MatchWithTeams[]>;
 
@@ -606,13 +608,34 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async canDeletePlayer(id: number): Promise<boolean> {
+    // Check if player is part of any match (including completed matches)
+    const matchSelections = await db.select().from(matchPlayerSelections)
+      .where(eq(matchPlayerSelections.playerId, id));
+    
+    // If player has been selected for any match, they cannot be deleted
+    return matchSelections.length === 0;
+  }
+
   async deletePlayer(id: number): Promise<boolean> {
-    // Soft delete by setting isActive to false
-    const [updatedPlayer] = await db.update(players)
-      .set({ isActive: false })
-      .where(eq(players.id, id))
-      .returning();
-    return !!updatedPlayer;
+    try {
+      // Check if player can be deleted (not part of any match)
+      const canDelete = await this.canDeletePlayer(id);
+      if (!canDelete) {
+        return false; // Cannot delete player who is part of matches
+      }
+
+      // Delete user-player links if they exist
+      await db.delete(userPlayerLinks).where(eq(userPlayerLinks.playerId, id));
+
+      // Hard delete the player since they're not part of any match
+      const [deletedPlayer] = await db.delete(players).where(eq(players.id, id)).returning();
+      
+      return !!deletedPlayer;
+    } catch (error) {
+      console.error('Error deleting player:', error);
+      return false;
+    }
   }
 
   async searchPlayers(query: string): Promise<PlayerWithStats[]> {
@@ -672,6 +695,39 @@ export class DatabaseStorage implements IStorage {
   async updateMatch(id: number, match: Partial<Match>): Promise<Match | undefined> {
     const [updatedMatch] = await db.update(matches).set(match).where(eq(matches.id, id)).returning();
     return updatedMatch;
+  }
+
+  async deleteMatch(id: number): Promise<boolean> {
+    try {
+      // Delete all related data in the correct order to avoid foreign key constraints
+      
+      // 1. Get all innings for this match
+      const matchInnings = await db.select().from(innings).where(eq(innings.matchId, id));
+      
+      // 2. Delete balls for each innings
+      for (const inning of matchInnings) {
+        await db.delete(balls).where(eq(balls.inningsId, inning.id));
+      }
+      
+      // 3. Delete player stats for each innings
+      for (const inning of matchInnings) {
+        await db.delete(playerStats).where(eq(playerStats.inningsId, inning.id));
+      }
+      
+      // 4. Delete match player selections
+      await db.delete(matchPlayerSelections).where(eq(matchPlayerSelections.matchId, id));
+      
+      // 5. Delete innings
+      await db.delete(innings).where(eq(innings.matchId, id));
+      
+      // 6. Finally delete the match
+      const [deletedMatch] = await db.delete(matches).where(eq(matches.id, id)).returning();
+      
+      return !!deletedMatch;
+    } catch (error) {
+      console.error('Error deleting match:', error);
+      return false;
+    }
   }
 
   async getAllMatches(): Promise<MatchWithTeams[]> {

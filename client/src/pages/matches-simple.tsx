@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, Play, Eye, Calendar, Clock, Users, Trophy, Target, LogIn } from 'lucide-react';
+import { Plus, Play, Eye, Calendar, Clock, Users, Trophy, Target, LogIn, Trash2 } from 'lucide-react';
 import type { MatchWithTeams, Team } from '@shared/schema';
 
 export default function Matches() {
@@ -72,6 +72,36 @@ export default function Matches() {
 
   // Check if user can score (admin or scorer only)
   const canScore = user && (user.role === 'admin' || user.role === 'scorer');
+
+  // Delete match mutation
+  const deleteMatchMutation = useMutation({
+    mutationFn: async (matchId: number) => {
+      const response = await apiRequest(`/api/matches/${matchId}`, {
+        method: 'DELETE',
+      });
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Match deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/matches'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete match",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteMatch = (matchId: number) => {
+    if (confirm('Are you sure you want to delete this match? This will permanently remove all match data including scores, stats, and innings. This action cannot be undone.')) {
+      deleteMatchMutation.mutate(matchId);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -161,6 +191,15 @@ export default function Matches() {
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </Link>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => handleDeleteMatch(match.id)}
+                              className="bg-red-500 hover:bg-red-600"
+                              disabled={deleteMatchMutation.isPending}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </>
                         ) : (
                           <Link href={`/scoreboard/${match.id}`} className="flex-1">
@@ -246,6 +285,15 @@ export default function Matches() {
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </Link>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => handleDeleteMatch(match.id)}
+                              className="bg-red-500 hover:bg-red-600"
+                              disabled={deleteMatchMutation.isPending}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </>
                         ) : (
                           <Link href={`/scoreboard/${match.id}`} className="flex-1">
@@ -315,6 +363,17 @@ export default function Matches() {
                             View Results
                           </Button>
                         </Link>
+                        {canScore && (
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleDeleteMatch(match.id)}
+                            className="bg-red-500 hover:bg-red-600"
+                            disabled={deleteMatchMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>

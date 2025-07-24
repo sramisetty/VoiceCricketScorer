@@ -142,7 +142,28 @@ router.patch('/players/:id', authenticateToken, requireRole(['admin', 'coach']),
   }
 });
 
-// Delete player (soft delete)
+// Check if player can be deleted
+router.get('/players/:id/can-delete', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid player ID' });
+    }
+
+    const canDelete = await storage.canDeletePlayer(id);
+    res.json({ 
+      canDelete, 
+      message: canDelete 
+        ? 'Player can be deleted' 
+        : 'Player cannot be deleted - they are part of existing matches' 
+    });
+  } catch (error) {
+    console.error('Check delete player error:', error);
+    res.status(500).json({ error: 'Failed to check if player can be deleted' });
+  }
+});
+
+// Delete player (hard delete if not part of any match)
 router.delete('/players/:id', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -150,9 +171,17 @@ router.delete('/players/:id', authenticateToken, requireRole(['admin']), async (
       return res.status(400).json({ error: 'Invalid player ID' });
     }
 
+    // Check if player can be deleted first
+    const canDelete = await storage.canDeletePlayer(id);
+    if (!canDelete) {
+      return res.status(400).json({ 
+        error: 'Cannot delete player - they are part of existing matches. Players can only be deleted if they have never been selected for any match.' 
+      });
+    }
+
     const success = await storage.deletePlayer(id);
     if (!success) {
-      return res.status(404).json({ error: 'Player not found' });
+      return res.status(404).json({ error: 'Player not found or failed to delete' });
     }
 
     res.json({ message: 'Player deleted successfully' });

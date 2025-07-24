@@ -338,18 +338,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const matchId = parseInt(req.params.id);
       
-      // Reset match status and clear all match data
-      await storage.updateMatch(matchId, { 
-        status: 'setup', 
-        currentInnings: 1 
-      });
+      // Completely delete the match and all related data
+      const deleted = await storage.deleteMatch(matchId);
       
-      // Clear all innings, balls, and player stats for this match
-      await storage.clearMatchData(matchId);
+      if (!deleted) {
+        return res.status(400).json({ error: 'Failed to delete match' });
+      }
       
-      res.json({ success: true, message: 'Match data cleared successfully' });
+      res.json({ success: true, message: 'Match and all related data deleted successfully' });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to clear match data' });
+      console.error('Error deleting match:', error);
+      res.status(500).json({ error: 'Failed to delete match' });
     }
   });
 
