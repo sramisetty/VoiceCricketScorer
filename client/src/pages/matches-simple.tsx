@@ -127,7 +127,7 @@ export default function Matches() {
       </div>
       
       {/* Live Matches */}
-      <div className="mb-8">
+      <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
             <h2 className="text-2xl font-bold text-gray-800">Live Matches</h2>
@@ -221,7 +221,7 @@ export default function Matches() {
         </div>
 
         {/* Setup Matches */}
-        <div className="mb-8">
+        <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
             <h2 className="text-2xl font-bold text-gray-800">Ready to Start</h2>
@@ -316,7 +316,7 @@ export default function Matches() {
 
         {/* Completed Matches */}
         {completedMatches.length > 0 && (
-          <div className="mb-8">
+          <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
               <h2 className="text-2xl font-bold text-gray-800">Completed Matches</h2>
