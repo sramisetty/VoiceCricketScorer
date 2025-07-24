@@ -58,7 +58,7 @@ function MatchesWithNav() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
+      <div className="flex-1">
         <Matches />
       </div>
       <Footer />
@@ -70,7 +70,7 @@ function MatchSetupWithNav() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
+      <div className="flex-1">
         <MatchSetup />
       </div>
       <Footer />
@@ -106,7 +106,7 @@ function PlayerManagementWithNav() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
+      <div className="flex-1">
         <PlayerManagement />
       </div>
       <Footer />
@@ -118,7 +118,7 @@ function UserManagementWithNav() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
+      <div className="flex-1">
         <UserManagement />
       </div>
       <Footer />
@@ -130,7 +130,7 @@ function FranchiseManagementWithNav() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
+      <div className="flex-1">
         <FranchiseManagementComplete />
       </div>
       <Footer />
@@ -142,7 +142,7 @@ function MatchStatsWithNav() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
+      <div className="flex-1">
         <MatchStats />
       </div>
       <Footer />
@@ -154,7 +154,7 @@ function ArchivesWithNav() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
+      <div className="flex-1">
         <Archives />
       </div>
       <Footer />
@@ -166,7 +166,7 @@ function PlayerStatsWithNav() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
+      <div className="flex-1">
         <PlayerStats />
       </div>
       <Footer />
@@ -178,7 +178,7 @@ function MatchSettingsWithNav({ params }: { params: { matchId: string } }) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
-      <div className="max-w-7xl mx-auto py-8 px-4 flex-1">
+      <div className="flex-1">
         <MatchSettings params={params} />
       </div>
       <Footer />
