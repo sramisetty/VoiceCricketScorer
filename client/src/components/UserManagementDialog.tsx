@@ -83,7 +83,9 @@ export function UserManagementDialog({
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          ...(localStorage.getItem('authToken') && {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }),
         },
         body: JSON.stringify(payload),
       });
@@ -287,7 +289,9 @@ export function LinkPlayerDialog({ isOpen, onClose, user, franchiseId, onSuccess
       
       const response = await fetch(endpoint, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          ...(localStorage.getItem('authToken') && {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }),
         },
       });
       
@@ -442,7 +446,9 @@ export function UserList({ franchiseId, onEditUser, onDeleteUser, onLinkPlayer }
       
       const response = await fetch(endpoint, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          ...(localStorage.getItem('authToken') && {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }),
         },
       });
       
@@ -463,7 +469,9 @@ export function UserList({ franchiseId, onEditUser, onDeleteUser, onLinkPlayer }
       const response = await fetch(endpoint, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          ...(localStorage.getItem('authToken') && {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }),
         },
       });
 
