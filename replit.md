@@ -140,6 +140,8 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 ### January 24, 2025
+- **✓ Toss Capture System**: Implemented comprehensive toss capture functionality during match start with dialog interface to select toss winner and their decision (bat/bowl first). Backend API updated to properly handle toss data and determine batting/bowling teams based on toss results. Match starting now requires toss capture before innings begin.
+- **✓ Match Creation Duplicate Prevention**: Enhanced player assignment system with comprehensive duplicate detection at frontend (individual selection), team selection (bulk operations), and backend API validation levels to prevent same player being assigned to multiple teams
 - **✓ Professional Cricket Branding Package**: Created comprehensive branding system with custom cricket-themed favicon (bat, ball, analytics charts) and header logo featuring "CricketScore Pro" branding with proper typography and cricket iconography
 - **✓ Enhanced Meta Tags and SEO**: Updated HTML title tags, meta descriptions, theme colors, and added Progressive Web App manifest for mobile installation and better search engine optimization
 - **✓ Navigation Logo Integration**: Replaced generic trophy icon with custom logo in Navigation component for consistent professional presentation across all pages

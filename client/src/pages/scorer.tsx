@@ -51,6 +51,9 @@ export default function Scorer() {
   const [selectedNewBatsman, setSelectedNewBatsman] = useState('');
   const [outBatsmanName, setOutBatsmanName] = useState('');
   const [isAddingBall, setIsAddingBall] = useState(false);
+  const [tossDialogOpen, setTossDialogOpen] = useState(false);
+  const [tossWinner, setTossWinner] = useState('');
+  const [tossDecision, setTossDecision] = useState('');
 
   // Fetch initial match data
   const { data: matchData, isLoading: liveDataLoading, error } = useQuery<LiveMatchData>({
@@ -167,32 +170,19 @@ export default function Scorer() {
   }, [currentData?.currentInnings.isCompleted, currentData?.match.currentInnings, currentData?.match.status]);
 
   const startMatchMutation = useMutation({
-    mutationFn: async () => {
-      // Use either currentData or basicMatchData
-      const matchData = currentData?.match || basicMatchData;
-      if (!matchData) return;
-      
-      const battingTeamId = matchData.tossDecision === 'bat' 
-        ? matchData.tossWinnerId 
-        : matchData.tossWinnerId === matchData.team1Id
-          ? matchData.team2Id
-          : matchData.team1Id;
-
-      const bowlingTeamId = battingTeamId === matchData.team1Id 
-        ? matchData.team2Id 
-        : matchData.team1Id;
-
+    mutationFn: async ({ tossWinnerId, tossDecision }: { tossWinnerId: number, tossDecision: string }) => {
       const response = await apiRequest('POST', `/api/matches/${matchId}/start`, {
-        battingTeamId,
-        bowlingTeamId
+        tossWinnerId,
+        tossDecision
       });
       return response.json();
     },
     onSuccess: () => {
       setIsMatchStarted(true);
+      setTossDialogOpen(false);
       toast({
         title: "Match Started",
-        description: "The cricket match has begun. You can now start voice scoring.",
+        description: "The cricket match has begun with toss completed. You can now start voice scoring.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
     },
@@ -204,6 +194,26 @@ export default function Scorer() {
       });
     }
   });
+
+  const handleStartMatch = () => {
+    setTossDialogOpen(true);
+  };
+
+  const handleTossSubmit = () => {
+    if (!tossWinner || !tossDecision) {
+      toast({
+        title: "Missing Information",
+        description: "Please select both toss winner and their decision.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    startMatchMutation.mutate({
+      tossWinnerId: parseInt(tossWinner),
+      tossDecision
+    });
+  };
 
   const addBallMutation = useMutation({
     mutationFn: async (command: ParsedCommand) => {
@@ -661,7 +671,7 @@ export default function Scorer() {
                     The match is set up and ready to begin. Click the button below to start the first innings.
                   </p>
                   <Button
-                    onClick={() => startMatchMutation.mutate()}
+                    onClick={handleStartMatch}
                     disabled={startMatchMutation.isPending}
                     size="lg"
                     className="bg-green-500 hover:bg-green-600 text-white"
@@ -808,7 +818,7 @@ export default function Scorer() {
                 </div>
                 {!isMatchStarted && (
                   <Button
-                    onClick={() => startMatchMutation.mutate()}
+                    onClick={handleStartMatch}
                     disabled={startMatchMutation.isPending}
                     className="bg-green-500 hover:bg-green-600 text-white"
                   >
@@ -1415,6 +1425,67 @@ export default function Scorer() {
               >
                 <User className="w-4 h-4 mr-2" />
                 {newBatsmanMutation.isPending ? 'Adding...' : 'Add Batsman'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Toss Capture Dialog */}
+      <Dialog open={tossDialogOpen} onOpenChange={setTossDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Match Toss</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Before starting the match, please capture the toss details.
+            </p>
+            
+            <div>
+              <Label htmlFor="toss-winner">Toss Winner</Label>
+              <Select value={tossWinner} onValueChange={setTossWinner}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select toss winner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {basicMatchData && (
+                    <>
+                      <SelectItem value={basicMatchData.team1Id.toString()}>
+                        {basicMatchData.team1.name}
+                      </SelectItem>
+                      <SelectItem value={basicMatchData.team2Id.toString()}>
+                        {basicMatchData.team2.name}
+                      </SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="toss-decision">Toss Decision</Label>
+              <Select value={tossDecision} onValueChange={setTossDecision}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select toss decision" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bat">Choose to Bat First</SelectItem>
+                  <SelectItem value="bowl">Choose to Bowl First</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setTossDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleTossSubmit}
+                disabled={!tossWinner || !tossDecision || startMatchMutation.isPending}
+              >
+                <Play className="w-4 h-4 mr-2" />
+                {startMatchMutation.isPending ? 'Starting Match...' : 'Start Match'}
               </Button>
             </div>
           </div>
