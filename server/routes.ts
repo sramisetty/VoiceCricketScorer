@@ -4,6 +4,9 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertMatchSchema, insertTeamSchema, insertPlayerSchema, insertBallSchema } from "@shared/schema";
 import { transcribeAudio, validateAudioFormat } from "./whisper";
+import { optionalAuth, AuthenticatedRequest } from "./auth";
+import authRoutes from "./authRoutes";
+import playerRoutes from "./playerRoutes";
 import multer from "multer";
 
 // Configure multer for in-memory storage - accept all files, validate later
@@ -14,6 +17,10 @@ const upload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+
+  // Register authentication and player management routes
+  app.use('/api', authRoutes);
+  app.use('/api', playerRoutes);
 
   // WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
@@ -135,8 +142,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Matches API
-  app.get('/api/matches', async (req, res) => {
+  // Matches API (enhanced with authentication)
+  app.get('/api/matches', optionalAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const matches = await storage.getAllMatches();
       res.json(matches);
@@ -146,10 +153,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches', async (req, res) => {
+  app.post('/api/matches', optionalAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const matchData = insertMatchSchema.parse(req.body);
-      const match = await storage.createMatch(matchData);
+      // If user is authenticated, set them as the creator
+      const finalMatchData = req.user 
+        ? { ...matchData, createdBy: req.user.id }
+        : { ...matchData, createdBy: 1 }; // Default admin user for non-authenticated users
+      
+      const match = await storage.createMatch(finalMatchData);
       
       // Automatically create first innings based on toss decision
       const tossWinnerId = matchData.tossWinnerId ?? matchData.team1Id;

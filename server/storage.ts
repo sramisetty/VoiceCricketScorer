@@ -1,31 +1,50 @@
 import { 
-  teams, players, matches, innings, balls, playerStats,
-  type Team, type Player, type Match, type Innings, type Ball, type PlayerStats,
-  type InsertTeam, type InsertPlayer, type InsertMatch, type InsertInnings, type InsertBall, type InsertPlayerStats,
-  type MatchWithTeams, type InningsWithStats, type LiveMatchData
+  teams, players, matches, innings, balls, playerStats, users, matchPlayerSelections,
+  type Team, type Player, type Match, type Innings, type Ball, type PlayerStats, type User, type MatchPlayerSelection,
+  type InsertTeam, type InsertPlayer, type InsertMatch, type InsertInnings, type InsertBall, type InsertPlayerStats, type InsertUser, type InsertMatchPlayerSelection,
+  type MatchWithTeams, type InningsWithStats, type LiveMatchData, type PlayerWithStats, type MatchWithDetails
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
 import { cricketRules, type CricketRuleValidation } from "./cricket-rules";
 
 export interface IStorage {
+  // Users (Authentication)
+  createUser(user: InsertUser): Promise<User>;
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
+
   // Teams
   createTeam(team: InsertTeam): Promise<Team>;
   getTeam(id: number): Promise<Team | undefined>;
   getAllTeams(): Promise<Team[]>;
 
-  // Players
+  // Players (Enhanced with pool management)
   createPlayer(player: InsertPlayer): Promise<Player>;
   getPlayer(id: number): Promise<Player | undefined>;
   getPlayersByTeam(teamId: number): Promise<Player[]>;
+  getAllPlayers(): Promise<PlayerWithStats[]>;
+  getAvailablePlayers(): Promise<PlayerWithStats[]>;
   updatePlayer(id: number, player: Partial<Player>): Promise<Player | undefined>;
+  deletePlayer(id: number): Promise<boolean>;
+  searchPlayers(query: string): Promise<PlayerWithStats[]>;
 
-  // Matches
+  // Matches (Enhanced with user creation)
   createMatch(match: InsertMatch): Promise<Match>;
   getMatch(id: number): Promise<Match | undefined>;
   getMatchWithTeams(id: number): Promise<MatchWithTeams | undefined>;
+  getMatchWithDetails(id: number): Promise<MatchWithDetails | undefined>;
   updateMatch(id: number, match: Partial<Match>): Promise<Match | undefined>;
   getAllMatches(): Promise<MatchWithTeams[]>;
+  getMatchesByUser(userId: number): Promise<MatchWithTeams[]>;
+
+  // Match Player Selection
+  addPlayerToMatch(selection: InsertMatchPlayerSelection): Promise<MatchPlayerSelection>;
+  removePlayerFromMatch(matchId: number, playerId: number): Promise<boolean>;
+  getMatchPlayers(matchId: number): Promise<(MatchPlayerSelection & { player: Player })[]>;
+  updatePlayerSelection(matchId: number, playerId: number, updates: Partial<MatchPlayerSelection>): Promise<MatchPlayerSelection | undefined>;
 
   // Innings
   createInnings(innings: InsertInnings): Promise<Innings>;
@@ -448,6 +467,31 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Users (Authentication)
+  async createUser(user: InsertUser): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async updateUser(id: number, user: Partial<User>): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users).set(user).where(eq(users.id, id)).returning();
+    return updatedUser;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
   // Teams
   async createTeam(team: InsertTeam): Promise<Team> {
     const [newTeam] = await db.insert(teams).values(team).returning();
@@ -481,6 +525,88 @@ export class DatabaseStorage implements IStorage {
   async updatePlayer(id: number, player: Partial<Player>): Promise<Player | undefined> {
     const [updatedPlayer] = await db.update(players).set(player).where(eq(players.id, id)).returning();
     return updatedPlayer;
+  }
+
+  async getAllPlayers(): Promise<PlayerWithStats[]> {
+    const allPlayers = await db.select().from(players).where(eq(players.isActive, true));
+    const result: PlayerWithStats[] = [];
+    
+    for (const player of allPlayers) {
+      const stats = player.stats as any || {};
+      result.push({
+        ...player,
+        totalMatches: stats.totalMatches || 0,
+        totalRuns: stats.totalRuns || 0,
+        totalWickets: stats.totalWickets || 0,
+        averageRuns: stats.totalMatches > 0 ? stats.totalRuns / stats.totalMatches : 0,
+        strikeRate: 0, // TODO: Calculate from actual match data
+        economyRate: 0, // TODO: Calculate from actual match data
+      });
+    }
+    
+    return result;
+  }
+
+  async getAvailablePlayers(): Promise<PlayerWithStats[]> {
+    const availablePlayers = await db.select().from(players)
+      .where(and(eq(players.isActive, true), eq(players.availability, true)));
+    
+    const result: PlayerWithStats[] = [];
+    
+    for (const player of availablePlayers) {
+      const stats = player.stats as any || {};
+      result.push({
+        ...player,
+        totalMatches: stats.totalMatches || 0,
+        totalRuns: stats.totalRuns || 0,
+        totalWickets: stats.totalWickets || 0,
+        averageRuns: stats.totalMatches > 0 ? stats.totalRuns / stats.totalMatches : 0,
+        strikeRate: 0,
+        economyRate: 0,
+      });
+    }
+    
+    return result;
+  }
+
+  async deletePlayer(id: number): Promise<boolean> {
+    // Soft delete by setting isActive to false
+    const [updatedPlayer] = await db.update(players)
+      .set({ isActive: false })
+      .where(eq(players.id, id))
+      .returning();
+    return !!updatedPlayer;
+  }
+
+  async searchPlayers(query: string): Promise<PlayerWithStats[]> {
+    // This is a simplified search - in production you'd use full-text search
+    const searchResults = await db.select().from(players)
+      .where(and(
+        eq(players.isActive, true),
+        // Note: This is a basic search, would need proper SQL search in production
+      ));
+    
+    const filteredPlayers = searchResults.filter(player => 
+      player.name.toLowerCase().includes(query.toLowerCase()) ||
+      player.role.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    const result: PlayerWithStats[] = [];
+    
+    for (const player of filteredPlayers) {
+      const stats = player.stats as any || {};
+      result.push({
+        ...player,
+        totalMatches: stats.totalMatches || 0,
+        totalRuns: stats.totalRuns || 0,
+        totalWickets: stats.totalWickets || 0,
+        averageRuns: stats.totalMatches > 0 ? stats.totalRuns / stats.totalMatches : 0,
+        strikeRate: 0,
+        economyRate: 0,
+      });
+    }
+    
+    return result;
   }
 
   // Matches
@@ -518,13 +644,97 @@ export class DatabaseStorage implements IStorage {
     for (const match of allMatches) {
       const [team1] = await db.select().from(teams).where(eq(teams.id, match.team1Id));
       const [team2] = await db.select().from(teams).where(eq(teams.id, match.team2Id));
+      const [createdByUser] = await db.select().from(users).where(eq(users.id, match.createdBy));
       
-      if (team1 && team2) {
-        result.push({ ...match, team1, team2 });
+      if (team1 && team2 && createdByUser) {
+        result.push({ ...match, team1, team2, createdByUser });
       }
     }
     
     return result;
+  }
+
+  async getMatchesByUser(userId: number): Promise<MatchWithTeams[]> {
+    const userMatches = await db.select().from(matches).where(eq(matches.createdBy, userId));
+    const result: MatchWithTeams[] = [];
+    
+    for (const match of userMatches) {
+      const [team1] = await db.select().from(teams).where(eq(teams.id, match.team1Id));
+      const [team2] = await db.select().from(teams).where(eq(teams.id, match.team2Id));
+      const [createdByUser] = await db.select().from(users).where(eq(users.id, match.createdBy));
+      
+      if (team1 && team2 && createdByUser) {
+        result.push({ ...match, team1, team2, createdByUser });
+      }
+    }
+    
+    return result;
+  }
+
+  async getMatchWithDetails(id: number): Promise<MatchWithDetails | undefined> {
+    const [match] = await db.select().from(matches).where(eq(matches.id, id));
+    if (!match) return undefined;
+
+    const [team1Data] = await db.select().from(teams).where(eq(teams.id, match.team1Id));
+    const [team2Data] = await db.select().from(teams).where(eq(teams.id, match.team2Id));
+    const [createdByUser] = await db.select().from(users).where(eq(users.id, match.createdBy));
+    
+    if (!team1Data || !team2Data || !createdByUser) return undefined;
+
+    const team1Players = await db.select().from(players).where(eq(players.teamId, match.team1Id));
+    const team2Players = await db.select().from(players).where(eq(players.teamId, match.team2Id));
+    
+    const selectedPlayers = await this.getMatchPlayers(id);
+
+    return {
+      ...match,
+      team1: { ...team1Data, players: team1Players },
+      team2: { ...team2Data, players: team2Players },
+      createdByUser,
+      selectedPlayers
+    };
+  }
+
+  // Match Player Selection
+  async addPlayerToMatch(selection: InsertMatchPlayerSelection): Promise<MatchPlayerSelection> {
+    const [newSelection] = await db.insert(matchPlayerSelections).values(selection).returning();
+    return newSelection;
+  }
+
+  async removePlayerFromMatch(matchId: number, playerId: number): Promise<boolean> {
+    const deleted = await db.delete(matchPlayerSelections)
+      .where(and(
+        eq(matchPlayerSelections.matchId, matchId),
+        eq(matchPlayerSelections.playerId, playerId)
+      ));
+    return true;
+  }
+
+  async getMatchPlayers(matchId: number): Promise<(MatchPlayerSelection & { player: Player })[]> {
+    const selections = await db.select().from(matchPlayerSelections)
+      .where(eq(matchPlayerSelections.matchId, matchId));
+    
+    const result: (MatchPlayerSelection & { player: Player })[] = [];
+    
+    for (const selection of selections) {
+      const [player] = await db.select().from(players).where(eq(players.id, selection.playerId));
+      if (player) {
+        result.push({ ...selection, player });
+      }
+    }
+    
+    return result;
+  }
+
+  async updatePlayerSelection(matchId: number, playerId: number, updates: Partial<MatchPlayerSelection>): Promise<MatchPlayerSelection | undefined> {
+    const [updatedSelection] = await db.update(matchPlayerSelections)
+      .set(updates)
+      .where(and(
+        eq(matchPlayerSelections.matchId, matchId),
+        eq(matchPlayerSelections.playerId, playerId)
+      ))
+      .returning();
+    return updatedSelection;
   }
 
   // Innings

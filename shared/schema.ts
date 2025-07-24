@@ -1,6 +1,20 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// User authentication table
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  firstName: varchar("first_name", { length: 100 }).notNull(),
+  lastName: varchar("last_name", { length: 100 }).notNull(),
+  role: varchar("role", { length: 50 }).notNull().default("user"), // admin, coach, scorer, player, viewer
+  isActive: boolean("is_active").default(true),
+  emailVerified: boolean("email_verified").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
@@ -15,20 +29,40 @@ export const players = pgTable("players", {
   teamId: integer("team_id").references(() => teams.id),
   role: text("role").notNull(), // batsman, bowler, allrounder, wicketkeeper
   battingOrder: integer("batting_order"),
+  userId: integer("user_id").references(() => users.id), // Link to user account if player has one
+  contactInfo: jsonb("contact_info"), // {email, phone, address}
+  stats: jsonb("stats").default({
+    totalMatches: 0,
+    totalRuns: 0,
+    totalWickets: 0,
+    highestScore: 0,
+    bestBowling: "0/0"
+  }),
+  availability: boolean("availability").default(true),
+  preferredPosition: text("preferred_position"), // opening, middle, tail
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const matches = pgTable("matches", {
   id: serial("id").primaryKey(),
+  title: text("title").notNull(), // Match name/title
   team1Id: integer("team1_id").references(() => teams.id).notNull(),
   team2Id: integer("team2_id").references(() => teams.id).notNull(),
   tossWinnerId: integer("toss_winner_id").references(() => teams.id),
   tossDecision: text("toss_decision"), // bat, bowl
-  matchType: text("match_type").notNull(), // T20, ODI, Test
+  matchType: text("match_type").notNull(), // T20, ODI, Test, Practice
   overs: integer("overs").notNull(),
   venue: text("venue"),
-  status: text("status").notNull().default("setup"), // setup, live, completed
+  matchDate: timestamp("match_date"),
+  status: text("status").notNull().default("setup"), // setup, live, completed, cancelled
   currentInnings: integer("current_innings").default(1),
+  createdBy: integer("created_by").references(() => users.id).notNull(),
+  isPublic: boolean("is_public").default(true), // Whether match is visible to all users
+  description: text("description"), // Optional match description
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const innings = pgTable("innings", {
@@ -90,34 +124,65 @@ export const playerStats = pgTable("player_stats", {
   noBalls: integer("no_balls").default(0), // ICC Rule: No balls bowled
 });
 
+// Player pool for match creation
+export const matchPlayerSelections = pgTable("match_player_selections", {
+  id: serial("id").primaryKey(),
+  matchId: integer("match_id").references(() => matches.id).notNull(),
+  playerId: integer("player_id").references(() => players.id).notNull(),
+  teamId: integer("team_id").references(() => teams.id).notNull(),
+  isCaptain: boolean("is_captain").default(false),
+  isWicketkeeper: boolean("is_wicketkeeper").default(false),
+  battingOrder: integer("batting_order"),
+  isSelected: boolean("is_selected").default(true),
+});
+
+// Session management for authentication
+export const userSessions = pgTable("user_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  sessionToken: varchar("session_token", { length: 255 }).notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTeamSchema = createInsertSchema(teams).omit({ id: true });
-export const insertPlayerSchema = createInsertSchema(players).omit({ id: true });
-export const insertMatchSchema = createInsertSchema(matches).omit({ id: true, createdAt: true });
+export const insertPlayerSchema = createInsertSchema(players).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertMatchSchema = createInsertSchema(matches).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertInningsSchema = createInsertSchema(innings).omit({ id: true });
 export const insertBallSchema = createInsertSchema(balls).omit({ id: true, createdAt: true });
 export const insertPlayerStatsSchema = createInsertSchema(playerStats).omit({ id: true });
+export const insertMatchPlayerSelectionSchema = createInsertSchema(matchPlayerSelections).omit({ id: true });
+export const insertUserSessionSchema = createInsertSchema(userSessions).omit({ id: true, createdAt: true });
 
 // Types
+export type User = typeof users.$inferSelect;
 export type Team = typeof teams.$inferSelect;
 export type Player = typeof players.$inferSelect;
 export type Match = typeof matches.$inferSelect;
 export type Innings = typeof innings.$inferSelect;
 export type Ball = typeof balls.$inferSelect;
 export type PlayerStats = typeof playerStats.$inferSelect;
+export type MatchPlayerSelection = typeof matchPlayerSelections.$inferSelect;
+export type UserSession = typeof userSessions.$inferSelect;
 
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type InsertMatch = z.infer<typeof insertMatchSchema>;
 export type InsertInnings = z.infer<typeof insertInningsSchema>;
 export type InsertBall = z.infer<typeof insertBallSchema>;
 export type InsertPlayerStats = z.infer<typeof insertPlayerStatsSchema>;
+export type InsertMatchPlayerSelection = z.infer<typeof insertMatchPlayerSelectionSchema>;
+export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
 
 // Complex types for API responses
 export type MatchWithTeams = Match & {
   team1: Team;
   team2: Team;
   tossWinner?: Team;
+  createdByUser: User;
 };
 
 export type InningsWithStats = Innings & {
@@ -134,3 +199,37 @@ export type LiveMatchData = {
   currentBatsmen: (PlayerStats & { player: Player })[];
   currentBowler: PlayerStats & { player: Player };
 };
+
+export type PlayerWithStats = Player & {
+  user?: User;
+  totalMatches: number;
+  totalRuns: number;
+  totalWickets: number;
+  averageRuns: number;
+  strikeRate: number;
+  economyRate: number;
+};
+
+export type MatchWithDetails = Match & {
+  team1: Team & { players: Player[] };
+  team2: Team & { players: Player[] };
+  createdByUser: User;
+  selectedPlayers: (MatchPlayerSelection & { player: Player })[];
+};
+
+// Authentication schemas
+export const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export const registerSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  role: z.enum(["admin", "coach", "scorer", "player", "viewer"]).default("player"),
+});
+
+export type LoginForm = z.infer<typeof loginSchema>;
+export type RegisterForm = z.infer<typeof registerSchema>;
