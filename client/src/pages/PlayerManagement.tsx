@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,13 +10,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequestJson } from '@/lib/queryClient';
-import { PlayerWithStats, InsertPlayer, Team } from '@shared/schema';
+import { PlayerWithStats, InsertPlayer, Team, Franchise } from '@shared/schema';
 import { Plus, Search, Edit, Trash2, User, Trophy, Target } from 'lucide-react';
 
 export default function PlayerManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFranchiseId, setSelectedFranchiseId] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<PlayerWithStats | null>(null);
 
@@ -38,12 +39,33 @@ export default function PlayerManagement() {
     queryFn: () => apiRequestJson('/api/teams'),
   });
 
+  // Fetch franchises for filter dropdown
+  const { data: franchises = [] } = useQuery({
+    queryKey: ['/api/franchises'],
+    queryFn: () => apiRequestJson('/api/franchises'),
+  });
+
   // Search players
   const { data: searchResults = [], refetch: searchPlayers } = useQuery({
     queryKey: ['/api/players/search', searchQuery],
     queryFn: () => apiRequestJson(`/api/players/search?q=${encodeURIComponent(searchQuery)}`),
     enabled: false,
   });
+
+  // Filter players by franchise
+  const filteredPlayers = useMemo(() => {
+    if (selectedFranchiseId === 'all') return players;
+    return players.filter((player: PlayerWithStats) => 
+      player.franchiseId === parseInt(selectedFranchiseId)
+    );
+  }, [players, selectedFranchiseId]);
+
+  const filteredAvailablePlayers = useMemo(() => {
+    if (selectedFranchiseId === 'all') return availablePlayers;
+    return availablePlayers.filter((player: PlayerWithStats) => 
+      player.franchiseId === parseInt(selectedFranchiseId)
+    );
+  }, [availablePlayers, selectedFranchiseId]);
 
   // Create player mutation
   const createPlayerMutation = useMutation({
@@ -222,16 +244,47 @@ export default function PlayerManagement() {
         </Dialog>
       </div>
 
+      {/* Franchise Filter */}
+      <div className="mb-6">
+        <div className="flex items-center gap-4">
+          <Label htmlFor="franchise-filter" className="text-sm font-medium">
+            Filter by Franchise:
+          </Label>
+          <Select value={selectedFranchiseId} onValueChange={setSelectedFranchiseId}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Select franchise" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Franchises</SelectItem>
+              {franchises.map((franchise: Franchise) => (
+                <SelectItem key={franchise.id} value={franchise.id.toString()}>
+                  {franchise.name} ({franchise.shortName})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedFranchiseId !== 'all' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setSelectedFranchiseId('all')}
+            >
+              Clear Filter
+            </Button>
+          )}
+        </div>
+      </div>
+
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="all">All Players ({players.length})</TabsTrigger>
-          <TabsTrigger value="available">Available ({availablePlayers.length})</TabsTrigger>
+          <TabsTrigger value="all">All Players ({filteredPlayers.length})</TabsTrigger>
+          <TabsTrigger value="available">Available ({filteredAvailablePlayers.length})</TabsTrigger>
           <TabsTrigger value="search">Search</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {players.map((player: PlayerWithStats) => (
+            {filteredPlayers.map((player: PlayerWithStats) => (
               <PlayerCard 
                 key={player.id} 
                 player={player} 
@@ -240,11 +293,18 @@ export default function PlayerManagement() {
               />
             ))}
           </div>
+          {filteredPlayers.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              {selectedFranchiseId === 'all' 
+                ? 'No players found.' 
+                : 'No players found for selected franchise.'}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="available">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {availablePlayers.map((player: PlayerWithStats) => (
+            {filteredAvailablePlayers.map((player: PlayerWithStats) => (
               <PlayerCard 
                 key={player.id} 
                 player={player} 
@@ -253,6 +313,13 @@ export default function PlayerManagement() {
               />
             ))}
           </div>
+          {filteredAvailablePlayers.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              {selectedFranchiseId === 'all' 
+                ? 'No available players found.' 
+                : 'No available players found for selected franchise.'}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="search">
@@ -270,7 +337,11 @@ export default function PlayerManagement() {
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {searchResults.map((player: PlayerWithStats) => (
+            {searchResults
+              .filter((player: PlayerWithStats) => 
+                selectedFranchiseId === 'all' || player.franchiseId === parseInt(selectedFranchiseId)
+              )
+              .map((player: PlayerWithStats) => (
               <PlayerCard 
                 key={player.id} 
                 player={player} 
@@ -279,6 +350,15 @@ export default function PlayerManagement() {
               />
             ))}
           </div>
+          {searchResults.filter((player: PlayerWithStats) => 
+            selectedFranchiseId === 'all' || player.franchiseId === parseInt(selectedFranchiseId)
+          ).length === 0 && searchQuery && (
+            <div className="text-center py-8 text-gray-500">
+              {selectedFranchiseId === 'all' 
+                ? `No players found matching "${searchQuery}".` 
+                : `No players found matching "${searchQuery}" for selected franchise.`}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -354,6 +434,12 @@ function PlayerCard({
   onEdit: () => void; 
   onDelete: () => void; 
 }) {
+  const { data: franchises = [] } = useQuery({
+    queryKey: ['/api/franchises'],
+    queryFn: () => apiRequestJson('/api/franchises'),
+  });
+
+  const playerFranchise = franchises.find((f: Franchise) => f.id === player.franchiseId);
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'batsman': return 'bg-blue-100 text-blue-800';
@@ -381,9 +467,14 @@ function PlayerCard({
             </Button>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Badge className={getRoleColor(player.role)}>{player.role}</Badge>
           {!player.availability && <Badge variant="secondary">Unavailable</Badge>}
+          {playerFranchise && (
+            <Badge variant="outline" className="text-xs">
+              {playerFranchise.shortName}
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -398,6 +489,11 @@ function PlayerCard({
           </div>
           <div className="col-span-2 text-xs text-gray-500">
             Avg: {player.averageRuns.toFixed(1)} | Wickets: {player.totalWickets}
+            {playerFranchise && (
+              <div className="mt-1 text-xs text-blue-600">
+                {playerFranchise.name}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
