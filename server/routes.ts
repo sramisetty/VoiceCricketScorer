@@ -445,7 +445,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/matches', authenticateToken, requireRole(['admin', 'global_admin', 'franchise_admin']), async (req: AuthenticatedRequest, res) => {
     try {
+      console.log('Received match data:', req.body);
       const matchData = insertMatchSchema.parse(req.body);
+      console.log('Parsed match data:', matchData);
       // Set authenticated user as the creator and default status to 'setup'
       const finalMatchData = { 
         ...matchData, 
@@ -455,12 +457,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tossWinnerId: null,
         tossDecision: null
       };
+      console.log('Final match data:', finalMatchData);
       
       const match = await storage.createMatch(finalMatchData);
+      console.log('Created match:', match);
 
       res.json(match);
     } catch (error) {
-      res.status(400).json({ error: 'Invalid match data' });
+      console.error('Match validation error:', error);
+      if (error instanceof Error) {
+        res.status(400).json({ error: 'Validation failed', details: error.message });
+      } else {
+        res.status(400).json({ error: 'Invalid match data' });
+      }
     }
   });
 
