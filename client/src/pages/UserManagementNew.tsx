@@ -26,8 +26,8 @@ export default function UserManagement() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
           <p className="text-gray-600">Manage users and their access permissions</p>

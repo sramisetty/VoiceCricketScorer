@@ -201,7 +201,7 @@ export default function Matches() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-cricket-primary text-white shadow-lg">
-        <div className="container mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Cricket Matches</h1>
@@ -430,9 +430,9 @@ export default function Matches() {
         </DialogContent>
       </Dialog>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Live Matches */}
-        <div className="mb-8">
+        <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
             <h2 className="text-2xl font-bold text-gray-800">Live Matches</h2>
@@ -506,7 +506,7 @@ export default function Matches() {
         </div>
 
         {/* Setup Matches */}
-        <div className="mb-8">
+        <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
             <h2 className="text-2xl font-bold text-gray-800">Ready to Start</h2>
@@ -583,7 +583,7 @@ export default function Matches() {
 
         {/* Completed Matches */}
         {completedMatches.length > 0 && (
-          <div className="mb-8">
+          <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
               <h2 className="text-2xl font-bold text-gray-800">Completed Matches</h2>

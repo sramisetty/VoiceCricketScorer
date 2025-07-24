@@ -91,8 +91,8 @@ export default function PlayerStats() {
   const matchPerformance = playerDetails?.matchHistory || [];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Player Statistics</h1>
           <p className="text-gray-600">Comprehensive player performance analytics and insights</p>
@@ -104,7 +104,7 @@ export default function PlayerStats() {
       </div>
 
       {/* Search and Filter Bar */}
-      <Card className="mb-6">
+      <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">

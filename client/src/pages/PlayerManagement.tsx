@@ -160,8 +160,8 @@ export default function PlayerManagement() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-green-800">Player Management</h1>
           <p className="text-gray-600">Manage your cricket player pool</p>
@@ -247,7 +247,7 @@ export default function PlayerManagement() {
       </div>
 
       {/* Franchise Filter */}
-      <div className="mb-6">
+      <div>
         <div className="flex items-center gap-4">
           <Label htmlFor="franchise-filter" className="text-sm font-medium">
             Filter by Franchise:

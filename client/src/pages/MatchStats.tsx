@@ -42,7 +42,7 @@ export default function MatchStats() {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-lg">Loading match statistics...</div>
         </div>
@@ -53,7 +53,7 @@ export default function MatchStats() {
   // Show error state
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-red-600">Error loading match statistics: {error.message}</div>
         </div>
@@ -74,8 +74,8 @@ export default function MatchStats() {
   const batsmanPerformance = matchStats?.batsmanStats || [];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Match Statistics</h1>
           <p className="text-gray-600">Comprehensive match analytics and performance insights</p>
@@ -115,7 +115,7 @@ export default function MatchStats() {
           <p className="text-gray-500">No statistics data available</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div>
           {/* Overview Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
