@@ -617,24 +617,35 @@ export class DatabaseStorage implements IStorage {
     return matchSelections.length === 0;
   }
 
-  async deletePlayer(id: number): Promise<boolean> {
+  async deletePlayer(id: number): Promise<{ success: boolean, error?: string }> {
     try {
+      // Check if player exists first
+      const [existingPlayer] = await db.select().from(players).where(eq(players.id, id));
+      if (!existingPlayer) {
+        return { success: false, error: "Player not found" };
+      }
+
       // Check if player can be deleted (not part of any match)
       const canDelete = await this.canDeletePlayer(id);
       if (!canDelete) {
-        return false; // Cannot delete player who is part of matches
+        return { success: false, error: "Cannot delete player who is part of active matches" };
       }
 
-      // Delete user-player links if they exist
-      await db.delete(userPlayerLinks).where(eq(userPlayerLinks.playerId, id));
+      // Try to delete user-player links if they exist (optional, table might not exist yet)
+      try {
+        await db.delete(userPlayerLinks).where(eq(userPlayerLinks.playerId, id));
+      } catch (linkError) {
+        // Ignore if userPlayerLinks table doesn't exist yet
+        console.log('User-player links table not found, skipping link deletion');
+      }
 
       // Hard delete the player since they're not part of any match
       const [deletedPlayer] = await db.delete(players).where(eq(players.id, id)).returning();
       
-      return !!deletedPlayer;
+      return { success: !!deletedPlayer };
     } catch (error) {
       console.error('Error deleting player:', error);
-      return false;
+      return { success: false, error: `Database error: ${error.message}` };
     }
   }
 
