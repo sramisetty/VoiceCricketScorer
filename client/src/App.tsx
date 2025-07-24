@@ -11,6 +11,7 @@ import Scoreboard from "@/pages/scoreboard";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import PlayerManagement from "@/pages/PlayerManagement";
+import UserManagement from "@/pages/UserManagement";
 import NotFound from "@/pages/not-found";
 import Navigation from "@/components/Navigation";
 
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/scorer/:matchId" component={ScorerWithNav} />
       <Route path="/scoreboard/:matchId" component={ScoreboardWithNav} />
       <Route path="/players" component={PlayerManagementWithNav} />
+      <Route path="/user-management" component={UserManagementWithNav} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -88,6 +90,17 @@ function PlayerManagementWithNav() {
       <Navigation />
       <div className="max-w-7xl mx-auto py-8 px-4">
         <PlayerManagement />
+      </div>
+    </div>
+  );
+}
+
+function UserManagementWithNav() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto py-8 px-4">
+        <UserManagement />
       </div>
     </div>
   );

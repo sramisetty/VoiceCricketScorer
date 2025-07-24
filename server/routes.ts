@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertMatchSchema, insertTeamSchema, insertPlayerSchema, insertBallSchema } from "@shared/schema";
 import { transcribeAudio, validateAudioFormat } from "./whisper";
-import { optionalAuth, AuthenticatedRequest } from "./auth";
+import { optionalAuth, AuthenticatedRequest, authenticateToken, requireRole } from "./auth";
 import authRoutes from "./authRoutes";
 import playerRoutes from "./playerRoutes";
 import multer from "multer";
@@ -21,6 +21,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register authentication and player management routes
   app.use('/api', authRoutes);
   app.use('/api', playerRoutes);
+
+  // User Management API routes (require authentication)
+  app.get('/api/users', authenticateToken, requireRole(['admin', 'coach']), async (req: any, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put('/api/users/:id', authenticateToken, requireRole(['admin']), async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const updateData = req.body;
+      const updatedUser = await storage.updateUser(userId, updateData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete('/api/users/:id', authenticateToken, requireRole(['admin']), async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const success = await storage.deleteUser(userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "User not found or failed to delete" });
+      }
+      
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  app.put('/api/users/:id/link-player', authenticateToken, requireRole(['admin', 'coach']), async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { playerId } = req.body;
+      const updatedUser = await storage.linkUserToPlayer(userId, playerId);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found or failed to link" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error linking user to player:", error);
+      res.status(500).json({ message: "Failed to link user to player" });
+    }
+  });
 
   // WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });

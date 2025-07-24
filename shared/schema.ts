@@ -45,6 +45,14 @@ export const players = pgTable("players", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// User-Player link table to handle bidirectional relationships
+export const userPlayerLinks = pgTable("user_player_links", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  playerId: integer("player_id").references(() => players.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const matches = pgTable("matches", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(), // Match name/title

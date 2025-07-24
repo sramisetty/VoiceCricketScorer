@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Home, Users, Trophy, LogOut, User, Settings } from 'lucide-react';
+import { Home, Users, Trophy, LogOut, User, Settings, Shield } from 'lucide-react';
 
 interface UserData {
   id: number;
@@ -92,6 +92,17 @@ export default function Navigation() {
               >
                 <Users className="w-4 h-4" />
                 Players
+              </Button>
+            )}
+
+            {user && (user.role === 'admin' || user.role === 'coach') && (
+              <Button
+                variant="ghost"
+                onClick={() => setLocation('/user-management')}
+                className="flex items-center gap-2"
+              >
+                <Shield className="w-4 h-4" />
+                Users
               </Button>
             )}
             

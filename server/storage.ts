@@ -1,5 +1,5 @@
 import { 
-  teams, players, matches, innings, balls, playerStats, users, matchPlayerSelections,
+  teams, players, matches, innings, balls, playerStats, users, matchPlayerSelections, userPlayerLinks,
   type Team, type Player, type Match, type Innings, type Ball, type PlayerStats, type User, type MatchPlayerSelection,
   type InsertTeam, type InsertPlayer, type InsertMatch, type InsertInnings, type InsertBall, type InsertPlayerStats, type InsertUser, type InsertMatchPlayerSelection,
   type MatchWithTeams, type InningsWithStats, type LiveMatchData, type PlayerWithStats, type MatchWithDetails
@@ -9,12 +9,14 @@ import { eq, and, desc } from "drizzle-orm";
 import { cricketRules, type CricketRuleValidation } from "./cricket-rules";
 
 export interface IStorage {
-  // Users (Authentication)
+  // Users (Authentication & Management)
   createUser(user: InsertUser): Promise<User>;
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
   getAllUsers(): Promise<User[]>;
+  linkUserToPlayer(userId: number, playerId: number | null): Promise<User | undefined>;
 
   // Teams
   createTeam(team: InsertTeam): Promise<Team>;
@@ -484,12 +486,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: number, user: Partial<User>): Promise<User | undefined> {
-    const [updatedUser] = await db.update(users).set(user).where(eq(users.id, id)).returning();
+    const [updatedUser] = await db.update(users).set({ ...user, updatedAt: new Date() }).where(eq(users.id, id)).returning();
     return updatedUser;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    try {
+      // First remove any user-player links
+      await db.delete(userPlayerLinks).where(eq(userPlayerLinks.userId, id));
+      
+      // Then delete the user
+      await db.delete(users).where(eq(users.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      return false;
+    }
   }
 
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
+  }
+
+  async linkUserToPlayer(userId: number, playerId: number | null): Promise<User | undefined> {
+    try {
+      // Remove existing links for this user
+      await db.delete(userPlayerLinks).where(eq(userPlayerLinks.userId, userId));
+      
+      // Create new link if playerId is provided
+      if (playerId) {
+        await db.insert(userPlayerLinks).values({
+          userId,
+          playerId
+        });
+      }
+      
+      // Return updated user
+      return this.getUser(userId);
+    } catch (error) {
+      console.error("Error linking user to player:", error);
+      return undefined;
+    }
   }
 
   // Teams
