@@ -6,8 +6,8 @@ import { z } from 'zod';
 
 const router = Router();
 
-// Get all players in the pool
-router.get('/players', async (req, res) => {
+// Get all players in the pool (admin and global_admin only)
+router.get('/players', authenticateToken, requireRole(['admin', 'global_admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const players = await storage.getAllPlayers();
     res.json(players);
@@ -17,8 +17,8 @@ router.get('/players', async (req, res) => {
   }
 });
 
-// Get available players (for match selection)
-router.get('/players/available', async (req, res) => {
+// Get available players (for match selection) - admin and global_admin only
+router.get('/players/available', authenticateToken, requireRole(['admin', 'global_admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const players = await storage.getAvailablePlayers();
     res.json(players);
@@ -28,8 +28,8 @@ router.get('/players/available', async (req, res) => {
   }
 });
 
-// Search players
-router.get('/players/search', async (req, res) => {
+// Search players - admin and global_admin only
+router.get('/players/search', authenticateToken, requireRole(['admin', 'global_admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const { q } = req.query;
     if (!q || typeof q !== 'string') {
@@ -44,8 +44,8 @@ router.get('/players/search', async (req, res) => {
   }
 });
 
-// Create new player
-router.post('/players', authenticateToken, requireRole(['admin', 'coach']), async (req: AuthenticatedRequest, res) => {
+// Create new player - admin and global_admin only
+router.post('/players', authenticateToken, requireRole(['admin', 'global_admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const playerData = insertPlayerSchema.parse(req.body);
     
@@ -79,8 +79,8 @@ router.post('/players', authenticateToken, requireRole(['admin', 'coach']), asyn
   }
 });
 
-// Get single player
-router.get('/players/:id', async (req, res) => {
+// Get single player - admin and global_admin only
+router.get('/players/:id', authenticateToken, requireRole(['admin', 'global_admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
@@ -99,8 +99,8 @@ router.get('/players/:id', async (req, res) => {
   }
 });
 
-// Update player
-router.patch('/players/:id', authenticateToken, requireRole(['admin', 'coach']), async (req: AuthenticatedRequest, res) => {
+// Update player - admin and global_admin only
+router.patch('/players/:id', authenticateToken, requireRole(['admin', 'global_admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
@@ -142,8 +142,8 @@ router.patch('/players/:id', authenticateToken, requireRole(['admin', 'coach']),
   }
 });
 
-// Check if player can be deleted
-router.get('/players/:id/can-delete', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+// Check if player can be deleted - admin and global_admin only
+router.get('/players/:id/can-delete', authenticateToken, requireRole(['admin', 'global_admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
@@ -163,8 +163,8 @@ router.get('/players/:id/can-delete', authenticateToken, requireRole(['admin']),
   }
 });
 
-// Delete player (hard delete if not part of any match)
-router.delete('/players/:id', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+// Delete player (hard delete if not part of any match) - admin and global_admin only
+router.delete('/players/:id', authenticateToken, requireRole(['admin', 'global_admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
@@ -211,7 +211,7 @@ router.get('/teams/:teamId/players', async (req, res) => {
 });
 
 // Update player stats (usually done automatically during matches)
-router.patch('/players/:id/stats', authenticateToken, requireRole(['admin', 'scorer']), async (req: AuthenticatedRequest, res) => {
+router.patch('/players/:id/stats', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req: AuthenticatedRequest, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
