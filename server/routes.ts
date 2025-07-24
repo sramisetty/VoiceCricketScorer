@@ -463,20 +463,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/matches', authenticateToken, requireRole(['admin', 'global_admin', 'franchise_admin']), async (req: AuthenticatedRequest, res) => {
     try {
       console.log('Received match data:', req.body);
-      const matchData = insertMatchSchema.parse(req.body);
-      console.log('Parsed match data:', matchData);
-      // Set authenticated user as the creator and default status to 'setup'
-      const finalMatchData = { 
-        ...matchData, 
+      console.log('Authenticated user:', req.user);
+      
+      // Add required fields before validation
+      const matchDataWithUser = {
+        ...req.body,
         createdBy: req.user!.id,
         status: 'setup',
-        // Don't set toss data during creation - will be set when match starts
         tossWinnerId: null,
         tossDecision: null
       };
-      console.log('Final match data:', finalMatchData);
       
-      const match = await storage.createMatch(finalMatchData);
+      console.log('Match data with user:', matchDataWithUser);
+      const matchData = insertMatchSchema.parse(matchDataWithUser);
+      console.log('Parsed match data:', matchData);
+      
+      const match = await storage.createMatch(matchData);
       console.log('Created match:', match);
 
       res.json(match);
