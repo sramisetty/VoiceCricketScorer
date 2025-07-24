@@ -49,16 +49,13 @@ export default function FranchiseManagementComplete() {
   const franchises = useMemo(() => {
     if (!allFranchises || !currentUser) return [];
     
-    // Global admins (without franchise association) can see all franchises
-    if ((currentUser.role === 'admin' || currentUser.role === 'global_admin') && !currentUser.franchiseId) {
+    // Global admins and admins can see ALL franchises regardless of franchise association
+    if (currentUser.role === 'admin' || currentUser.role === 'global_admin') {
       return allFranchises;
     }
     
-    // Franchise-associated admins and franchise admins can only see their franchise
-    if (
-      currentUser.role === 'franchise_admin' || 
-      (currentUser.role === 'admin' && currentUser.franchiseId)
-    ) {
+    // Franchise admins can only see their associated franchise
+    if (currentUser.role === 'franchise_admin' && currentUser.franchiseId) {
       return allFranchises.filter((franchise: Franchise) => 
         franchise.id === currentUser.franchiseId
       );
