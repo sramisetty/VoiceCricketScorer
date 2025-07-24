@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest, apiRequestJson } from '@/lib/queryClient';
 import { Users, UserPlus, X, Trophy, AlertTriangle } from 'lucide-react';
-import type { PlayerWithStats } from '@shared/schema';
+import type { PlayerWithStats, User } from '@shared/schema';
 
 export default function MatchSetup() {
   const [, setLocation] = useLocation();
@@ -29,7 +29,9 @@ export default function MatchSetup() {
     team2ShortName: '',
     team2FranchiseId: null as number | null,
     matchType: 'T20',
-    overs: 20
+    overs: 20,
+    title: '',
+    venue: ''
   });
 
   const [team1Players, setTeam1Players] = useState<PlayerWithStats[]>([]);
@@ -40,7 +42,7 @@ export default function MatchSetup() {
   const [currentTeamForSelection, setCurrentTeamForSelection] = useState<'team1' | 'team2'>('team1');
 
   // Fetch user for role-based access control
-  const { data: user, isLoading: userLoading } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ['/api/auth/user'],
     retry: false,
   });
@@ -283,7 +285,7 @@ export default function MatchSetup() {
       const teamPlayers = await apiRequestJson(`/api/teams/${teamId}/players`);
       
       // Get team details
-      const selectedTeam = franchiseTeams.find(t => t.id === teamId);
+      const selectedTeam = franchiseTeams.find((t: any) => t.id === teamId);
       
       if (!selectedTeam) {
         toast({
@@ -331,7 +333,7 @@ export default function MatchSetup() {
       const teamPlayers = await apiRequestJson(`/api/teams/${teamId}/players`);
       
       // Get team details
-      const selectedTeam = franchiseTeams.find(t => t.id === teamId);
+      const selectedTeam = franchiseTeams.find((t: any) => t.id === teamId);
       
       if (!selectedTeam) {
         toast({
@@ -380,10 +382,10 @@ export default function MatchSetup() {
     // Filter by franchise first, then exclude already selected players
     let filteredPlayers = availablePlayers;
     if (franchiseId) {
-      filteredPlayers = availablePlayers.filter(player => player.franchiseId === franchiseId);
+      filteredPlayers = availablePlayers.filter((player: any) => player.franchiseId === franchiseId);
     }
     
-    return filteredPlayers.filter(player => !selectedPlayerIds.includes(player.id));
+    return filteredPlayers.filter((player: any) => !selectedPlayerIds.includes(player.id));
   };
 
   // Redirect non-authorized users
@@ -749,7 +751,7 @@ export default function MatchSetup() {
                 </p>
               ) : (
                 <div className="grid gap-3">
-                  {getAvailablePlayersForSelection().map((player) => (
+                  {getAvailablePlayersForSelection().map((player: any) => (
                     <div
                       key={player.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
@@ -811,7 +813,7 @@ export default function MatchSetup() {
                 </p>
               ) : (
                 <div className="grid gap-3">
-                  {franchiseTeams.map((team) => (
+                  {franchiseTeams.map((team: any) => (
                     <div
                       key={team.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
@@ -844,74 +846,13 @@ export default function MatchSetup() {
               )}
             </div>
             
-        </CardContent>
-      </Card>
-
-      {/* Team Selection/Clone Dialog */}
-      <Dialog open={isTeamSelectionDialogOpen} onOpenChange={setIsTeamSelectionDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>
-              Select Team for {currentTeamForSelection === 'team1' ? matchData.team1Name || 'Team 1' : matchData.team2Name || 'Team 2'}
-            </DialogTitle>
-            <DialogDescription>
-              {(() => {
-                const franchiseId = currentTeamForSelection === 'team1' ? matchData.team1FranchiseId : matchData.team2FranchiseId;
-                const franchise = franchises.find(f => f.id === franchiseId);
-                return `Choose an existing team from ${franchise?.name || 'selected franchise'} or clone one to customize.`;
-              })()}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="overflow-y-auto max-h-96">
-            {teamsLoading ? (
-              <p className="text-center py-8">Loading teams...</p>
-            ) : franchiseTeams.length === 0 ? (
-              <p className="text-center py-8 text-gray-500">
-                No existing teams found for this franchise. Create a team manually by entering team details.
-              </p>
-            ) : (
-              <div className="grid gap-3">
-                {franchiseTeams.map((team) => (
-                  <div
-                    key={team.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-                  >
-                    <div className="flex-1">
-                      <h4 className="font-medium">{team.name}</h4>
-                      <p className="text-sm text-gray-500">
-                        Short: {team.shortName} • Created: {new Date(team.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleSelectExistingTeam(team.id)}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Use Exact Team
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleCloneTeam(team.id)}
-                      >
-                        Clone & Edit
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsTeamSelectionDialogOpen(false)}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsTeamSelectionDialogOpen(false)}>
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       <div className="text-center">
         <Button
