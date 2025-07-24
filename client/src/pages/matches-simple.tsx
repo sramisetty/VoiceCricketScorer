@@ -8,8 +8,6 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { Plus, Play, Eye, Calendar, Clock, Users, Trophy, Target, LogIn, Trash2 } from 'lucide-react';
 import type { MatchWithTeams, Team } from '@shared/schema';
-import Footer from '@/components/Footer';
-
 export default function Matches() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -57,7 +55,8 @@ export default function Matches() {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date | null) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -102,29 +101,33 @@ export default function Matches() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-cricket-primary text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Cricket Matches</h1>
-              <p className="text-cricket-light mt-2">Manage your cricket matches and scoring</p>
-            </div>
-            <Link href="/match-setup">
-              <Button className="bg-cricket-accent hover:bg-orange-600">
-                <Plus className="w-4 h-4 mr-2" />
-                New Match
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+  // Check if user can create matches (system admins or franchise admins only)
+  const canCreateMatches = user && (
+    user.role === 'global_admin' || 
+    user.role === 'admin' ||
+    user.role === 'franchise_admin'
+  );
 
-      <div className="max-w-7xl mx-auto px-4 py-8 flex-1">
-        {/* Live Matches */}
-        <div className="mb-8">
+  return (
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Cricket Matches</h1>
+          <p className="text-muted-foreground mt-2">Manage your cricket matches and scoring</p>
+        </div>
+        {canCreateMatches && (
+          <Link href="/match-setup">
+            <Button className="bg-cricket-primary hover:bg-cricket-secondary">
+              <Plus className="w-4 h-4 mr-2" />
+              New Match
+            </Button>
+          </Link>
+        )}
+      </div>
+      
+      {/* Live Matches */}
+      <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
             <h2 className="text-2xl font-bold text-gray-800">Live Matches</h2>
@@ -381,8 +384,6 @@ export default function Matches() {
             </div>
           </div>
         )}
-      </div>
-      <Footer />
     </div>
   );
 }
