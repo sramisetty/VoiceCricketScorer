@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequestJson, apiRequest } from '@/lib/queryClient';
 import { Users, UserPlus, Edit, Trash2, Shield, ShieldCheck, User, Link } from 'lucide-react';
 import type { User as UserType } from '@shared/schema';
-import { TestDialog } from '@/components/TestDialog';
 
 export default function UserManagement() {
   const { toast } = useToast();
@@ -21,7 +20,6 @@ export default function UserManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isLinkPlayerDialogOpen, setIsLinkPlayerDialogOpen] = useState(false);
-  const [debugDialog, setDebugDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -219,7 +217,6 @@ export default function UserManagement() {
   };
 
   const handleLinkPlayer = (user: UserType) => {
-    console.log('Link Player clicked for user:', user);
     setSelectedUser(user);
     setEditUser({
       firstName: user.firstName,
@@ -229,7 +226,6 @@ export default function UserManagement() {
       linkedPlayerId: (user as any).linkedPlayerId || null
     });
     setIsLinkPlayerDialogOpen(true);
-    console.log('Dialog should open now, isLinkPlayerDialogOpen:', true);
   };
 
   const getRoleColor = (role: string) => {
@@ -264,45 +260,6 @@ export default function UserManagement() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
           <p className="text-gray-600">Manage system users and their access permissions</p>
-          <div className="flex gap-2 mt-2">
-            <Button 
-              onClick={() => {
-                console.log('Force opening Link Player dialog');
-                // Set a dummy user for testing
-                setSelectedUser({
-                  id: 1,
-                  firstName: 'Test',
-                  lastName: 'User',
-                  email: 'test@test.com',
-                  role: 'admin',
-                  isActive: true
-                } as any);
-                setEditUser({
-                  firstName: 'Test',
-                  lastName: 'User',
-                  role: 'admin' as any,
-                  isActive: true,
-                  linkedPlayerId: null
-                });
-                setIsLinkPlayerDialogOpen(true);
-              }} 
-              size="sm" 
-              variant="outline"
-            >
-              Test Link Dialog
-            </Button>
-            <TestDialog />
-            <Button 
-              onClick={() => {
-                alert('Direct test: This alert should work if JavaScript is running');
-                console.log('Alert test button clicked');
-              }}
-              size="sm" 
-              variant="destructive"
-            >
-              Test Alert
-            </Button>
-          </div>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -453,10 +410,7 @@ export default function UserManagement() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
-                        onClick={() => {
-                          console.log('Link Player button clicked!');
-                          handleLinkPlayer(user);
-                        }}
+                        onClick={() => handleLinkPlayer(user)}
                         size="sm"
                         variant="outline"
                         className="flex items-center gap-1"
@@ -658,11 +612,17 @@ export default function UserManagement() {
                   cursor: 'pointer'
                 }}
                 onClick={() => {
-                  console.log('Link player action would happen here');
+                  if (selectedUser && editUser.linkedPlayerId) {
+                    linkPlayerMutation.mutate({
+                      userId: selectedUser.id,
+                      playerId: editUser.linkedPlayerId
+                    });
+                  }
                   setIsLinkPlayerDialogOpen(false);
                 }}
+                disabled={linkPlayerMutation.isPending}
               >
-                Link Player
+                {linkPlayerMutation.isPending ? 'Linking...' : 'Link Player'}
               </button>
             </div>
           </div>
@@ -751,25 +711,7 @@ export default function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Debug Test Dialog */}
-      <Dialog open={debugDialog} onOpenChange={setDebugDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Debug Dialog Test</DialogTitle>
-            <DialogDescription>
-              This is a test dialog to verify the dialog system works
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p>If you can see this, dialogs are working properly!</p>
-            <p>isLinkPlayerDialogOpen: {isLinkPlayerDialogOpen.toString()}</p>
-            <p>Available players count: {availablePlayers.length}</p>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setDebugDialog(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }
