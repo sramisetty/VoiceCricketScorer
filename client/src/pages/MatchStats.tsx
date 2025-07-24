@@ -15,11 +15,26 @@ export default function MatchStats() {
   // Fetch matches for selection
   const { data: matches = [] } = useQuery({
     queryKey: ['/api/matches'],
+    queryFn: async () => {
+      const response = await fetch('/api/matches');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch matches: ${response.status}`);
+      }
+      return response.json();
+    },
   });
 
   // Fetch match statistics
   const { data: matchStats, isLoading, error } = useQuery({
     queryKey: ['/api/matches/stats', selectedMatch, timeRange],
+    queryFn: async () => {
+      const url = `/api/matches/stats?matchId=${selectedMatch || ''}&timeRange=${timeRange}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    },
   });
 
   // Show loading state

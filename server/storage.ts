@@ -1690,8 +1690,12 @@ export class DatabaseStorage implements IStorage {
       };
 
       // If matchId is specified, get stats for that match only
-      const matchCondition = matchId ? eq(matches.id, matchId) : undefined;
-      const matchesData = await db.select().from(matches).where(matchCondition);
+      let matchesData;
+      if (matchId) {
+        matchesData = await db.select().from(matches).where(eq(matches.id, matchId));
+      } else {
+        matchesData = await db.select().from(matches);
+      }
       
       stats.totalMatches = matchesData.length;
 
