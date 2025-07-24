@@ -252,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/users/:id/link-player', authenticateToken, requireRole(['admin', 'coach']), async (req: any, res) => {
+  app.put('/api/users/:id/link-player', authenticateToken, requireRole(['admin', 'global_admin', 'franchise_admin']), async (req: any, res) => {
     try {
       const userId = parseInt(req.params.id);
       const { playerId } = req.body;
@@ -286,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add existing player to franchise
-  app.post('/api/franchises/:franchiseId/players/:playerId', authenticateToken, requireRole(['admin', 'coach', 'franchise_admin']), async (req: any, res) => {
+  app.post('/api/franchises/:franchiseId/players/:playerId', authenticateToken, requireRole(['admin', 'global_admin', 'franchise_admin']), async (req: any, res) => {
     try {
       const franchiseId = parseInt(req.params.franchiseId);
       const playerId = parseInt(req.params.playerId);
@@ -414,7 +414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Players API
-  app.post('/api/players', authenticateToken, requireRole(['admin', 'coach', 'franchise_admin']), async (req: any, res) => {
+  app.post('/api/players', authenticateToken, requireRole(['admin', 'global_admin', 'franchise_admin']), async (req: any, res) => {
     try {
       const playerData = insertPlayerSchema.parse(req.body);
       const player = await storage.createPlayer(playerData);
@@ -435,7 +435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches', authenticateToken, requireRole(['admin', 'global_admin']), async (req: AuthenticatedRequest, res) => {
+  app.post('/api/matches', authenticateToken, requireRole(['admin', 'global_admin', 'franchise_admin']), async (req: AuthenticatedRequest, res) => {
     try {
       const matchData = insertMatchSchema.parse(req.body);
       // Set authenticated user as the creator
@@ -536,7 +536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/matches/:id', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.put('/api/matches/:id', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const updateData = req.body;
@@ -553,7 +553,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/matches/:id', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.delete('/api/matches/:id', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       
@@ -571,7 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches/:id/start', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/start', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const { battingTeamId, bowlingTeamId } = req.body;
@@ -641,7 +641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Scoring API (require admin or scorer role)
-  app.post('/api/matches/:id/ball', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/ball', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const ballData = insertBallSchema.parse(req.body);
@@ -781,7 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches/:id/undo', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/undo', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const currentInnings = await storage.getCurrentInnings(matchId);
@@ -805,7 +805,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Clear all balls and runs for a match (require admin or scorer role)
-  app.post('/api/matches/:id/clear', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/clear', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const success = await storage.clearMatchData(matchId);
@@ -824,7 +824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Advanced scoring endpoints (require admin or scorer role)
-  app.post('/api/matches/:id/over-complete', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/over-complete', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const currentInnings = await storage.getCurrentInnings(matchId);
@@ -843,7 +843,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches/:id/change-bowler', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/change-bowler', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const { newBowlerId } = req.body;
@@ -922,7 +922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches/:id/timeout', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/timeout', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const { duration } = req.body;
@@ -948,7 +948,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches/:id/retire-batsman', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/retire-batsman', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const { batsmanId, reason } = req.body;
@@ -963,7 +963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches/:id/change-bowler-alt', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/change-bowler-alt', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const { newBowlerId } = req.body;
@@ -991,7 +991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches/:id/set-openers', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/set-openers', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const { opener1Id, opener2Id, strikerId } = req.body;
@@ -1056,7 +1056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches/:id/switch-strike', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/switch-strike', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       
@@ -1099,7 +1099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches/:id/new-batsman', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/new-batsman', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       const { newBatsmanId } = req.body;
@@ -1161,7 +1161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/matches/:id/reset', authenticateToken, requireRole(['admin', 'scorer']), async (req, res) => {
+  app.post('/api/matches/:id/reset', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
       await storage.resetMatchData(matchId);
@@ -1176,7 +1176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audio transcription endpoint for improved speech recognition (require admin or scorer role)
-  app.post('/api/transcribe-audio', authenticateToken, requireRole(['admin', 'scorer']), upload.single('audio'), async (req, res) => {
+  app.post('/api/transcribe-audio', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), upload.single('audio'), async (req, res) => {
     try {
       console.log("Received transcription request");
       console.log("Request file:", req.file ? `${req.file.originalname} (${req.file.size} bytes)` : "No file");

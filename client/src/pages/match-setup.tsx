@@ -47,23 +47,24 @@ export default function MatchSetup() {
     retry: false,
   });
 
-  // Check if user has permission to create matches (admin, global_admin, or franchise admin)
+  // Check if user has permission to create matches (system admins or franchise admins)
   const canCreateMatches = user && (
     user.role === 'global_admin' || 
-    user.role === 'admin' // This includes both global admins (no franchiseId) and franchise admins (with franchiseId)
+    user.role === 'admin' ||
+    user.role === 'franchise_admin'
   );
 
   // Filter franchises based on user role
   const getFilteredFranchises = (allFranchises: any[]) => {
     if (!user) return [];
     
-    // Global admins see all franchises
-    if (user.role === 'global_admin' || (user.role === 'admin' && !user.franchiseId)) {
+    // System admins (global_admin, admin) see all franchises
+    if (user.role === 'global_admin' || user.role === 'admin') {
       return allFranchises;
     }
     
     // Franchise admins only see their associated franchise
-    if (user.role === 'admin' && user.franchiseId) {
+    if (user.role === 'franchise_admin' && user.franchiseId) {
       return allFranchises.filter(franchise => franchise.id === user.franchiseId);
     }
     

@@ -70,8 +70,8 @@ export default function Matches() {
   const setupMatches = matches.filter(match => match.status === 'setup');
   const completedMatches = matches.filter(match => match.status === 'completed');
 
-  // Check if user can score (admin or scorer only)
-  const canScore = user && (user.role === 'admin' || user.role === 'scorer');
+  // Check if user can score (system admins or scorers only)
+  const canScore = user && (user.role === 'admin' || user.role === 'global_admin' || user.role === 'scorer');
 
   // Delete match mutation
   const deleteMatchMutation = useMutation({

@@ -35,10 +35,11 @@ export default function Matches() {
     retry: false,
   });
 
-  // Check if user has permission to create matches (admin, global_admin, or franchise admin)
+  // Check if user has permission to create matches (system admins or franchise admins)
   const canCreateMatches = user && (
     user.role === 'global_admin' || 
-    user.role === 'admin' // This includes both global admins (no franchiseId) and franchise admins (with franchiseId)
+    user.role === 'admin' ||
+    user.role === 'franchise_admin'
   );
 
   // Fetch all matches
