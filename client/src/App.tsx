@@ -20,12 +20,12 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/" component={Dashboard} />
-      <Route path="/matches" component={Matches} />
-      <Route path="/match-setup" component={MatchSetup} />
-      <Route path="/match-settings/:matchId" component={MatchSettings} />
-      <Route path="/scorer/:matchId" component={Scorer} />
-      <Route path="/scoreboard/:matchId" component={Scoreboard} />
-      <Route path="/players" component={PlayerManagement} />
+      <Route path="/matches" component={MatchesWithNav} />
+      <Route path="/match-setup" component={MatchSetupWithNav} />
+      <Route path="/match-settings/:matchId" component={MatchSettingsWithNav} />
+      <Route path="/scorer/:matchId" component={ScorerWithNav} />
+      <Route path="/scoreboard/:matchId" component={ScoreboardWithNav} />
+      <Route path="/players" component={PlayerManagementWithNav} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -37,6 +37,68 @@ function Dashboard() {
       <Navigation />
       <div className="max-w-7xl mx-auto py-8 px-4">
         <Matches />
+      </div>
+    </div>
+  );
+}
+
+function MatchesWithNav() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto py-8 px-4">
+        <Matches />
+      </div>
+    </div>
+  );
+}
+
+function MatchSetupWithNav() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto py-8 px-4">
+        <MatchSetup />
+      </div>
+    </div>
+  );
+}
+
+function ScorerWithNav({ params }: { params: { matchId: string } }) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <Scorer params={params} />
+    </div>
+  );
+}
+
+function ScoreboardWithNav({ params }: { params: { matchId: string } }) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <Scoreboard params={params} />
+    </div>
+  );
+}
+
+function PlayerManagementWithNav() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto py-8 px-4">
+        <PlayerManagement />
+      </div>
+    </div>
+  );
+}
+
+function MatchSettingsWithNav({ params }: { params: { matchId: string } }) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="max-w-7xl mx-auto py-8 px-4">
+        <MatchSettings params={params} />
       </div>
     </div>
   );

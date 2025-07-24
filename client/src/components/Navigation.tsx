@@ -84,7 +84,7 @@ export default function Navigation() {
               Matches
             </Button>
 
-            {user && (user.role === 'admin' || user.role === 'coach') && (
+            {user && (user.role === 'admin' || user.role === 'coach' || user.role === 'scorer') && (
               <Button
                 variant="ghost"
                 onClick={() => setLocation('/players')}
@@ -92,6 +92,18 @@ export default function Navigation() {
               >
                 <Users className="w-4 h-4" />
                 Players
+              </Button>
+            )}
+            
+            {/* Show for all authenticated users */}
+            {user && (
+              <Button
+                variant="ghost"
+                onClick={() => setLocation('/match-setup')}
+                className="flex items-center gap-2"
+              >
+                <Trophy className="w-4 h-4" />
+                New Match
               </Button>
             )}
 

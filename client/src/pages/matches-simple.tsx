@@ -1,17 +1,31 @@
-import { useState } from 'react';
-import { Link } from 'wouter';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, Play, Eye, Calendar, Clock, Users, Trophy, Target } from 'lucide-react';
+import { Plus, Play, Eye, Calendar, Clock, Users, Trophy, Target, LogIn } from 'lucide-react';
 import type { MatchWithTeams, Team } from '@shared/schema';
 
 export default function Matches() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Check for stored user data
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
 
   // Fetch all matches
   const { data: matches = [], isLoading: matchesLoading } = useQuery<MatchWithTeams[]>({
