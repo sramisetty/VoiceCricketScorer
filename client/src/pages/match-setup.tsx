@@ -29,9 +29,7 @@ export default function MatchSetup() {
     team2ShortName: '',
     team2FranchiseId: null as number | null,
     matchType: 'T20',
-    overs: 20,
-    tossWinner: '',
-    tossDecision: 'bat'
+    overs: 20
   });
 
   const [team1Players, setTeam1Players] = useState<PlayerWithStats[]>([]);
@@ -105,9 +103,9 @@ export default function MatchSetup() {
     onSuccess: (match) => {
       toast({
         title: "Match Created Successfully",
-        description: "Your cricket match has been set up and is ready to start.",
+        description: "Your cricket match has been set up and is ready to start. You can start the match from the matches page.",
       });
-      setLocation(`/scorer/${match.id}`);
+      setLocation('/');
     },
     onError: () => {
       toast({
@@ -181,16 +179,14 @@ export default function MatchSetup() {
         });
       }
 
-      // Create match
-      const tossWinnerId = matchData.tossWinner === 'team1' ? team1.id : team2.id;
-      
+      // Create match without toss data - it will be set when match starts
       createMatchMutation.mutate({
+        title: matchData.title || `${matchData.team1Name} vs ${matchData.team2Name}`,
         team1Id: team1.id,
         team2Id: team2.id,
-        tossWinnerId,
-        tossDecision: matchData.tossDecision,
         matchType: matchData.matchType,
         overs: matchData.overs,
+        venue: matchData.venue || '',
         status: 'setup'
       });
 
@@ -619,43 +615,7 @@ export default function MatchSetup() {
               </div>
             </div>
 
-            <Separator />
 
-            <div>
-              <Label>Toss Winner</Label>
-              <RadioGroup 
-                value={matchData.tossWinner} 
-                onValueChange={(value) => setMatchData(prev => ({ ...prev, tossWinner: value }))}
-                className="flex space-x-6 mt-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="team1" id="toss-team1" />
-                  <Label htmlFor="toss-team1">{matchData.team1Name || 'Team 1'}</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="team2" id="toss-team2" />
-                  <Label htmlFor="toss-team2">{matchData.team2Name || 'Team 2'}</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div>
-              <Label>Toss Decision</Label>
-              <RadioGroup 
-                value={matchData.tossDecision} 
-                onValueChange={(value) => setMatchData(prev => ({ ...prev, tossDecision: value }))}
-                className="flex space-x-6 mt-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="bat" id="decision-bat" />
-                  <Label htmlFor="decision-bat">Bat First</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="bowl" id="decision-bowl" />
-                  <Label htmlFor="decision-bowl">Bowl First</Label>
-                </div>
-              </RadioGroup>
-            </div>
           </CardContent>
         </Card>
 

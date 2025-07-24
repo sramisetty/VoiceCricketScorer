@@ -438,71 +438,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/matches', authenticateToken, requireRole(['admin', 'global_admin', 'franchise_admin']), async (req: AuthenticatedRequest, res) => {
     try {
       const matchData = insertMatchSchema.parse(req.body);
-      // Set authenticated user as the creator
-      const finalMatchData = { ...matchData, createdBy: req.user!.id };
+      // Set authenticated user as the creator and default status to 'setup'
+      const finalMatchData = { 
+        ...matchData, 
+        createdBy: req.user!.id,
+        status: 'setup',
+        // Don't set toss data during creation - will be set when match starts
+        tossWinnerId: null,
+        tossDecision: null
+      };
       
       const match = await storage.createMatch(finalMatchData);
-      
-      // Automatically create first innings based on toss decision
-      const tossWinnerId = matchData.tossWinnerId ?? matchData.team1Id;
-      const battingTeamId = matchData.tossDecision === 'bat' ? tossWinnerId : 
-                           tossWinnerId === matchData.team1Id ? matchData.team2Id : matchData.team1Id;
-      const bowlingTeamId = battingTeamId === matchData.team1Id ? matchData.team2Id : matchData.team1Id;
-      
-      // Create first innings
-      const innings = await storage.createInnings({
-        matchId: match.id,
-        battingTeamId,
-        bowlingTeamId,
-        inningsNumber: 1,
-        totalRuns: 0,
-        totalWickets: 0,
-        totalOvers: 0,
-        totalBalls: 0,
-        extras: { wides: 0, noballs: 0, byes: 0, legbyes: 0 },
-        isCompleted: false
-      });
-
-      // Update match status to live
-      await storage.updateMatch(match.id, { status: 'live', currentInnings: 1 });
-
-      // Initialize player stats for batting team
-      const battingPlayers = await storage.getPlayersByTeam(battingTeamId);
-      for (const player of battingPlayers) {
-        await storage.createPlayerStats({
-          inningsId: innings.id,
-          playerId: player.id,
-          runs: 0,
-          ballsFaced: 0,
-          fours: 0,
-          sixes: 0,
-          isOut: false,
-          isOnStrike: false,
-          oversBowled: 0,
-          ballsBowled: 0,
-          runsConceded: 0,
-          wicketsTaken: 0
-        });
-      }
-
-      // Initialize player stats for bowling team
-      const bowlingPlayers = await storage.getPlayersByTeam(bowlingTeamId);
-      for (const player of bowlingPlayers) {
-        await storage.createPlayerStats({
-          inningsId: innings.id,
-          playerId: player.id,
-          runs: 0,
-          ballsFaced: 0,
-          fours: 0,
-          sixes: 0,
-          isOut: false,
-          isOnStrike: false,
-          oversBowled: 0,
-          ballsBowled: 0,
-          runsConceded: 0,
-          wicketsTaken: 0
-        });
-      }
 
       res.json(match);
     } catch (error) {
@@ -574,7 +520,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/matches/:id/start', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
-      const { battingTeamId, bowlingTeamId } = req.body;
+      const { tossWinnerId, tossDecision } = req.body;
+      
+      // First update the match with toss data
+      const match = await storage.getMatchWithTeams(matchId);
+      if (!match) {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+      
+      // Determine batting and bowling teams based on toss
+      const battingTeamId = tossDecision === 'bat' ? tossWinnerId : 
+                           (tossWinnerId === match.team1Id ? match.team2Id : match.team1Id);
+      const bowlingTeamId = battingTeamId === match.team1Id ? match.team2Id : match.team1Id;
+      
+      // Update match with toss data and set to live
+      await storage.updateMatch(matchId, { 
+        status: 'live', 
+        currentInnings: 1,
+        tossWinnerId,
+        tossDecision
+      });
 
       // Create first innings
       const innings = await storage.createInnings({

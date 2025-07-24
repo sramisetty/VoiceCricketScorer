@@ -19,6 +19,12 @@ export default function Matches() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [isNewMatchDialogOpen, setIsNewMatchDialogOpen] = useState(false);
+  const [isTossDialogOpen, setIsTossDialogOpen] = useState(false);
+  const [selectedMatchForToss, setSelectedMatchForToss] = useState<any>(null);
+  const [tossData, setTossData] = useState({
+    tossWinnerId: '',
+    tossDecision: 'bat' as 'bat' | 'bowl'
+  });
   const [newMatchData, setNewMatchData] = useState({
     team1Id: '',
     team2Id: '',
@@ -73,6 +79,26 @@ export default function Matches() {
       setIsNewMatchDialogOpen(false);
       resetNewMatchForm();
     },
+  });
+
+  const startMatchMutation = useMutation({
+    mutationFn: async ({ matchId, tossData }: { matchId: number, tossData: any }) => {
+      const response = await apiRequest('POST', `/api/matches/${matchId}/start`, {
+        tossWinnerId: parseInt(tossData.tossWinnerId),
+        tossDecision: tossData.tossDecision
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Match Started",
+        description: "The match has been started successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/matches'] });
+      setIsTossDialogOpen(false);
+      setSelectedMatchForToss(null);
+      setTossData({ tossWinnerId: '', tossDecision: 'bat' });
+    },
     onError: () => {
       toast({
         title: "Error",
@@ -114,6 +140,28 @@ export default function Matches() {
     }
 
     createMatchMutation.mutate(newMatchData);
+  };
+
+  const handleStartMatch = (match: any) => {
+    setSelectedMatchForToss(match);
+    setTossData({ tossWinnerId: match.team1Id.toString(), tossDecision: 'bat' });
+    setIsTossDialogOpen(true);
+  };
+
+  const handleTossSubmit = () => {
+    if (!tossData.tossWinnerId) {
+      toast({
+        title: "Missing Information",
+        description: "Please select toss winner.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    startMatchMutation.mutate({
+      matchId: selectedMatchForToss.id,
+      tossData
+    });
   };
 
   const getMatchStatusColor = (status: string) => {
@@ -306,6 +354,81 @@ export default function Matches() {
         </div>
       </header>
 
+      {/* Toss Dialog */}
+      <Dialog open={isTossDialogOpen} onOpenChange={setIsTossDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Start Match - Toss Details</DialogTitle>
+          </DialogHeader>
+          
+          {selectedMatchForToss && (
+            <div className="space-y-4">
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold text-lg">
+                  {selectedMatchForToss.team1.name} vs {selectedMatchForToss.team2.name}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {selectedMatchForToss.matchType} • {selectedMatchForToss.overs} overs
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="toss-winner">Toss Winner</Label>
+                <Select
+                  value={tossData.tossWinnerId}
+                  onValueChange={(value) => setTossData({ ...tossData, tossWinnerId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select toss winner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={selectedMatchForToss.team1Id.toString()}>
+                      {selectedMatchForToss.team1.name}
+                    </SelectItem>
+                    <SelectItem value={selectedMatchForToss.team2Id.toString()}>
+                      {selectedMatchForToss.team2.name}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="toss-decision">Toss Decision</Label>
+                <Select
+                  value={tossData.tossDecision}
+                  onValueChange={(value: 'bat' | 'bowl') => setTossData({ ...tossData, tossDecision: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bat">Bat First</SelectItem>
+                    <SelectItem value="bowl">Bowl First</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={handleTossSubmit}
+                  disabled={startMatchMutation.isPending}
+                  className="flex-1 bg-green-500 hover:bg-green-600"
+                >
+                  {startMatchMutation.isPending ? 'Starting Match...' : 'Start Match'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsTossDialogOpen(false)}
+                  disabled={startMatchMutation.isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <div className="container mx-auto px-4 py-6">
         {/* Live Matches */}
         <div className="mb-8">
@@ -435,12 +558,14 @@ export default function Matches() {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Link href={`/scorer/${match.id}`} className="flex-1">
-                          <Button className="w-full bg-green-500 hover:bg-green-600">
-                            <Play className="w-4 h-4 mr-2" />
-                            Start Match
-                          </Button>
-                        </Link>
+                        <Button 
+                          onClick={() => handleStartMatch(match)}
+                          className="flex-1 bg-green-500 hover:bg-green-600"
+                          disabled={startMatchMutation.isPending}
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          {startMatchMutation.isPending ? 'Starting...' : 'Start Match'}
+                        </Button>
                         <Link href={`/scoreboard/${match.id}`}>
                           <Button variant="outline" size="sm">
                             <Eye className="w-4 h-4" />
