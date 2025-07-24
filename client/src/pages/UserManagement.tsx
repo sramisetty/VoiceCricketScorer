@@ -658,14 +658,17 @@ export default function UserManagement() {
                   </div>
                 ) : (
                   <Select 
-                    value={editUser.linkedPlayerId?.toString() || ''} 
-                    onValueChange={(value) => setEditUser(prev => ({ ...prev, linkedPlayerId: value ? parseInt(value) : null }))}
+                    value={editUser.linkedPlayerId?.toString() || 'none'} 
+                    onValueChange={(value) => setEditUser(prev => ({ 
+                      ...prev, 
+                      linkedPlayerId: value === 'none' ? null : parseInt(value) 
+                    }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a player to link" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None (Remove link)</SelectItem>
+                      <SelectItem value="none">None (Remove link)</SelectItem>
                       {availablePlayers.map((player: any) => (
                         <SelectItem key={player.id} value={player.id.toString()}>
                           {player.name} - {player.role} ({player.teamId ? 'Team ID: ' + player.teamId : 'No team'})

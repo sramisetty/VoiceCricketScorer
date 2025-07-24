@@ -35,6 +35,8 @@ export default function MatchStats() {
       }
       return response.json();
     },
+    retry: 1,
+    staleTime: 30000, // 30 seconds
   });
 
   // Show loading state
@@ -80,14 +82,14 @@ export default function MatchStats() {
         </div>
         <div className="flex gap-4">
           <Select 
-            value={selectedMatch?.toString() || ''} 
-            onValueChange={(value) => setSelectedMatch(value ? parseInt(value) : null)}
+            value={selectedMatch?.toString() || 'all'} 
+            onValueChange={(value) => setSelectedMatch(value === 'all' ? null : parseInt(value))}
           >
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select Match" />
+              <SelectValue placeholder="All Matches" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Matches</SelectItem>
+              <SelectItem value="all">All Matches</SelectItem>
               {matches.map((match: any) => (
                 <SelectItem key={match.id} value={match.id.toString()}>
                   {match.title}
