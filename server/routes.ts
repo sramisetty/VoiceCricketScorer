@@ -2,9 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertFranchiseSchema, insertMatchSchema, insertTeamSchema, insertPlayerSchema, insertBallSchema } from "@shared/schema";
+import { insertFranchiseSchema, insertUserSchema, insertMatchSchema, insertTeamSchema, insertPlayerSchema, insertBallSchema } from "@shared/schema";
 import { transcribeAudio, validateAudioFormat } from "./whisper";
-import { optionalAuth, AuthenticatedRequest, authenticateToken, requireRole } from "./auth";
+import { optionalAuth, AuthenticatedRequest, authenticateToken, requireRole, hashPassword } from "./auth";
 import authRoutes from "./authRoutes";
 import playerRoutes from "./playerRoutes";
 import { registerStatsRoutes } from "./statsRoutes";
@@ -96,16 +96,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/franchises/:id/users', async (req: any, res) => {
     try {
       const franchiseId = parseInt(req.params.id);
+      const { password, ...otherData } = req.body;
+      
+      // Hash the password before creating user
+      const hashedPassword = await hashPassword(password);
+      
       const userData = insertUserSchema.parse({
-        ...req.body,
+        ...otherData,
+        passwordHash: hashedPassword,
         franchiseId: franchiseId
       });
       
       const user = await storage.createUser(userData);
       res.status(201).json(user);
     } catch (error) {
-      console.error("Error creating franchise user:", error);
-      res.status(500).json({ message: "Failed to create franchise user" });
+      console.error("Error creating franchise user:", error.message);
+      console.error("Full error:", error);
+      res.status(500).json({ 
+        message: "Failed to create franchise user",
+        error: error.message 
+      });
     }
   });
 
