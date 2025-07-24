@@ -6,10 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiRequest, apiRequestJson } from '@/lib/queryClient';
+import { Users, UserPlus, X, Trophy } from 'lucide-react';
+import type { PlayerWithStats } from '@shared/schema';
 
 export default function MatchSetup() {
   const [, setLocation] = useLocation();
@@ -27,8 +32,16 @@ export default function MatchSetup() {
     tossDecision: 'bat'
   });
 
-  const [team1Players, setTeam1Players] = useState<string[]>(Array(11).fill(''));
-  const [team2Players, setTeam2Players] = useState<string[]>(Array(11).fill(''));
+  const [team1Players, setTeam1Players] = useState<PlayerWithStats[]>([]);
+  const [team2Players, setTeam2Players] = useState<PlayerWithStats[]>([]);
+  const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(false);
+  const [currentTeam, setCurrentTeam] = useState<'team1' | 'team2'>('team1');
+
+  // Fetch available players
+  const { data: availablePlayers = [], isLoading: playersLoading } = useQuery({
+    queryKey: ['/api/players/available'],
+    queryFn: () => apiRequestJson('/api/players/available'),
+  });
 
   const createMatchMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -62,13 +75,10 @@ export default function MatchSetup() {
       return;
     }
 
-    const validTeam1Players = team1Players.filter(name => name.trim());
-    const validTeam2Players = team2Players.filter(name => name.trim());
-
-    if (validTeam1Players.length < 11 || validTeam2Players.length < 11) {
+    if (team1Players.length < 11 || team2Players.length < 11) {
       toast({
         title: "Validation Error",
-        description: "Please enter all 11 players for both teams.",
+        description: "Please select all 11 players for both teams.",
         variant: "destructive",
       });
       return;
@@ -89,21 +99,21 @@ export default function MatchSetup() {
       const team2 = await team2Response.json();
 
       // Create players for team 1
-      for (let i = 0; i < validTeam1Players.length; i++) {
+      for (let i = 0; i < team1Players.length; i++) {
         await apiRequest('POST', '/api/players', {
-          name: validTeam1Players[i],
+          name: team1Players[i].name,
           teamId: team1.id,
-          role: i === 0 ? 'captain' : 'batsman',
+          role: i === 0 ? 'captain' : team1Players[i].role,
           battingOrder: i + 1
         });
       }
 
       // Create players for team 2
-      for (let i = 0; i < validTeam2Players.length; i++) {
+      for (let i = 0; i < team2Players.length; i++) {
         await apiRequest('POST', '/api/players', {
-          name: validTeam2Players[i],
+          name: team2Players[i].name,
           teamId: team2.id,
-          role: i === 0 ? 'captain' : 'batsman',
+          role: i === 0 ? 'captain' : team2Players[i].role,
           battingOrder: i + 1
         });
       }
@@ -130,16 +140,60 @@ export default function MatchSetup() {
     }
   };
 
-  const updatePlayer = (team: 'team1' | 'team2', index: number, name: string) => {
-    if (team === 'team1') {
-      const updated = [...team1Players];
-      updated[index] = name;
-      setTeam1Players(updated);
-    } else {
-      const updated = [...team2Players];
-      updated[index] = name;
-      setTeam2Players(updated);
+  const openPlayerDialog = (team: 'team1' | 'team2') => {
+    setCurrentTeam(team);
+    setIsPlayerDialogOpen(true);
+  };
+
+  const addPlayerToTeam = (player: PlayerWithStats) => {
+    const selectedPlayers = currentTeam === 'team1' ? team1Players : team2Players;
+    const setPlayers = currentTeam === 'team1' ? setTeam1Players : setTeam2Players;
+    
+    // Check if player is already selected for this team
+    if (selectedPlayers.some(p => p.id === player.id)) {
+      toast({
+        title: "Player Already Selected",
+        description: `${player.name} is already in ${currentTeam === 'team1' ? 'Team 1' : 'Team 2'}.`,
+        variant: "destructive",
+      });
+      return;
     }
+
+    // Check if player is selected for the other team
+    const otherTeamPlayers = currentTeam === 'team1' ? team2Players : team1Players;
+    if (otherTeamPlayers.some(p => p.id === player.id)) {
+      toast({
+        title: "Player Already Selected",
+        description: `${player.name} is already selected for the other team.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check team limit
+    if (selectedPlayers.length >= 11) {
+      toast({
+        title: "Team Full",
+        description: "This team already has 11 players selected.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPlayers([...selectedPlayers, player]);
+  };
+
+  const removePlayerFromTeam = (playerId: number, team: 'team1' | 'team2') => {
+    if (team === 'team1') {
+      setTeam1Players(team1Players.filter(p => p.id !== playerId));
+    } else {
+      setTeam2Players(team2Players.filter(p => p.id !== playerId));
+    }
+  };
+
+  const getAvailablePlayersForSelection = () => {
+    const selectedPlayerIds = [...team1Players, ...team2Players].map(p => p.id);
+    return availablePlayers.filter(player => !selectedPlayerIds.includes(player.id));
   };
 
   return (
@@ -274,52 +328,168 @@ export default function MatchSetup() {
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Team 1 Players */}
           <Card>
-            <CardHeader>
-              <CardTitle>{matchData.team1Name || 'Team 1'} Players</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                {matchData.team1Name || 'Team 1'} Players ({team1Players.length}/11)
+              </CardTitle>
+              <Button
+                onClick={() => openPlayerDialog('team1')}
+                size="sm"
+                disabled={team1Players.length >= 11 || playersLoading}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <UserPlus className="w-4 h-4 mr-1" />
+                Add Player
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {team1Players.map((player, index) => (
-                  <div key={index}>
-                    <Label htmlFor={`team1-player-${index}`}>
-                      Player {index + 1} {index === 0 && '(Captain)'}
-                    </Label>
-                    <Input
-                      id={`team1-player-${index}`}
-                      value={player}
-                      onChange={(e) => updatePlayer('team1', index, e.target.value)}
-                      placeholder={`Enter player ${index + 1} name`}
-                    />
-                  </div>
-                ))}
-              </div>
+              {team1Players.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  No players selected. Click "Add Player" to select from available players.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {team1Players.map((player, index) => (
+                    <div key={player.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="w-8 h-6 justify-center">
+                          {index + 1}
+                        </Badge>
+                        <div>
+                          <p className="font-medium">{player.name}</p>
+                          <p className="text-sm text-gray-500 capitalize">
+                            {player.role} {index === 0 && '• Captain'}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => removePlayerFromTeam(player.id, 'team1')}
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
+          {/* Team 2 Players */}
           <Card>
-            <CardHeader>
-              <CardTitle>{matchData.team2Name || 'Team 2'} Players</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                {matchData.team2Name || 'Team 2'} Players ({team2Players.length}/11)
+              </CardTitle>
+              <Button
+                onClick={() => openPlayerDialog('team2')}
+                size="sm"
+                disabled={team2Players.length >= 11 || playersLoading}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <UserPlus className="w-4 h-4 mr-1" />
+                Add Player
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {team2Players.map((player, index) => (
-                  <div key={index}>
-                    <Label htmlFor={`team2-player-${index}`}>
-                      Player {index + 1} {index === 0 && '(Captain)'}
-                    </Label>
-                    <Input
-                      id={`team2-player-${index}`}
-                      value={player}
-                      onChange={(e) => updatePlayer('team2', index, e.target.value)}
-                      placeholder={`Enter player ${index + 1} name`}
-                    />
-                  </div>
-                ))}
-              </div>
+              {team2Players.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  No players selected. Click "Add Player" to select from available players.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {team2Players.map((player, index) => (
+                    <div key={player.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="w-8 h-6 justify-center">
+                          {index + 1}
+                        </Badge>
+                        <div>
+                          <p className="font-medium">{player.name}</p>
+                          <p className="text-sm text-gray-500 capitalize">
+                            {player.role} {index === 0 && '• Captain'}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => removePlayerFromTeam(player.id, 'team2')}
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
+
+        {/* Player Selection Dialog */}
+        <Dialog open={isPlayerDialogOpen} onOpenChange={setIsPlayerDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>
+                Select Players for {currentTeam === 'team1' ? matchData.team1Name || 'Team 1' : matchData.team2Name || 'Team 2'}
+              </DialogTitle>
+              <DialogDescription>
+                Choose from available players in the system. Selected players: {currentTeam === 'team1' ? team1Players.length : team2Players.length}/11
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="overflow-y-auto max-h-96">
+              {playersLoading ? (
+                <p className="text-center py-8">Loading available players...</p>
+              ) : getAvailablePlayersForSelection().length === 0 ? (
+                <p className="text-center py-8 text-gray-500">
+                  No available players. All players have been selected or create new players in Player Management.
+                </p>
+              ) : (
+                <div className="grid gap-3">
+                  {getAvailablePlayersForSelection().map((player) => (
+                    <div
+                      key={player.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                      onClick={() => addPlayerToTeam(player)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <p className="font-medium">{player.name}</p>
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Badge variant="secondary" className="text-xs">
+                              {player.role}
+                            </Badge>
+                            <span>•</span>
+                            <span>{player.totalMatches} matches</span>
+                            <span>•</span>
+                            <span>{player.totalRuns} runs</span>
+                          </div>
+                        </div>
+                      </div>
+                      <Button size="sm" onClick={() => addPlayerToTeam(player)}>
+                        Add
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button onClick={() => setIsPlayerDialogOpen(false)} variant="outline">
+                Done
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <div className="text-center">
           <Button
