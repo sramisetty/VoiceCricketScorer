@@ -101,6 +101,22 @@ router.post('/auth/login', async (req, res) => {
   }
 });
 
+// Get current user (for frontend auth check)
+router.get('/auth/user', authenticateToken, async (req: AuthenticatedRequest, res) => {
+  try {
+    const user = await storage.getUser(req.user!.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { passwordHash: _, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
+  } catch (error) {
+    console.error('User fetch error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get current user profile
 router.get('/auth/profile', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {

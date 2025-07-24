@@ -30,13 +30,13 @@ export default function Matches() {
   });
 
   // Fetch user for role-based access control
-  const { data: user } = useQuery({
+  const { data: user, isLoading: userLoading, error: userError } = useQuery({
     queryKey: ['/api/auth/user'],
     retry: false,
   });
 
   // Check if user has permission to create matches (admin or global_admin only)
-  const canCreateMatches = user?.role === 'admin' || user?.role === 'global_admin';
+  const canCreateMatches = user && (user.role === 'admin' || user.role === 'global_admin');
 
   // Fetch all matches
   const { data: matches = [], isLoading: matchesLoading } = useQuery<MatchWithTeams[]>({
@@ -155,7 +155,7 @@ export default function Matches() {
               <p className="text-cricket-light mt-2">Manage your cricket matches and scoring</p>
             </div>
             <div className="flex gap-2">
-              {canCreateMatches && (
+              {!userLoading && canCreateMatches && (
                 <Button 
                   onClick={() => setLocation('/match-setup')}
                   className="bg-cricket-accent hover:bg-orange-600"
@@ -164,7 +164,7 @@ export default function Matches() {
                   Create New Match
                 </Button>
               )}
-              {canCreateMatches && (
+              {!userLoading && canCreateMatches && (
                 <Dialog open={isNewMatchDialogOpen} onOpenChange={setIsNewMatchDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="border-white text-white hover:bg-white hover:text-cricket-primary">
