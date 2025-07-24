@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { TrendingUp, Trophy, Target, Users, Calendar, Clock, BarChart3 } from 'lucide-react';
-import { apiRequestJson } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function MatchStats() {
   const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
@@ -15,14 +15,34 @@ export default function MatchStats() {
   // Fetch matches for selection
   const { data: matches = [] } = useQuery({
     queryKey: ['/api/matches'],
-    queryFn: () => apiRequestJson('/api/matches'),
   });
 
   // Fetch match statistics
-  const { data: matchStats, isLoading } = useQuery({
+  const { data: matchStats, isLoading, error } = useQuery({
     queryKey: ['/api/matches/stats', selectedMatch, timeRange],
-    queryFn: () => apiRequestJson(`/api/matches/stats?matchId=${selectedMatch || ''}&timeRange=${timeRange}`),
   });
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Loading match statistics...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-red-600">Error loading match statistics: {error.message}</div>
+        </div>
+      </div>
+    );
+  }
 
   const completedMatches = matches.filter((m: any) => m.status === 'completed');
   const currentMatch = selectedMatch ? matches.find((m: any) => m.id === selectedMatch) : null;
@@ -73,9 +93,9 @@ export default function MatchStats() {
         </div>
       </div>
 
-      {isLoading ? (
+      {!matchStats ? (
         <div className="text-center py-8">
-          <p className="text-gray-500">Loading statistics...</p>
+          <p className="text-gray-500">No statistics data available</p>
         </div>
       ) : (
         <div className="space-y-6">

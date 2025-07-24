@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Archive, Search, Calendar, Trophy, Users, Clock, Download, Eye, Filter } from 'lucide-react';
-import { apiRequestJson } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
 import { format } from 'date-fns';
 
 export default function Archives() {
@@ -19,7 +19,6 @@ export default function Archives() {
   // Fetch archived matches
   const { data: matches = [], isLoading } = useQuery({
     queryKey: ['/api/matches/archived', searchTerm, statusFilter, sortBy],
-    queryFn: () => apiRequestJson(`/api/matches/archived?search=${searchTerm}&status=${statusFilter}&sort=${sortBy}`),
   });
 
   // Filter matches based on search and status

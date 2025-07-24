@@ -46,8 +46,8 @@ export function registerStatsRoutes(app: Express) {
     }
   });
 
-  // Player Statistics Routes
-  app.get('/api/players/stats', async (req, res) => {
+  // Player Statistics Routes  
+  app.get('/api/player-statistics', async (req, res) => {
     try {
       const { search, team, role } = req.query;
       const playerStats = await storage.getPlayerStatistics({

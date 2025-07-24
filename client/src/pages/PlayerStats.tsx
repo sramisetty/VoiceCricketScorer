@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts';
 import { Trophy, Target, Users, Search, TrendingUp, Activity, Star, Award, Zap } from 'lucide-react';
-import { apiRequestJson } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function PlayerStats() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,20 +20,17 @@ export default function PlayerStats() {
 
   // Fetch players with stats
   const { data: players = [], isLoading } = useQuery({
-    queryKey: ['/api/players/stats', searchTerm, selectedTeam, selectedRole],
-    queryFn: () => apiRequestJson(`/api/players/stats?search=${searchTerm}&team=${selectedTeam}&role=${selectedRole}`),
+    queryKey: ['/api/player-statistics', searchTerm, selectedTeam, selectedRole],
   });
 
   // Fetch teams for filter
   const { data: teams = [] } = useQuery({
     queryKey: ['/api/teams'],
-    queryFn: () => apiRequestJson('/api/teams'),
   });
 
   // Fetch detailed player stats when selected
   const { data: playerDetails } = useQuery({
     queryKey: ['/api/players', selectedPlayer?.id, 'detailed-stats'],
-    queryFn: () => selectedPlayer ? apiRequestJson(`/api/players/${selectedPlayer.id}/detailed-stats`) : null,
     enabled: !!selectedPlayer,
   });
 
