@@ -248,6 +248,11 @@ export type LiveMatchData = {
   currentBowler: PlayerStats & { player: Player };
 };
 
+export type CompleteMatchData = {
+  match: MatchWithTeams;
+  innings: InningsWithStats[];
+};
+
 export type PlayerWithStats = Player & {
   user?: User;
   totalMatches: number;

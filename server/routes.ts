@@ -592,6 +592,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/matches/:id/complete', async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      const completeData = await storage.getCompleteMatchData(matchId);
+      if (!completeData) {
+        return res.status(404).json({ error: 'Complete match data not found' });
+      }
+      res.json(completeData);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch complete match data' });
+    }
+  });
+
   app.put('/api/matches/:id', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);

@@ -2,7 +2,7 @@ import {
   franchises, teams, players, matches, innings, balls, playerStats, users, matchPlayerSelections, userPlayerLinks, playerFranchiseLinks,
   type Franchise, type Team, type Player, type Match, type Innings, type Ball, type PlayerStats, type User, type MatchPlayerSelection, type PlayerFranchiseLink,
   type InsertFranchise, type InsertTeam, type InsertPlayer, type InsertMatch, type InsertInnings, type InsertBall, type InsertPlayerStats, type InsertUser, type InsertMatchPlayerSelection, type InsertPlayerFranchiseLink,
-  type MatchWithTeams, type InningsWithStats, type LiveMatchData, type PlayerWithStats, type MatchWithDetails
+  type MatchWithTeams, type InningsWithStats, type LiveMatchData, type CompleteMatchData, type PlayerWithStats, type MatchWithDetails
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, isNull, max, sum, count, sql, ilike, like } from "drizzle-orm";
@@ -91,6 +91,9 @@ export interface IStorage {
 
   // Live Match Data
   getLiveMatchData(matchId: number): Promise<LiveMatchData | undefined>;
+  
+  // Complete Match Data
+  getCompleteMatchData(matchId: number): Promise<CompleteMatchData | undefined>;
 
   // Cricket Logic
   updateStrikeRotation(inningsId: number, batsmanId: number, runs: number, isExtra: boolean): Promise<void>;
@@ -484,6 +487,44 @@ export class MemStorage implements IStorage {
         }
       }
     }
+  }
+
+  // Complete Match Data - includes all innings for comprehensive summary
+  async getCompleteMatchData(matchId: number): Promise<CompleteMatchData | undefined> {
+    const matchWithTeams = await this.getMatchWithTeams(matchId);
+    if (!matchWithTeams) return undefined;
+
+    // Get all innings for this match
+    const allInnings = Array.from(this.innings.values())
+      .filter(i => i.matchId === matchId)
+      .sort((a, b) => a.inningsNumber - b.inningsNumber);
+
+    const inningsWithStats: InningsWithStats[] = [];
+    
+    for (const innings of allInnings) {
+      const battingTeam = this.teams.get(innings.battingTeamId);
+      const bowlingTeam = this.teams.get(innings.bowlingTeamId);
+      if (!battingTeam || !bowlingTeam) continue;
+
+      const inningsBalls = Array.from(this.balls.values())
+        .filter(b => b.inningsId === innings.id)
+        .sort((a, b) => a.overNumber - b.overNumber || a.ballNumber - b.ballNumber);
+
+      const inningsStats = await this.getPlayerStatsByInnings(innings.id);
+
+      inningsWithStats.push({
+        ...innings,
+        battingTeam,
+        bowlingTeam,
+        balls: inningsBalls,
+        playerStats: inningsStats
+      });
+    }
+
+    return {
+      match: matchWithTeams,
+      innings: inningsWithStats
+    };
   }
 
   // Match Reset
@@ -1626,6 +1667,45 @@ export class DatabaseStorage implements IStorage {
       recentBalls,
       currentBatsmen,
       currentBowler: currentBowler!
+    };
+  }
+
+  // Complete Match Data - includes all innings for comprehensive summary
+  async getCompleteMatchData(matchId: number): Promise<CompleteMatchData | undefined> {
+    const matchWithTeams = await this.getMatchWithTeams(matchId);
+    if (!matchWithTeams) return undefined;
+
+    // Get all innings for this match
+    const allInnings = await db.select().from(innings)
+      .where(eq(innings.matchId, matchId))
+      .orderBy(innings.inningsNumber);
+
+    const inningsWithStats: InningsWithStats[] = [];
+    
+    for (const inning of allInnings) {
+      const [battingTeam] = await db.select().from(teams).where(eq(teams.id, inning.battingTeamId));
+      const [bowlingTeam] = await db.select().from(teams).where(eq(teams.id, inning.bowlingTeamId));
+      
+      if (!battingTeam || !bowlingTeam) continue;
+
+      const inningsBalls = await db.select().from(balls)
+        .where(eq(balls.inningsId, inning.id))
+        .orderBy(balls.overNumber, balls.ballNumber);
+
+      const inningsStats = await this.getPlayerStatsByInnings(inning.id);
+
+      inningsWithStats.push({
+        ...inning,
+        battingTeam,
+        bowlingTeam,
+        balls: inningsBalls,
+        playerStats: inningsStats
+      });
+    }
+
+    return {
+      match: matchWithTeams,
+      innings: inningsWithStats
     };
   }
 

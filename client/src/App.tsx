@@ -18,6 +18,7 @@ import FranchiseManagementComplete from "@/pages/FranchiseManagementComplete";
 import MatchStats from "@/pages/MatchStats";
 import Archives from "@/pages/Archives";
 import PlayerStats from "@/pages/PlayerStats";
+import MatchDetails from "@/pages/match-details";
 import TossTest from "@/pages/toss-test";
 import NotFound from "@/pages/not-found";
 import Navigation from "@/components/Navigation";
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/match-stats" component={MatchStatsWithNav} />
       <Route path="/archives" component={ArchivesWithNav} />
       <Route path="/player-stats" component={PlayerStatsWithNav} />
+      <Route path="/match-details/:id" component={MatchDetails} />
       <Route path="/toss-test" component={TossTest} />
       <Route component={NotFound} />
     </Switch>

@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Play, Eye, Trophy, Target, Clock, Users } from 'lucide-react';
+import { Plus, Play, Eye, Trophy, Target, Clock, Users, BarChart3 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { Link } from 'wouter';
 import { queryClient, apiRequest } from '@/lib/queryClient';
@@ -422,7 +422,13 @@ export default function MatchesClean() {
                         <Link href={`/scoreboard/${match.id}`} className="flex-1">
                           <Button variant="outline" className="w-full">
                             <Eye className="w-4 h-4 mr-2" />
-                            View Results
+                            Live View
+                          </Button>
+                        </Link>
+                        <Link href={`/match-details/${match.id}`} className="flex-1">
+                          <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                            <BarChart3 className="w-4 h-4 mr-2" />
+                            Full Summary
                           </Button>
                         </Link>
                       </div>
