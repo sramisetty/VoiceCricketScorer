@@ -60,7 +60,7 @@ export function Commentary({ balls }: CommentaryProps) {
                 No balls bowled yet
               </div>
             ) : (
-              balls.map((ball) => (
+              balls.map((ball, index) => (
                 <div
                   key={ball.id}
                   className={cn(
