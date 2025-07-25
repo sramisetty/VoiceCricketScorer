@@ -91,6 +91,17 @@ export default function Archives() {
     queryKey: ['/api/matches'],
   });
 
+  // Fetch complete match data for detailed stats
+  const { data: completeMatchData } = useQuery({
+    queryKey: ['/api/matches', selectedMatch?.id, 'complete'],
+    queryFn: async () => {
+      if (!selectedMatch?.id) return null;
+      const response = await apiRequest('GET', `/api/matches/${selectedMatch.id}/complete`);
+      return response.json();
+    },
+    enabled: !!selectedMatch?.id,
+  });
+
   // Filter for completed matches only  
   const matches = (allMatches as any[]).filter((match: any) => match.status === 'completed');
 
@@ -137,7 +148,7 @@ export default function Archives() {
 
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), 'MMM dd, yyyy');
+      return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
     } catch {
       return 'Unknown date';
     }
@@ -330,10 +341,8 @@ export default function Archives() {
             </Card>
           ))}
         </div>
-      )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
+        {/* Pagination */}
         <div className="flex items-center justify-between mt-8">
           <div className="text-sm text-gray-600">
             Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredMatches.length)} of {filteredMatches.length} matches
@@ -358,7 +367,7 @@ export default function Archives() {
             </Button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
