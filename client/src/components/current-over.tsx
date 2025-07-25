@@ -15,13 +15,10 @@ interface CurrentOverProps {
 }
 
 export function CurrentOver({ balls, bowlerName, overNumber, totalBalls, currentBowlerStats }: CurrentOverProps) {
-  // Get balls from current over
+  // Get balls from current over - if no balls exist for this over, we'll show an empty over
   const currentOverBalls = balls
     .filter(ball => ball.overNumber === overNumber)
     .sort((a, b) => a.ballNumber - b.ballNumber);
-  
-  // Check if this is a completed over (no balls in current over but balls exist in previous over)
-  const isCompletedPreviousOver = currentOverBalls.length === 0 && balls.length > 0;
 
   const getBallDisplay = (ball: Ball) => {
     if (ball.isWicket) return 'W';
@@ -71,7 +68,11 @@ export function CurrentOver({ balls, bowlerName, overNumber, totalBalls, current
       <CardContent>
         <div className="text-center mb-4">
           <div className="text-2xl font-bold text-cricket-primary">
-            Over {overNumber}.{validBallsBowled}
+            {currentOverBalls.length === 0 ? (
+              `Over ${Math.max(1, overNumber - 1)}.0`
+            ) : (
+              `Over ${overNumber}.${validBallsBowled}`
+            )}
           </div>
           <div className="text-sm text-gray-600">{bowlerName} bowling</div>
           {currentBowlerStats && (

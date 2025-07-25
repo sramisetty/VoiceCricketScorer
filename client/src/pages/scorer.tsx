@@ -837,7 +837,7 @@ export default function Scorer() {
 
   // Helper function to calculate current over display and number
   const getCurrentOverInfo = () => {
-    if (!currentData?.recentBalls?.length) return { display: "0.0", overNumber: 1 };
+    if (!currentData?.recentBalls?.length) return { display: "0.0", overNumber: 1, isComplete: false };
     
     const lastBall = currentData.recentBalls[0];
     const lastOverNumber = lastBall.overNumber;
@@ -852,14 +852,16 @@ export default function Scorer() {
     if (validBallsInLastOver >= 6) {
       return { 
         display: `${lastOverNumber}.0`, 
-        overNumber: lastOverNumber + 1 
+        overNumber: lastOverNumber + 1,  // Next over number for CurrentOver component
+        isComplete: true
       };
     }
     
     // Otherwise show current over with balls bowled
     return { 
       display: `${lastOverNumber}.${validBallsInLastOver}`, 
-      overNumber: lastOverNumber 
+      overNumber: lastOverNumber,
+      isComplete: false
     };
   };
 
