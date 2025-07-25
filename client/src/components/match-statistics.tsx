@@ -24,10 +24,10 @@ export function MatchStatistics({ matchData }: MatchStatisticsProps) {
   
   // Calculate current over display logic - same as scorer page
   const getCurrentOverInfo = () => {
-    if (!recentBalls?.length) return { display: "0.0", overNumber: 1, validBalls: 0 };
+    if (!currentInnings?.balls?.length) return { display: "0.0", overNumber: 1, validBalls: 0 };
     
-    // Calculate total completed overs and current over balls
-    const allBalls = recentBalls;
+    // Calculate total completed overs and current over balls - use currentInnings.balls for consistency
+    const allBalls = currentInnings.balls || [];
     const validBalls = allBalls.filter(ball => 
       !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye'
     );

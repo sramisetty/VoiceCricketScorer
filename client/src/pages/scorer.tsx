@@ -837,10 +837,10 @@ export default function Scorer() {
 
   // Helper function to calculate current over display and number
   const getCurrentOverInfo = () => {
-    if (!currentData?.recentBalls?.length) return { display: "0.0", overNumber: 1, isComplete: false };
+    if (!currentData?.currentInnings?.balls?.length) return { display: "0.0", overNumber: 1, isComplete: false };
     
-    // Calculate total completed overs and current over balls
-    const allBalls = currentData.recentBalls;
+    // Calculate total completed overs and current over balls - use currentInnings.balls for consistency
+    const allBalls = currentData.currentInnings.balls || [];
     const validBalls = allBalls.filter(ball => 
       !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye'
     );
@@ -1303,7 +1303,7 @@ export default function Scorer() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="max-h-[350px] overflow-y-auto">
-                <Commentary balls={currentData.recentBalls} />
+                <Commentary balls={currentData.currentInnings.balls || []} />
               </CardContent>
             </Card>
 
