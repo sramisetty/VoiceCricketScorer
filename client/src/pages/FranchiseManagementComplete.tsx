@@ -622,9 +622,14 @@ function FranchiseCard({
     queryKey: [`/api/franchises/${franchise.id}/teams`],
   });
 
-  const { data: players } = useQuery({
+  const { data: players, refetch: refetchPlayers } = useQuery({
     queryKey: [`/api/franchises/${franchise.id}/players`],
   });
+
+  // Force refresh players when component mounts or franchise changes
+  useEffect(() => {
+    refetchPlayers();
+  }, [franchise.id, refetchPlayers]);
 
   const { data: users } = useQuery({
     queryKey: [`/api/franchises/${franchise.id}/users`],

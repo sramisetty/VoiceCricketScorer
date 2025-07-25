@@ -582,7 +582,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFranchisePlayers(franchiseId: number): Promise<Player[]> {
-    return await db.select().from(players).where(eq(players.franchiseId, franchiseId));
+    try {
+      const result = await db.select({
+        id: players.id,
+        name: players.name,
+        role: players.role,
+        franchiseId: players.franchiseId,
+        teamId: players.teamId,
+        battingOrder: players.battingOrder,
+        userId: players.userId,
+        contactInfo: players.contactInfo,
+        stats: players.stats,
+        availability: players.availability,
+        preferredPosition: players.preferredPosition,
+        isActive: players.isActive,
+        createdAt: players.createdAt,
+        updatedAt: players.updatedAt
+      })
+        .from(players)
+        .innerJoin(playerFranchiseLinks, eq(players.id, playerFranchiseLinks.playerId))
+        .where(and(
+          eq(playerFranchiseLinks.franchiseId, franchiseId),
+          eq(playerFranchiseLinks.isActive, true),
+          eq(players.isActive, true)
+        ));
+      
+      return result;
+    } catch (error) {
+      console.error('Error fetching franchise players:', error);
+      return [];
+    }
   }
 
   // Users (Authentication)
