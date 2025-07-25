@@ -72,13 +72,14 @@ async function createAdminUser() {
 
     // Check if user already exists
     const existingUser = await pool.query(
-      'SELECT id, email, role FROM users WHERE email = $1',
+      'SELECT id, username, email, role FROM users WHERE email = $1',
       [email]
     );
 
     if (existingUser.rows.length > 0) {
       console.log(`User with email ${email} already exists:`);
       console.log(`- ID: ${existingUser.rows[0].id}`);
+      console.log(`- Username: ${existingUser.rows[0].username}`);
       console.log(`- Role: ${existingUser.rows[0].role}`);
       
       // Ask if they want to update the role to global_admin
@@ -110,17 +111,19 @@ async function createAdminUser() {
     console.log(`  Hash length: ${passwordHash.length}`);
     console.log(`  Hash preview: ${passwordHash.substring(0, 29)}...`);
 
-    // Create the admin user
+    // Create the admin user (generate username from email)
+    const username = email.split('@')[0]; // Use email prefix as username
     const result = await pool.query(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, email_verified, created_at, updated_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) 
-       RETURNING id, email, first_name, last_name, role`,
-      [email, passwordHash, firstName, lastName, 'global_admin', true, true]
+      `INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, email_verified, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) 
+       RETURNING id, username, email, first_name, last_name, role`,
+      [username, email, passwordHash, firstName, lastName, 'global_admin', true, true]
     );
 
     const newUser = result.rows[0];
     console.log('\n✓ Admin user created successfully!');
     console.log(`- ID: ${newUser.id}`);
+    console.log(`- Username: ${newUser.username}`);
     console.log(`- Email: ${newUser.email}`);
     console.log(`- Name: ${newUser.first_name} ${newUser.last_name}`);
     console.log(`- Role: ${newUser.role}`);
