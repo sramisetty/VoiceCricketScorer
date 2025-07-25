@@ -167,13 +167,38 @@ export default function Scorer() {
         } else if (currentData.currentInnings.inningsNumber === 2 && currentData.match.status === 'completed') {
           toast({
             title: "Match Complete!",
-            description: "Both innings have been completed. Check match results for final details.",
-            duration: 10000,
+            description: "Redirecting to scoreboard...",
+            duration: 3000,
           });
+          
+          // Redirect to scoreboard after 3 seconds
+          setTimeout(() => {
+            setLocation(`/scoreboard/${matchId}`);
+          }, 3000);
         }
       }
     }
   }, [currentData?.currentInnings.isCompleted, currentData?.match.currentInnings, currentData?.match.status]);
+
+  // Auto-redirect to scoreboard when match is completed (fallback check)
+  useEffect(() => {
+    if (currentData?.match?.status === 'completed') {
+      // Only redirect if we haven't already redirected (check if we're still on scorer page)
+      const currentPath = window.location.pathname;
+      if (currentPath.includes('/scorer/')) {
+        toast({
+          title: "Match Completed!",
+          description: "Redirecting to scoreboard...",
+          duration: 2000,
+        });
+        
+        // Redirect to scoreboard after 2 seconds
+        setTimeout(() => {
+          setLocation(`/scoreboard/${matchId}`);
+        }, 2000);
+      }
+    }
+  }, [currentData?.match?.status, matchId, setLocation, toast]);
 
   const startMatchMutation = useMutation({
     mutationFn: async ({ tossWinnerId, tossDecision }: { tossWinnerId: number, tossDecision: string }) => {
