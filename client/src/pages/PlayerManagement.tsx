@@ -136,6 +136,7 @@ export default function PlayerManagement() {
       queryClient.invalidateQueries({ queryKey: ['/api/players'] });
       queryClient.invalidateQueries({ queryKey: ['/api/players/available'] });
       queryClient.invalidateQueries({ queryKey: ['/api/player-franchise-links', variables.playerId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/all-player-franchise-links'] });
       toast({ title: 'Success', description: 'Player added to franchise successfully!' });
     },
     onError: (error: any) => {
@@ -154,6 +155,7 @@ export default function PlayerManagement() {
       queryClient.invalidateQueries({ queryKey: ['/api/players'] });
       queryClient.invalidateQueries({ queryKey: ['/api/players/available'] });
       queryClient.invalidateQueries({ queryKey: ['/api/player-franchise-links', variables.playerId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/all-player-franchise-links'] });
       toast({ title: 'Success', description: 'Player removed from franchise successfully!' });
     },
     onError: (error: any) => {
