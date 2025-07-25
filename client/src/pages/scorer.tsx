@@ -357,6 +357,27 @@ export default function Scorer() {
     }
   });
 
+  const endInningsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', `/api/matches/${matchId}/end-innings`, {});
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Innings Ended",
+        description: data.message || "Current innings has been ended successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId, 'live'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to end innings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const changeBowlerMutation = useMutation({
     mutationFn: async (newBowlerId: string) => {
       const response = await apiRequest('POST', `/api/matches/${matchId}/change-bowler`, {
@@ -1091,6 +1112,17 @@ export default function Scorer() {
                           <ArrowLeftRight className="h-4 w-4 mr-2" />
                           {switchStrikeMutation.isPending ? 'Switching...' : 
                            currentData.currentBatsmen.length < 2 ? 'Need 2 Batsmen' : 'Switch Strike'}
+                        </Button>
+
+                        {/* End Innings */}
+                        <Button
+                          variant="outline"
+                          className="w-full bg-orange-500 hover:bg-orange-600 text-white disabled:bg-gray-400 disabled:text-gray-600"
+                          onClick={() => endInningsMutation.mutate()}
+                          disabled={endInningsMutation.isPending || !isMatchStarted}
+                        >
+                          <Pause className="h-4 w-4 mr-2" />
+                          {endInningsMutation.isPending ? 'Ending Innings...' : 'End Innings'}
                         </Button>
 
                         {/* Match Settings */}

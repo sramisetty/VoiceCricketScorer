@@ -1174,6 +1174,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/matches/:id/end-innings', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.id);
+      
+      // Get current match data
+      const liveData = await storage.getLiveMatchData(matchId);
+      if (!liveData) {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+      
+      const currentInnings = liveData.currentInnings;
+      if (!currentInnings) {
+        return res.status(400).json({ error: 'No active innings to end' });
+      }
+      
+      // Check if innings is already completed
+      if (currentInnings.isCompleted) {
+        return res.status(400).json({ error: 'Current innings is already completed' });
+      }
+      
+      // Mark the current innings as completed
+      await storage.updateInnings(currentInnings.id, { 
+        isCompleted: true,
+        endTime: new Date()
+      });
+      
+      let message = '';
+      let shouldStartSecondInnings = false;
+      
+      // Check if this is the first innings
+      if (currentInnings.inningsNumber === 1) {
+        // Check if there should be a second innings (match format allows it)
+        const match = liveData.match;
+        if (match && match.totalOvers > 0) {
+          shouldStartSecondInnings = true;
+          message = `First innings ended. ${currentInnings.battingTeam.name} scored ${currentInnings.totalRuns}/${currentInnings.totalWickets}. Starting second innings...`;
+          
+          // Update match to second innings
+          await storage.updateMatch(matchId, { currentInnings: 2 });
+          
+          // Create second innings with teams swapped
+          const secondInnings = await storage.createInnings({
+            matchId: matchId,
+            inningsNumber: 2,
+            battingTeamId: currentInnings.bowlingTeam.id,
+            bowlingTeamId: currentInnings.battingTeam.id,
+            totalRuns: 0,
+            totalWickets: 0,
+            totalBalls: 0,
+            isCompleted: false
+          });
+          
+          console.log(`Second innings created: ${secondInnings.id}`);
+        }
+      } else {
+        // Second innings ended - match is complete
+        message = `Match completed! Final scores: First innings: ${currentInnings.totalRuns}/${currentInnings.totalWickets}, Second innings: ${currentInnings.totalRuns}/${currentInnings.totalWickets}`;
+        await storage.updateMatch(matchId, { status: 'completed' });
+      }
+      
+      const updatedLiveData = await storage.getLiveMatchData(matchId);
+      broadcastToMatch(matchId, { 
+        type: shouldStartSecondInnings ? 'innings_complete' : 'match_complete', 
+        data: updatedLiveData 
+      });
+      
+      res.json({ 
+        success: true, 
+        message,
+        inningsEnded: currentInnings.inningsNumber,
+        shouldStartSecondInnings
+      });
+    } catch (error) {
+      console.error('Error ending innings:', error);
+      res.status(500).json({ error: 'Failed to end innings' });
+    }
+  });
+
   app.post('/api/matches/:id/new-batsman', authenticateToken, requireRole(['admin', 'global_admin', 'scorer']), async (req, res) => {
     try {
       const matchId = parseInt(req.params.id);
