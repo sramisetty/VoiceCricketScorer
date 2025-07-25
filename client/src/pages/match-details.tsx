@@ -2,7 +2,7 @@ import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Share2 } from 'lucide-react';
 import { MatchSummary } from '@/components/match-summary';
-import { Navigation } from '@/components/Navigation';
+import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 
