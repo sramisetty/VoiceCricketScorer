@@ -115,41 +115,7 @@ app.use((req, res, next) => {
     }
   });
 
-  next();
-});
-
-(async () => {
-  const server = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // Serve static files from server/public
-  const distPath = path.resolve(import.meta.dirname, "public");
-  if (!fs.existsSync(distPath)) {
-    throw new Error(`Could not find the build directory: ${distPath}, make sure to build the client first`);
-  }
-
-  app.use(express.static(distPath));
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
-  });
-
-  const PORT = Number(process.env.PORT) || 3000;
-  server.listen(PORT, "0.0.0.0", () => {
-    const formattedTime = new Date().toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true,
-    });
-    console.log(`${formattedTime} [express] serving on port ${PORT}`);
-  });
-})();
+    }
 EOF
 
     # Build client using production config only with memory optimization
@@ -864,7 +830,6 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL || 'postgresql://cricket_user:simple123@localhost:5432/cricket_scorer?sslmode=disable'
   }
-});
 EOF
     fi
 
@@ -1076,7 +1041,6 @@ module.exports = {
     max_restarts: 5,
     restart_delay: 2000
   }]
-};
 EOF
     fi
 
@@ -1306,7 +1270,6 @@ http {
             proxy_set_header Host $host;
         }
     }
-}
 EOF
 
     # Test nginx configuration
