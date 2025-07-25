@@ -26,6 +26,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register statistics routes
   registerStatsRoutes(app);
 
+  // User endpoint for frontend authentication check
+  app.get('/api/user', authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      // Get full user data from storage
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Return user info without password hash
+      const { passwordHash, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Get user error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Franchise Management API routes
   app.get('/api/franchises', async (req, res) => {
     try {

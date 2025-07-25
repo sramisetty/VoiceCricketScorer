@@ -225,4 +225,19 @@ router.post('/auth/change-password', authenticateToken, async (req: Authenticate
   }
 });
 
+// Get current user info
+router.get('/user', authenticateToken, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    // Return user info (already validated by authenticateToken middleware)
+    res.json(req.user);
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;
