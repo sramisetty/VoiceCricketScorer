@@ -6,160 +6,10 @@ import { Copy, RefreshCw, Trophy, Award, Target, TrendingUp } from 'lucide-react
 import { useQuery } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useToast } from '@/hooks/use-toast';
+import { MatchSummary } from '@/components/match-summary';
 import type { LiveMatchData } from '@shared/schema';
 
-// Component for displaying completed match summary
-function CompletedMatchSummary({ matchData, onCopyLink }: { matchData: LiveMatchData, onCopyLink: () => void }) {
-  // Calculate match results
-  const match = matchData.match;
-  const currentInnings = matchData.currentInnings;
-  
-  // For completed matches, we'll show the current innings data and calculate basic results
-  const getMatchResult = () => {
-    // This is a simplified approach - ideally we'd need both innings data
-    // For now, show match completion status
-    return `${match.team1.name} vs ${match.team2.name} - Match Complete`;
-  };
-
-  // Get total runs and wickets from current innings
-  const totalRuns = currentInnings.totalRuns || 0;
-  const totalWickets = currentInnings.totalWickets || 0;
-  const totalBalls = currentInnings.totalBalls || 0;
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-green-700 to-green-800 text-white shadow-xl">
-        <div className="container mx-auto px-4 py-6">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold mb-2 flex items-center justify-center">
-              <Trophy className="mr-3 h-8 w-8 text-yellow-400" />
-              Match Summary
-            </h1>
-            <p className="text-green-100">
-              {match.team1.name} vs {match.team2.name} • {match.matchType}
-            </p>
-            <Button
-              onClick={onCopyLink}
-              variant="outline"
-              className="mt-4 bg-white/20 border-white/30 text-white hover:bg-white/30"
-              size="sm"
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              Share Results
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Match Result Card */}
-        <Card className="shadow-2xl border-2 border-green-200">
-          <CardContent className="p-8">
-            <div className="text-center">
-              <div className="text-6xl mb-4">🏆</div>
-              <h2 className="text-3xl font-bold mb-4 text-green-800">
-                {getMatchResult()}
-              </h2>
-              <div className="bg-green-50 rounded-lg p-4 inline-block">
-                <p className="text-lg text-green-700 font-medium">
-                  Match completed on {new Date().toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Final Innings Summary */}
-        <Card className="shadow-lg">
-          <CardHeader className="bg-blue-50">
-            <CardTitle className="text-xl font-bold text-blue-800">
-              Final Score - {currentInnings.battingTeam.name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="text-center mb-4">
-              <div className="text-6xl font-bold text-blue-600 mb-4">
-                {totalRuns}/{totalWickets}
-              </div>
-              <div className="text-2xl text-gray-600 mb-2">
-                {Math.floor(totalBalls / 6)}.{totalBalls % 6} overs
-              </div>
-              <div className="text-lg text-gray-500">
-                Run Rate: {totalBalls > 0 ? 
-                  ((totalRuns / totalBalls) * 6).toFixed(2) : '0.00'}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Player of the Match Section */}
-        <Card className="shadow-lg">
-          <CardHeader className="bg-yellow-50">
-            <CardTitle className="text-xl font-bold text-yellow-800 flex items-center">
-              <Award className="mr-2" />
-              Performance Highlights
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-3">Top Batsman</h4>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Highest individual score across both innings</p>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-3">Top Bowler</h4>
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Best bowling figures in the match</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Match Statistics */}
-        <Card className="shadow-lg">
-          <CardHeader className="bg-purple-50">
-            <CardTitle className="text-xl font-bold text-purple-800 flex items-center">
-              <TrendingUp className="mr-2" />
-              Match Statistics
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-gray-800">
-                  {totalRuns}
-                </div>
-                <div className="text-sm text-gray-600">Total Runs</div>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-gray-800">
-                  {totalWickets}
-                </div>
-                <div className="text-sm text-gray-600">Wickets Lost</div>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-gray-800">
-                  {Math.floor(totalBalls / 6)}
-                </div>
-                <div className="text-sm text-gray-600">Overs Completed</div>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-gray-800">
-                  {match.overs}
-                </div>
-                <div className="text-sm text-gray-600">Match Overs</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
+// Completed matches now use the comprehensive MatchSummary component
 
 export default function Scoreboard() {
   const [, params] = useRoute('/scoreboard/:matchId');
@@ -221,9 +71,27 @@ export default function Scoreboard() {
   // Determine if match is completed
   const isMatchCompleted = currentData.match.status === 'completed';
 
-  // Render completed match summary
+  // Render completed match summary using comprehensive MatchSummary component
   if (isMatchCompleted) {
-    return <CompletedMatchSummary matchData={currentData} onCopyLink={handleCopyLink} />;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto p-6 space-y-6">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Match Summary</h1>
+            <Button
+              onClick={handleCopyLink}
+              variant="outline"
+              size="sm"
+              className="mb-4"
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Share Results
+            </Button>
+          </div>
+          <MatchSummary matchId={matchId!} />
+        </div>
+      </div>
+    );
   }
 
   // Render live scoreboard for ongoing matches
