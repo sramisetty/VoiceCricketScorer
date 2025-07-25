@@ -3,7 +3,7 @@ import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
@@ -54,6 +54,7 @@ export default function Scorer() {
   const [isAddingBall, setIsAddingBall] = useState(false);
   const [tossDialogOpen, setTossDialogOpen] = useState(false);
   const [tossWinner, setTossWinner] = useState('');
+  const [endInningsDialogOpen, setEndInningsDialogOpen] = useState(false);
   const [tossDecision, setTossDecision] = useState('');
   const [activeTab, setActiveTab] = useState('live');
 
@@ -1114,17 +1115,6 @@ export default function Scorer() {
                            currentData.currentBatsmen.length < 2 ? 'Need 2 Batsmen' : 'Switch Strike'}
                         </Button>
 
-                        {/* End Innings */}
-                        <Button
-                          variant="outline"
-                          className="w-full bg-orange-500 hover:bg-orange-600 text-white disabled:bg-gray-400 disabled:text-gray-600"
-                          onClick={() => endInningsMutation.mutate()}
-                          disabled={endInningsMutation.isPending || !isMatchStarted}
-                        >
-                          <Pause className="h-4 w-4 mr-2" />
-                          {endInningsMutation.isPending ? 'Ending Innings...' : 'End Innings'}
-                        </Button>
-
                         {/* Match Settings */}
                         <Button
                           variant="outline"
@@ -1134,6 +1124,63 @@ export default function Scorer() {
                           <Settings className="h-4 w-4 mr-2" />
                           Match Settings
                         </Button>
+
+                        {/* End Innings - Moved to bottom with confirmation */}
+                        <div className="pt-2 border-t border-gray-200">
+                          <Dialog open={endInningsDialogOpen} onOpenChange={setEndInningsDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-400 disabled:text-gray-600"
+                                disabled={!isMatchStarted || endInningsMutation.isPending}
+                              >
+                                <Pause className="h-4 w-4 mr-2" />
+                                {endInningsMutation.isPending ? 'Ending Innings...' : 'End Innings'}
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>⚠️ Confirm End Innings</DialogTitle>
+                                <DialogDescription>
+                                  This action will end the current innings and cannot be undone.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <p className="text-sm text-muted-foreground">
+                                  Are you sure you want to end the current innings? This action cannot be reverted.
+                                </p>
+                                {currentData?.currentInnings?.inningsNumber === 1 ? (
+                                  <p className="text-sm bg-blue-50 p-3 rounded">
+                                    <strong>First Innings:</strong> This will end the first innings and automatically start the second innings with teams swapped.
+                                  </p>
+                                ) : (
+                                  <p className="text-sm bg-red-50 p-3 rounded">
+                                    <strong>Second Innings:</strong> This will complete the entire match and show final results.
+                                  </p>
+                                )}
+                                <div className="flex justify-end space-x-2">
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => setEndInningsDialogOpen(false)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button 
+                                    variant="destructive"
+                                    onClick={() => {
+                                      endInningsMutation.mutate();
+                                      setEndInningsDialogOpen(false);
+                                    }}
+                                    disabled={endInningsMutation.isPending}
+                                  >
+                                    <Pause className="h-4 w-4 mr-2" />
+                                    {endInningsMutation.isPending ? 'Ending...' : 'Confirm End Innings'}
+                                  </Button>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
