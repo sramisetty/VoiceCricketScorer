@@ -1,0 +1,29 @@
+✓ 2972 modules transformed.
+rendering chunks (2)...
+<--- Last few GCs --->
+
+[325548:0x5af40f0]    15447 ms: Mark-Compact 344.6 (365.8) -> 342.7 (364.8) MB, 387.85 / 0.00 ms  (average mu = 0.509, current mu = 0.513) allocation failure; scavenge might not succeed
+[325548:0x5af40f0]    15850 ms: Mark-Compact 350.4 (372.5) -> 350.3 (372.5) MB, 372.03 / 0.00 ms  (average mu = 0.356, current mu = 0.077) allocation failure; scavenge might not succeed
+
+
+<--- JS stacktrace --->
+
+FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 0xb8cf03 node::OOMErrorHandler(char const*, v8::OOMDetails const&) [node]
+ 2: 0xf060d0 v8::Utils::ReportOOMFailure(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [node]
+ 3: 0xf063b7 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [node]
+ 4: 0x1118005  [node]
+ 5: 0x112fe88 v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags) [node]
+ 6: 0x1105fa1 v8::internal::HeapAllocator::AllocateRawWithLightRetrySlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment) [node]
+ 7: 0x1107135 v8::internal::HeapAllocator::AllocateRawWithRetryOrFailSlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment) [node]
+ 8: 0x10e3856 v8::internal::Factory::AllocateRaw(int, v8::internal::AllocationType, v8::internal::AllocationAlignment) [node]
+ 9: 0x10d5484 v8::internal::FactoryBase<v8::internal::Factory>::AllocateRawWithImmortalMap(int, v8::internal::AllocationType, v8::internal::Map, v8::internal::AllocationAlignment) [node]
+10: 0x10d8797 v8::internal::FactoryBase<v8::internal::Factory>::NewRawTwoByteString(int, v8::internal::AllocationType) [node]
+11: 0x1249567 v8::internal::JsonParser<unsigned short>::MakeString(v8::internal::JsonString const&, v8::internal::Handle<v8::internal::String>) [node]
+12: 0x124f44d  [node]
+13: 0x12513b9 v8::internal::JsonParser<unsigned short>::ParseJson(v8::internal::Handle<v8::internal::Object>) [node]
+14: 0xf97dae v8::internal::Builtin_JsonParse(int, unsigned long*, v8::internal::Isolate*) [node]
+15: 0x1979df6  [node]
+./deploy-cricket-scorer.sh: line 49: 325537 Aborted                 (core dumped) npx vite build --config vite.config.production.ts

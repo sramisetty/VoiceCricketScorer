@@ -23,19 +23,36 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "server/public"),
     emptyOutDir: true,
-    // Production optimizations for VPS
+    // Production optimizations for VPS with memory constraints
     minify: "esbuild",
     sourcemap: false,
     target: ["es2022", "chrome90", "firefox80", "safari14", "edge90"],
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom"],
-          ui: ["@radix-ui/react-dialog", "@radix-ui/react-select"],
+        manualChunks: (id) => {
+          // More granular chunking to reduce memory usage
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'radix-ui';
+            }
+            if (id.includes('recharts') || id.includes('d3-')) {
+              return 'charts';
+            }
+            if (id.includes('date-fns') || id.includes('clsx') || id.includes('tailwind')) {
+              return 'utils';
+            }
+            return 'vendor';
+          }
         },
       },
+      maxParallelFileOps: 1, // Reduce parallel operations to save memory
     },
     chunkSizeWarningLimit: 1000,
+    assetsInlineLimit: 0, // Don't inline assets to reduce memory usage
+    reportCompressedSize: false, // Skip compression reporting to save memory
   },
   server: {
     fs: {

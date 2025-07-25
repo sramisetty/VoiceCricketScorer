@@ -152,10 +152,25 @@ app.use((req, res, next) => {
 })();
 EOF
     
-    # Build client using production config only
+    # Build client using production config only with memory optimization
     log "Building client with production config..."
     export NODE_ENV=production
-    npx vite build --config vite.config.production.ts
+    export NODE_OPTIONS="--max-old-space-size=4096 --optimize-for-size"
+    
+    # Try normal build first
+    log "Attempting optimized build..."
+    if ! npx vite build --config vite.config.production.ts; then
+        log "Standard build failed, trying memory-optimized approach..."
+        
+        # Clear any partial build
+        rm -rf server/public/*
+        
+        # Use even more aggressive memory settings
+        export NODE_OPTIONS="--max-old-space-size=6144 --max-semi-space-size=512"
+        
+        # Try again with more conservative settings
+        npx vite build --config vite.config.production.ts --mode=production
+    fi
     
     # Verify client build succeeded
     if [ ! -f "server/public/index.html" ]; then
