@@ -1,12 +1,165 @@
 import { useRoute } from 'wouter';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Copy, RefreshCw } from 'lucide-react';
+import { Copy, RefreshCw, Trophy, Award, Target, TrendingUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useToast } from '@/hooks/use-toast';
 import type { LiveMatchData } from '@shared/schema';
+
+// Component for displaying completed match summary
+function CompletedMatchSummary({ matchData, onCopyLink }: { matchData: LiveMatchData, onCopyLink: () => void }) {
+  // Calculate match results
+  const match = matchData.match;
+  const currentInnings = matchData.currentInnings;
+  
+  // For completed matches, we'll show the current innings data and calculate basic results
+  const getMatchResult = () => {
+    // This is a simplified approach - ideally we'd need both innings data
+    // For now, show match completion status
+    return `${match.team1.name} vs ${match.team2.name} - Match Complete`;
+  };
+
+  // Get total runs and wickets from current innings
+  const totalRuns = currentInnings.totalRuns || 0;
+  const totalWickets = currentInnings.totalWickets || 0;
+  const totalBalls = currentInnings.totalBalls || 0;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-green-700 to-green-800 text-white shadow-xl">
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold mb-2 flex items-center justify-center">
+              <Trophy className="mr-3 h-8 w-8 text-yellow-400" />
+              Match Summary
+            </h1>
+            <p className="text-green-100">
+              {match.team1.name} vs {match.team2.name} • {match.matchType}
+            </p>
+            <Button
+              onClick={onCopyLink}
+              variant="outline"
+              className="mt-4 bg-white/20 border-white/30 text-white hover:bg-white/30"
+              size="sm"
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Share Results
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Match Result Card */}
+        <Card className="shadow-2xl border-2 border-green-200">
+          <CardContent className="p-8">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🏆</div>
+              <h2 className="text-3xl font-bold mb-4 text-green-800">
+                {getMatchResult()}
+              </h2>
+              <div className="bg-green-50 rounded-lg p-4 inline-block">
+                <p className="text-lg text-green-700 font-medium">
+                  Match completed on {new Date().toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Final Innings Summary */}
+        <Card className="shadow-lg">
+          <CardHeader className="bg-blue-50">
+            <CardTitle className="text-xl font-bold text-blue-800">
+              Final Score - {currentInnings.battingTeam.name}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="text-center mb-4">
+              <div className="text-6xl font-bold text-blue-600 mb-4">
+                {totalRuns}/{totalWickets}
+              </div>
+              <div className="text-2xl text-gray-600 mb-2">
+                {Math.floor(totalBalls / 6)}.{totalBalls % 6} overs
+              </div>
+              <div className="text-lg text-gray-500">
+                Run Rate: {totalBalls > 0 ? 
+                  ((totalRuns / totalBalls) * 6).toFixed(2) : '0.00'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Player of the Match Section */}
+        <Card className="shadow-lg">
+          <CardHeader className="bg-yellow-50">
+            <CardTitle className="text-xl font-bold text-yellow-800 flex items-center">
+              <Award className="mr-2" />
+              Performance Highlights
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-3">Top Batsman</h4>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">Highest individual score across both innings</p>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-3">Top Bowler</h4>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">Best bowling figures in the match</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Match Statistics */}
+        <Card className="shadow-lg">
+          <CardHeader className="bg-purple-50">
+            <CardTitle className="text-xl font-bold text-purple-800 flex items-center">
+              <TrendingUp className="mr-2" />
+              Match Statistics
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-gray-800">
+                  {totalRuns}
+                </div>
+                <div className="text-sm text-gray-600">Total Runs</div>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-gray-800">
+                  {totalWickets}
+                </div>
+                <div className="text-sm text-gray-600">Wickets Lost</div>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-gray-800">
+                  {Math.floor(totalBalls / 6)}
+                </div>
+                <div className="text-sm text-gray-600">Overs Completed</div>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-gray-800">
+                  {match.overs}
+                </div>
+                <div className="text-sm text-gray-600">Match Overs</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
 
 export default function Scoreboard() {
   const [, params] = useRoute('/scoreboard/:matchId');
@@ -63,8 +216,17 @@ export default function Scoreboard() {
   }
 
   const currentBatsmen = currentData.currentBatsmen;
-  const bowlingStats = currentData.currentInnings.playerStats.filter(s => s.ballsBowled > 0);
+  const bowlingStats = currentData.currentInnings.playerStats.filter(s => (s.ballsBowled || 0) > 0);
 
+  // Determine if match is completed
+  const isMatchCompleted = currentData.match.status === 'completed';
+
+  // Render completed match summary
+  if (isMatchCompleted) {
+    return <CompletedMatchSummary matchData={currentData} onCopyLink={handleCopyLink} />;
+  }
+
+  // Render live scoreboard for ongoing matches
   return (
     <div className="mobile-full-height bg-gray-50 dark:bg-gray-900">
       {/* Enhanced Header - Mobile Responsive */}
@@ -225,7 +387,7 @@ export default function Scoreboard() {
                               )}
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                              Strike Rate: <span className="font-semibold">{batsman.ballsFaced > 0 ? ((batsman.runs / batsman.ballsFaced) * 100).toFixed(1) : '0.0'}</span>
+                              Strike Rate: <span className="font-semibold">{(batsman.ballsFaced || 0) > 0 ? (((batsman.runs || 0) / (batsman.ballsFaced || 0)) * 100).toFixed(1) : '0.0'}</span>
                             </div>
                           </div>
                           <div className="text-right">
@@ -233,7 +395,7 @@ export default function Scoreboard() {
                               {batsman.runs}
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-300">
-                              ({batsman.ballsFaced} balls)
+                              ({batsman.ballsFaced || 0} balls)
                             </div>
                             <div className="flex space-x-2 text-xs mt-1">
                               <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
@@ -283,7 +445,7 @@ export default function Scoreboard() {
                               )}
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                              Economy: <span className="font-semibold">{bowler.ballsBowled > 0 ? ((bowler.runsConceded / bowler.ballsBowled) * 6).toFixed(1) : '0.0'}</span>
+                              Economy: <span className="font-semibold">{(bowler.ballsBowled || 0) > 0 ? (((bowler.runsConceded || 0) / (bowler.ballsBowled || 0)) * 6).toFixed(1) : '0.0'}</span>
                             </div>
                           </div>
                           <div className="text-right">
@@ -291,10 +453,10 @@ export default function Scoreboard() {
                               {bowler.wicketsTaken}/{bowler.runsConceded}
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-300">
-                              ({Math.floor(bowler.ballsBowled / 6)}.{bowler.ballsBowled % 6} overs)
+                              ({Math.floor((bowler.ballsBowled || 0) / 6)}.{(bowler.ballsBowled || 0) % 6} overs)
                             </div>
                             <div className="text-xs mt-1 bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded">
-                              {Math.floor(bowler.ballsBowled / 6)}.{bowler.ballsBowled % 6}-0-{bowler.runsConceded}-{bowler.wicketsTaken}
+                              {Math.floor((bowler.ballsBowled || 0) / 6)}.{(bowler.ballsBowled || 0) % 6}-0-{bowler.runsConceded || 0}-{bowler.wicketsTaken || 0}
                             </div>
                           </div>
                         </div>
@@ -316,19 +478,19 @@ export default function Scoreboard() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-cricket-light to-cricket-primary/10 rounded-lg border">
                 <div className="text-xl sm:text-2xl font-bold text-cricket-primary">
-                  {currentData.currentInnings.totalBalls > 0 ? ((currentData.currentInnings.totalRuns * 6) / currentData.currentInnings.totalBalls).toFixed(1) : '0.0'}
+                  {(currentData.currentInnings.totalBalls || 0) > 0 ? (((currentData.currentInnings.totalRuns || 0) * 6) / (currentData.currentInnings.totalBalls || 0)).toFixed(1) : '0.0'}
                 </div>
                 <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Run Rate</div>
               </div>
               <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border">
                 <div className="text-xl sm:text-2xl font-bold text-blue-600">
-                  {currentData.recentBalls.filter(b => b.runs === 4).length}
+                  {currentData.recentBalls.filter(b => (b.runs || 0) === 4).length}
                 </div>
                 <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Fours</div>
               </div>
               <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg border">
                 <div className="text-xl sm:text-2xl font-bold text-orange-600">
-                  {currentData.recentBalls.filter(b => b.runs === 6).length}
+                  {currentData.recentBalls.filter(b => (b.runs || 0) === 6).length}
                 </div>
                 <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Sixes</div>
               </div>
