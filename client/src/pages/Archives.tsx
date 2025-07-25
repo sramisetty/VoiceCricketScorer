@@ -1,25 +1,31 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Archive, Search, Calendar, Trophy, Users, Clock, Download, Eye, Filter } from 'lucide-react';
+import { Archive, Search, Calendar, Trophy, Users, Clock, Download, Eye, Filter, BarChart3, FileText } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { format } from 'date-fns';
 
 export default function Archives() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('completed');
   const [sortBy, setSortBy] = useState('date');
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
-  // Fetch archived matches
-  const { data: matches = [], isLoading } = useQuery({
-    queryKey: ['/api/matches/archived', searchTerm, statusFilter, sortBy],
+  // Fetch all matches and filter for completed ones
+  const { data: allMatches = [], isLoading } = useQuery({
+    queryKey: ['/api/matches'],
   });
+
+  // Filter for completed matches only
+  const matches = allMatches.filter((match: any) => match.status === 'completed');
 
   // Filter matches based on search and status
   const filteredMatches = matches.filter((match: any) => {
@@ -47,6 +53,11 @@ export default function Archives() {
     }
   });
 
+  // Pagination logic
+  const totalPages = Math.ceil(sortedMatches.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedMatches = sortedMatches.slice(startIndex, startIndex + itemsPerPage);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-500';
@@ -67,7 +78,7 @@ export default function Archives() {
 
   const exportMatchData = async (match: any) => {
     try {
-      const data = await apiRequestJson(`/api/matches/${match.id}/export`);
+      const data = await apiRequest(`/api/matches/${match.id}/complete`);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -150,7 +161,7 @@ export default function Archives() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {sortedMatches.map((match: any) => (
+          {paginatedMatches.map((match: any) => (
             <Card key={match.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -203,6 +214,20 @@ export default function Archives() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {match.status === 'completed' && (
+                      <Link href={`/match-details/${match.id}`}>
+                        <Button variant="outline" size="sm">
+                          <FileText className="h-4 w-4 mr-2" />
+                          Full Summary
+                        </Button>
+                      </Link>
+                    )}
+                    <Link href={`/scoreboard/${match.id}`}>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Live View
+                      </Button>
+                    </Link>
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button
@@ -210,8 +235,8 @@ export default function Archives() {
                           size="sm"
                           onClick={() => setSelectedMatch(match)}
                         >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
+                          <BarChart3 className="h-4 w-4 mr-2" />
+                          Quick Stats
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -323,6 +348,49 @@ export default function Archives() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-8">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          
+          <div className="flex gap-1">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+              if (pageNum > totalPages) return null;
+              
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+          </div>
+          
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+          
+          <span className="text-sm text-gray-600 ml-4">
+            Page {currentPage} of {totalPages} ({sortedMatches.length} matches)
+          </span>
         </div>
       )}
     </div>

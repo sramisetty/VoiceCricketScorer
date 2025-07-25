@@ -90,7 +90,11 @@ export default function MatchesClean() {
   const matchList = (matches as any[]) || [];
   const setupMatches = matchList.filter((match: any) => match.status === 'setup');
   const liveMatches = matchList.filter((match: any) => match.status === 'live');
-  const completedMatches = matchList.filter((match: any) => match.status === 'completed');
+  const allCompletedMatches = matchList.filter((match: any) => match.status === 'completed');
+  // Show only last 3 completed matches on main page
+  const completedMatches = allCompletedMatches
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -370,10 +374,19 @@ export default function MatchesClean() {
 
         {/* Completed Matches */}
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-            <h2 className="text-2xl font-bold text-gray-800">Completed Matches</h2>
-            <Badge variant="secondary">{completedMatches.length}</Badge>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+              <h2 className="text-2xl font-bold text-gray-800">Recent Completed Matches</h2>
+              <Badge variant="secondary">{completedMatches.length}</Badge>
+            </div>
+            {allCompletedMatches.length > 3 && (
+              <Link href="/archives">
+                <Button variant="outline" size="sm">
+                  View All ({allCompletedMatches.length})
+                </Button>
+              </Link>
+            )}
           </div>
           
           {completedMatches.length === 0 ? (
