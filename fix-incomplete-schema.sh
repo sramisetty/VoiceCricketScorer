@@ -23,7 +23,7 @@ run_sql() {
     echo "Executing: $sql"
     PGPASSWORD="simple123" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "$sql" || {
         echo "Warning: SQL command failed: $sql"
-        return 1
+        # Don't exit, continue with other commands
     }
 }
 
@@ -35,11 +35,18 @@ echo "Existing tables: $EXISTING_TABLES"
 # Create complete schema with all necessary tables
 echo "Creating complete Cricket Scorer schema..."
 
-# Create enum types first
-run_sql "CREATE TYPE IF NOT EXISTS user_role AS ENUM ('admin', 'global_admin', 'franchise_admin', 'coach', 'scorer', 'viewer', 'player');"
-run_sql "CREATE TYPE IF NOT EXISTS player_role AS ENUM ('batsman', 'bowler', 'wicket_keeper', 'all_rounder', 'captain');"
-run_sql "CREATE TYPE IF NOT EXISTS match_status AS ENUM ('not_started', 'in_progress', 'completed', 'abandoned');"
-run_sql "CREATE TYPE IF NOT EXISTS dismissal_type AS ENUM ('bowled', 'caught', 'lbw', 'run_out', 'stumped', 'hit_wicket', 'obstructing_field', 'handled_ball', 'timed_out', 'retired_hurt', 'retired_out');"
+# Create enum types first (drop and recreate to avoid conflicts)
+run_sql "DROP TYPE IF EXISTS user_role CASCADE;"
+run_sql "CREATE TYPE user_role AS ENUM ('admin', 'global_admin', 'franchise_admin', 'coach', 'scorer', 'viewer', 'player');"
+
+run_sql "DROP TYPE IF EXISTS player_role CASCADE;"
+run_sql "CREATE TYPE player_role AS ENUM ('batsman', 'bowler', 'wicket_keeper', 'all_rounder', 'captain');"
+
+run_sql "DROP TYPE IF EXISTS match_status CASCADE;"
+run_sql "CREATE TYPE match_status AS ENUM ('not_started', 'in_progress', 'completed', 'abandoned');"
+
+run_sql "DROP TYPE IF EXISTS dismissal_type CASCADE;"
+run_sql "CREATE TYPE dismissal_type AS ENUM ('bowled', 'caught', 'lbw', 'run_out', 'stumped', 'hit_wicket', 'obstructing_field', 'handled_ball', 'timed_out', 'retired_hurt', 'retired_out');"
 
 # Sessions table (required for authentication)
 run_sql "CREATE TABLE IF NOT EXISTS sessions (
