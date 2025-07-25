@@ -38,7 +38,7 @@ export default function PlayerStats() {
   const filteredPlayers = players.filter((player: any) => {
     const matchesSearch = searchTerm === '' || 
       player.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFranchise = selectedFranchise === 'all' || player.franchiseId?.toString() === selectedFranchise;
+    const matchesFranchise = selectedFranchise === 'all' || player.franchise?.id?.toString() === selectedFranchise;
     const matchesRole = selectedRole === 'all' || player.role === selectedRole;
     
     return matchesSearch && matchesFranchise && matchesRole;

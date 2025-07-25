@@ -1894,6 +1894,10 @@ export class DatabaseStorage implements IStorage {
           availability: players.availability,
           franchiseId: players.franchiseId,
           teamId: players.teamId,
+          // Include franchise information from the franchise links
+          linkedFranchiseId: playerFranchiseLinks.franchiseId,
+          franchiseName: franchises.name,
+          franchiseShortName: franchises.shortName,
           // Aggregate statistics from playerStats
           totalMatches: sql<number>`COUNT(DISTINCT ${playerStats.inningsId})`.as('total_matches'),
           totalRuns: sql<number>`COALESCE(SUM(${playerStats.runs}), 0)`.as('total_runs'),
@@ -1909,9 +1913,16 @@ export class DatabaseStorage implements IStorage {
         })
         .from(players)
         .leftJoin(playerStats, eq(players.id, playerStats.playerId))
-        .leftJoin(playerFranchiseLinks, eq(players.id, playerFranchiseLinks.playerId))
+        .leftJoin(playerFranchiseLinks, and(
+          eq(players.id, playerFranchiseLinks.playerId),
+          eq(playerFranchiseLinks.isActive, true)
+        ))
         .leftJoin(franchises, eq(playerFranchiseLinks.franchiseId, franchises.id))
-        .groupBy(players.id, players.name, players.role, players.battingOrder, players.availability, players.franchiseId, players.teamId);
+        .groupBy(
+          players.id, players.name, players.role, players.battingOrder, 
+          players.availability, players.franchiseId, players.teamId,
+          playerFranchiseLinks.franchiseId, franchises.name, franchises.shortName
+        );
 
       // Apply filters
       if (filters.search) {
@@ -1939,6 +1950,12 @@ export class DatabaseStorage implements IStorage {
 
         return {
           ...player,
+          // Use the franchise information from the active franchise link
+          franchise: player.franchiseName ? {
+            id: player.linkedFranchiseId,
+            name: player.franchiseName,
+            shortName: player.franchiseShortName
+          } : null,
           stats: {
             totalMatches: player.totalMatches,
             totalRuns: player.totalRuns,
