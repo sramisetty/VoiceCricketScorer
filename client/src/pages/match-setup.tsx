@@ -113,6 +113,8 @@ export default function MatchSetup() {
         title: "Match Created Successfully",
         description: "Your cricket match has been set up and is ready to start. You can start the match from the matches page.",
       });
+      // Invalidate matches query to refresh the matches list
+      queryClient.invalidateQueries({ queryKey: ['/api/matches'] });
       setLocation('/');
     },
     onError: () => {
