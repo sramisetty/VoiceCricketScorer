@@ -68,7 +68,7 @@ export function CurrentOver({ balls, bowlerName, overNumber, totalBalls, current
       <CardContent>
         <div className="text-center mb-4">
           <div className="text-2xl font-bold text-cricket-primary">
-            Over {currentBowlerStats ? Math.floor(currentBowlerStats.ballsBowled / 6) : Math.floor(totalBalls / 6)}.{ballsInCurrentOver}
+            Over {currentBowlerStats ? Math.floor(currentBowlerStats.ballsBowled / 6) : Math.floor(totalBalls / 6)}.{validBallsBowled}
           </div>
           <div className="text-sm text-gray-600">{bowlerName} bowling</div>
           {currentBowlerStats && (
