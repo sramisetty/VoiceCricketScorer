@@ -247,6 +247,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all player-franchise links for filtering
+  app.get('/api/all-player-franchise-links', async (req, res) => {
+    try {
+      const links = await storage.getAllPlayerFranchiseLinks();
+      res.json(links);
+    } catch (error) {
+      console.error("Error fetching all player-franchise links:", error);
+      res.status(500).json({ message: "Failed to fetch player-franchise links" });
+    }
+  });
+
   // User Management API routes (require authentication)
   app.get('/api/users', authenticateToken, requireRole(['admin', 'global_admin']), async (req: any, res) => {
     try {

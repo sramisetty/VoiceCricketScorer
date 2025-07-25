@@ -42,6 +42,12 @@ export default function PlayerManagement() {
     queryFn: () => apiRequestJson('/api/franchises'),
   });
 
+  // Fetch all player-franchise links for filtering
+  const { data: allPlayerFranchiseLinks = [] } = useQuery({
+    queryKey: ['/api/all-player-franchise-links'],
+    queryFn: () => apiRequestJson('/api/all-player-franchise-links'),
+  });
+
   // Search players
   const { data: searchResults = [], refetch: searchPlayers } = useQuery({
     queryKey: ['/api/players/search', searchQuery],
@@ -52,17 +58,23 @@ export default function PlayerManagement() {
   // Filter players by franchise
   const filteredPlayers = useMemo(() => {
     if (selectedFranchiseId === 'all') return players;
+    const franchiseId = parseInt(selectedFranchiseId);
     return players.filter((player: PlayerWithStats) => 
-      player.franchiseId === parseInt(selectedFranchiseId)
+      allPlayerFranchiseLinks.some((link: any) => 
+        link.playerId === player.id && link.franchiseId === franchiseId && link.isActive
+      )
     );
-  }, [players, selectedFranchiseId]);
+  }, [players, selectedFranchiseId, allPlayerFranchiseLinks]);
 
   const filteredAvailablePlayers = useMemo(() => {
     if (selectedFranchiseId === 'all') return availablePlayers;
+    const franchiseId = parseInt(selectedFranchiseId);
     return availablePlayers.filter((player: PlayerWithStats) => 
-      player.franchiseId === parseInt(selectedFranchiseId)
+      allPlayerFranchiseLinks.some((link: any) => 
+        link.playerId === player.id && link.franchiseId === franchiseId && link.isActive
+      )
     );
-  }, [availablePlayers, selectedFranchiseId]);
+  }, [availablePlayers, selectedFranchiseId, allPlayerFranchiseLinks]);
 
   // Create player mutation
   const createPlayerMutation = useMutation({
@@ -155,6 +167,8 @@ export default function PlayerManagement() {
     queryFn: () => apiRequestJson(`/api/player-franchise-links/${managingFranchisesFor?.id}`),
     enabled: !!managingFranchisesFor,
   });
+
+
 
   const handleSearch = () => {
     if (searchQuery.trim()) {

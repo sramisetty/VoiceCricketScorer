@@ -140,6 +140,11 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 ### January 24, 2025
+- **✓ Player-Franchise Association System**: Completed migration from old franchise_id field to new player_franchise_links table system. Players can now belong to multiple franchises simultaneously through active association records
+- **✓ Enhanced Franchise Filtering**: Updated both Player Management and Match Setup pages to filter players based on player_franchise_links table instead of deprecated franchise_id field, ensuring accurate franchise-based player selection
+- **✓ Database Query Optimization**: Enhanced player-franchise link queries with JOIN operations to include franchise details (name, shortName) for better UI display and reduced client-side lookups
+- **✓ Duplicate Association Prevention**: Implemented comprehensive duplicate constraint handling in player-franchise link creation with proper error messaging and reactivation of inactive links
+- **✓ Multi-Franchise Player Support**: Players can now be associated with multiple franchises through the "Manage Franchise Associations" dialog, supporting modern franchise player sharing scenarios
 - **✓ Toss Capture System**: Implemented comprehensive toss capture functionality during match start with dialog interface to select toss winner and their decision (bat/bowl first). Backend API updated to properly handle toss data and determine batting/bowling teams based on toss results. Match starting now requires toss capture before innings begin.
 - **✓ Match Creation Duplicate Prevention**: Enhanced player assignment system with comprehensive duplicate detection at frontend (individual selection), team selection (bulk operations), and backend API validation levels to prevent same player being assigned to multiple teams
 - **✓ Professional Cricket Branding Package**: Created comprehensive branding system with custom cricket-themed favicon (bat, ball, analytics charts) and header logo featuring "CricketScore Pro" branding with proper typography and cricket iconography

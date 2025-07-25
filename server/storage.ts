@@ -2016,6 +2016,23 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
+
+  async getAllPlayerFranchiseLinks(): Promise<any[]> {
+    try {
+      return await db.select({
+        id: playerFranchiseLinks.id,
+        playerId: playerFranchiseLinks.playerId,
+        franchiseId: playerFranchiseLinks.franchiseId,
+        isActive: playerFranchiseLinks.isActive,
+        createdAt: playerFranchiseLinks.createdAt
+      })
+        .from(playerFranchiseLinks)
+        .where(eq(playerFranchiseLinks.isActive, true));
+    } catch (error) {
+      console.error('Error fetching all player-franchise links:', error);
+      return [];
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

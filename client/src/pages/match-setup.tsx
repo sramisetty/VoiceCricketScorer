@@ -86,6 +86,12 @@ export default function MatchSetup() {
     queryFn: () => apiRequestJson('/api/players/available'),
   });
 
+  // Fetch all player-franchise links for filtering
+  const { data: allPlayerFranchiseLinks = [] } = useQuery({
+    queryKey: ['/api/all-player-franchise-links'],
+    queryFn: () => apiRequestJson('/api/all-player-franchise-links'),
+  });
+
   // Fetch teams for selected franchise (for team selection/cloning)
   const { data: franchiseTeams = [], isLoading: teamsLoading } = useQuery({
     queryKey: ['/api/teams', 'franchise', currentTeamForSelection === 'team1' ? matchData.team1FranchiseId : matchData.team2FranchiseId],
@@ -437,7 +443,11 @@ export default function MatchSetup() {
     // Filter by franchise first, then exclude already selected players
     let filteredPlayers = availablePlayers;
     if (franchiseId) {
-      filteredPlayers = availablePlayers.filter((player: any) => player.franchiseId === franchiseId);
+      filteredPlayers = availablePlayers.filter((player: any) => 
+        allPlayerFranchiseLinks.some((link: any) => 
+          link.playerId === player.id && link.franchiseId === franchiseId && link.isActive
+        )
+      );
     }
     
     return filteredPlayers.filter((player: any) => !selectedPlayerIds.includes(player.id));
