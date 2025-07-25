@@ -101,13 +101,17 @@ export function MatchSummary({ matchId }: MatchSummaryProps) {
     const bowlingStats = inning.playerStats.filter(p => p.player.teamId === inning.bowlingTeamId);
     
     // Top performers
-    const topBatsman = battingStats.reduce((top, current) => 
-      (current.runs || 0) > (top.runs || 0) ? current : top, battingStats[0]
-    );
+    const topBatsman = battingStats.length > 0 
+      ? battingStats.reduce((top, current) => 
+          (current.runs || 0) > (top.runs || 0) ? current : top
+        )
+      : null;
     
-    const topBowler = bowlingStats.reduce((top, current) => 
-      (current.wicketsTaken || 0) > (top.wicketsTaken || 0) ? current : top, bowlingStats[0]
-    );
+    const topBowler = bowlingStats.length > 0 
+      ? bowlingStats.reduce((top, current) => 
+          (current.wicketsTaken || 0) > (top.wicketsTaken || 0) ? current : top
+        )
+      : null;
 
     return {
       totalRuns: inning.totalRuns,
@@ -189,16 +193,26 @@ export function MatchSummary({ matchId }: MatchSummaryProps) {
               
               <div className="space-y-2">
                 <h4 className="font-semibold">Top Performers</h4>
-                {firstInningsStats.topBatsman && (
+                {firstInningsStats.topBatsman && firstInningsStats.topBatsman.runs > 0 ? (
                   <div className="flex justify-between items-center">
                     <span className="text-sm">{firstInningsStats.topBatsman.player.name}</span>
-                    <span className="font-semibold">{firstInningsStats.topBatsman.runs} runs</span>
+                    <span className="font-semibold">{firstInningsStats.topBatsman.runs || 0} runs</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">No batting data</span>
+                    <span className="font-semibold">-</span>
                   </div>
                 )}
-                {firstInningsStats.topBowler && (
+                {firstInningsStats.topBowler && firstInningsStats.topBowler.wicketsTaken > 0 ? (
                   <div className="flex justify-between items-center">
                     <span className="text-sm">{firstInningsStats.topBowler.player.name}</span>
-                    <span className="font-semibold">{firstInningsStats.topBowler.wicketsTaken} wickets</span>
+                    <span className="font-semibold">{firstInningsStats.topBowler.wicketsTaken || 0} wickets</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">No bowling data</span>
+                    <span className="font-semibold">-</span>
                   </div>
                 )}
               </div>
@@ -229,16 +243,26 @@ export function MatchSummary({ matchId }: MatchSummaryProps) {
               
               <div className="space-y-2">
                 <h4 className="font-semibold">Top Performers</h4>
-                {secondInningsStats.topBatsman && (
+                {secondInningsStats.topBatsman && secondInningsStats.topBatsman.runs > 0 ? (
                   <div className="flex justify-between items-center">
                     <span className="text-sm">{secondInningsStats.topBatsman.player.name}</span>
-                    <span className="font-semibold">{secondInningsStats.topBatsman.runs} runs</span>
+                    <span className="font-semibold">{secondInningsStats.topBatsman.runs || 0} runs</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">No batting data</span>
+                    <span className="font-semibold">-</span>
                   </div>
                 )}
-                {secondInningsStats.topBowler && (
+                {secondInningsStats.topBowler && secondInningsStats.topBowler.wicketsTaken > 0 ? (
                   <div className="flex justify-between items-center">
                     <span className="text-sm">{secondInningsStats.topBowler.player.name}</span>
-                    <span className="font-semibold">{secondInningsStats.topBowler.wicketsTaken} wickets</span>
+                    <span className="font-semibold">{secondInningsStats.topBowler.wicketsTaken || 0} wickets</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">No bowling data</span>
+                    <span className="font-semibold">-</span>
                   </div>
                 )}
               </div>
