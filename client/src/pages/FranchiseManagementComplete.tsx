@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Pagination } from "@/components/ui/pagination";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertFranchiseSchema, insertPlayerSchema, type Franchise, type InsertFranchise, type User, type PlayerWithStats, type InsertPlayer } from "@shared/schema";
@@ -25,6 +26,10 @@ export default function FranchiseManagementComplete() {
   const [selectedFranchise, setSelectedFranchise] = useState<Franchise | null>(null);
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(8);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -64,6 +69,13 @@ export default function FranchiseManagementComplete() {
     // Other roles cannot see any franchises
     return [];
   }, [allFranchises, currentUser]);
+
+  // Pagination logic for franchises
+  const totalPages = Math.ceil(franchises.length / itemsPerPage);
+  const paginatedFranchises = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return franchises.slice(startIndex, startIndex + itemsPerPage);
+  }, [franchises, currentPage, itemsPerPage]);
 
   // Create franchise mutation
   const createFranchiseMutation = useMutation({
@@ -558,26 +570,37 @@ export default function FranchiseManagementComplete() {
       </Dialog>
 
       {/* Franchises Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(franchises as Franchise[])?.map((franchise: Franchise) => (
-          <FranchiseCard 
-            key={franchise.id} 
-            franchise={franchise}
-            currentUser={currentUser}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onManage={handleManage}
-          />
-        ))}
-      </div>
-
-      {!(franchises as Franchise[])?.length && (
-        <div className="text-center py-12">
-          <Building className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-semibold text-gray-900">No franchises</h3>
-          <p className="mt-1 text-sm text-gray-500">Get started by creating a new franchise.</p>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginatedFranchises?.map((franchise: Franchise) => (
+            <FranchiseCard 
+              key={franchise.id} 
+              franchise={franchise}
+              currentUser={currentUser}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onManage={handleManage}
+            />
+          ))}
         </div>
-      )}
+
+        {!franchises?.length && (
+          <div className="text-center py-12">
+            <Building className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-semibold text-gray-900">No franchises</h3>
+            <p className="mt-1 text-sm text-gray-500">Get started by creating a new franchise.</p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={franchises.length}
+        />
+      </div>
     </div>
   );
 }

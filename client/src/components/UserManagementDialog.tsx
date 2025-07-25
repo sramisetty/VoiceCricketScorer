@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -456,6 +457,10 @@ interface UserListProps {
 export function UserList({ franchiseId, onEditUser, onDeleteUser, onLinkPlayer }: UserListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(8);
 
   const queryKey = franchiseId 
     ? [`/api/franchises/${franchiseId}/users`]
@@ -540,6 +545,13 @@ export function UserList({ franchiseId, onEditUser, onDeleteUser, onLinkPlayer }
     },
   });
 
+  // Pagination logic
+  const totalPages = Math.ceil(users.length / itemsPerPage);
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return users.slice(startIndex, startIndex + itemsPerPage);
+  }, [users, currentPage, itemsPerPage]);
+
   if (isLoading) {
     return <div className="text-center py-4">Loading users...</div>;
   }
@@ -553,58 +565,69 @@ export function UserList({ franchiseId, onEditUser, onDeleteUser, onLinkPlayer }
   }
 
   return (
-    <div className="space-y-2">
-      {users.map((user: User) => (
-        <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
-          <div className="flex-1">
-            <div className="font-medium">
-              {user.firstName} {user.lastName}
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {paginatedUsers.map((user: User) => (
+          <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex-1">
+              <div className="font-medium">
+                {user.firstName} {user.lastName}
+              </div>
+              <div className="text-sm text-muted-foreground">{user.email}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Role: {user.role} | Status: {user.isActive ? 'Active' : 'Inactive'}
+                {user.franchiseId && (
+                  <span> | Franchise: {
+                    allFranchises.find((f: any) => f.id === user.franchiseId)?.name || `ID ${user.franchiseId}`
+                  }</span>
+                )}
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">{user.email}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Role: {user.role} | Status: {user.isActive ? 'Active' : 'Inactive'}
-              {user.franchiseId && (
-                <span> | Franchise: {
-                  allFranchises.find((f: any) => f.id === user.franchiseId)?.name || `ID ${user.franchiseId}`
-                }</span>
+            <div className="flex gap-2">
+              {onLinkPlayer && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onLinkPlayer(user)}
+                  title="Link to Player"
+                >
+                  <Link className="w-4 h-4" />
+                </Button>
+              )}
+              {onEditUser && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEditUser(user)}
+                  title="Edit User"
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
+              )}
+              {onDeleteUser && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => deleteUserMutation.mutate(user)}
+                  disabled={deleteUserMutation.isPending}
+                  title="Delete User"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               )}
             </div>
           </div>
-          <div className="flex gap-2">
-            {onLinkPlayer && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onLinkPlayer(user)}
-                title="Link to Player"
-              >
-                <Link className="w-4 h-4" />
-              </Button>
-            )}
-            {onEditUser && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onEditUser(user)}
-                title="Edit User"
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
-            )}
-            {onDeleteUser && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => deleteUserMutation.mutate(user)}
-                disabled={deleteUserMutation.isPending}
-                title="Delete User"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        totalItems={users.length}
+      />
     </div>
   );
 }

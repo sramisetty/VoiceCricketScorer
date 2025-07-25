@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
+import { Pagination } from '@/components/ui/pagination';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts';
 import { Trophy, Target, Users, Search, TrendingUp, Activity, Star, Award, Zap } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
@@ -17,6 +18,8 @@ export default function PlayerStats() {
   const [selectedRole, setSelectedRole] = useState('all');
   const [sortBy, setSortBy] = useState('runs');
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   // Fetch players with stats
   const { data: players = [], isLoading } = useQuery({
@@ -60,6 +63,16 @@ export default function PlayerStats() {
         return a.name.localeCompare(b.name);
     }
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(sortedPlayers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedPlayers = sortedPlayers.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedFranchise, selectedRole, sortBy]);
 
   const getRoleColor = (role: string) => {
     switch (role.toLowerCase()) {
@@ -175,7 +188,7 @@ export default function PlayerStats() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {sortedPlayers.map((player: any) => (
+              {paginatedPlayers.map((player: any) => (
                 <Card key={player.id} className={`cursor-pointer hover:shadow-lg transition-all ${selectedPlayer?.id === player.id ? 'ring-2 ring-blue-500' : ''}`}>
                   <CardContent className="p-4" onClick={() => setSelectedPlayer(player)}>
                     <div className="flex items-center gap-4">
@@ -245,6 +258,15 @@ export default function PlayerStats() {
               ))}
             </div>
           )}
+          
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={sortedPlayers.length}
+          />
         </div>
 
         {/* Player Details Panel */}

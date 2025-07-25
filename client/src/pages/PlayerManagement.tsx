@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Pagination } from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequestJson } from '@/lib/queryClient';
 import { PlayerWithStats, InsertPlayer, Franchise, PlayerFranchiseLink, InsertPlayerFranchiseLink } from '@shared/schema';
@@ -21,6 +22,10 @@ export default function PlayerManagement() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<PlayerWithStats | null>(null);
   const [managingFranchisesFor, setManagingFranchisesFor] = useState<PlayerWithStats | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12);
 
   // Fetch all players
   const { data: players = [], isLoading } = useQuery({
@@ -73,6 +78,18 @@ export default function PlayerManagement() {
     
     return result;
   }, [players, selectedFranchiseId, allPlayerFranchiseLinks, searchQuery]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredPlayers.length / itemsPerPage);
+  const paginatedPlayers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredPlayers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredPlayers, currentPage, itemsPerPage]);
+
+  // Reset to first page when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedFranchiseId]);
 
   const filteredAvailablePlayers = useMemo(() => {
     let result = availablePlayers;
@@ -363,9 +380,9 @@ export default function PlayerManagement() {
           <TabsTrigger value="available">Available ({filteredAvailablePlayers.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all">
+        <TabsContent value="all" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPlayers.map((player: PlayerWithStats) => (
+            {paginatedPlayers.map((player: PlayerWithStats) => (
               <PlayerCard 
                 key={player.id} 
                 player={player} 
@@ -385,11 +402,20 @@ export default function PlayerManagement() {
                   : 'No players found for selected franchise.'}
             </div>
           )}
+          
+          {/* Pagination for All Players */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredPlayers.length}
+          />
         </TabsContent>
 
-        <TabsContent value="available">
+        <TabsContent value="available" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredAvailablePlayers.map((player: PlayerWithStats) => (
+            {filteredAvailablePlayers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((player: PlayerWithStats) => (
               <PlayerCard 
                 key={player.id} 
                 player={player} 
@@ -409,8 +435,16 @@ export default function PlayerManagement() {
                   : 'No available players found for selected franchise.'}
             </div>
           )}
+          
+          {/* Pagination for Available Players */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(filteredAvailablePlayers.length / itemsPerPage)}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredAvailablePlayers.length}
+          />
         </TabsContent>
-
 
       </Tabs>
 
