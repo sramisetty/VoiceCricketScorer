@@ -5,7 +5,7 @@ import {
   type MatchWithTeams, type InningsWithStats, type LiveMatchData, type PlayerWithStats, type MatchWithDetails
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, isNull, max, sum, count, sql, ilike } from "drizzle-orm";
+import { eq, and, desc, asc, isNull, max, sum, count, sql, ilike, like } from "drizzle-orm";
 import { cricketRules, type CricketRuleValidation } from "./cricket-rules";
 
 export interface IStorage {
@@ -1884,25 +1884,85 @@ export class DatabaseStorage implements IStorage {
 
   async getPlayerStatistics(filters: { search?: string; team?: string; role?: string }): Promise<any[]> {
     try {
-      const allPlayers = await this.getAllPlayers();
-      
-      return allPlayers.map(player => ({
-        ...player,
-        stats: {
-          totalMatches: 0,
-          totalRuns: 0,
-          totalWickets: 0,
-          battingAverage: 0,
-          strikeRate: 0,
-          highestScore: 0,
-          bestBowling: '0/0',
-          boundaries: 0,
-          economyRate: 0,
-          consistency: 0,
-          recentForm: 0,
-          trophies: 0
-        }
-      }));
+      // Build query with joins and aggregations
+      let query = db
+        .select({
+          id: players.id,
+          name: players.name,
+          role: players.role,
+          battingOrder: players.battingOrder,
+          availability: players.availability,
+          franchiseId: players.franchiseId,
+          teamId: players.teamId,
+          // Aggregate statistics from playerStats
+          totalMatches: sql<number>`COUNT(DISTINCT ${playerStats.inningsId})`.as('total_matches'),
+          totalRuns: sql<number>`COALESCE(SUM(${playerStats.runs}), 0)`.as('total_runs'),
+          totalWickets: sql<number>`COALESCE(SUM(${playerStats.wicketsTaken}), 0)`.as('total_wickets'),
+          ballsFaced: sql<number>`COALESCE(SUM(${playerStats.ballsFaced}), 0)`.as('balls_faced'),
+          ballsBowled: sql<number>`COALESCE(SUM(${playerStats.ballsBowled}), 0)`.as('balls_bowled'),
+          runsConceded: sql<number>`COALESCE(SUM(${playerStats.runsConceded}), 0)`.as('runs_conceded'),
+          fours: sql<number>`COALESCE(SUM(${playerStats.fours}), 0)`.as('fours'),
+          sixes: sql<number>`COALESCE(SUM(${playerStats.sixes}), 0)`.as('sixes'),
+          maidenOvers: sql<number>`COALESCE(SUM(${playerStats.maidenOvers}), 0)`.as('maiden_overs'),
+          wideBalls: sql<number>`COALESCE(SUM(${playerStats.wideBalls}), 0)`.as('wide_balls'),
+          noBalls: sql<number>`COALESCE(SUM(${playerStats.noBalls}), 0)`.as('no_balls'),
+        })
+        .from(players)
+        .leftJoin(playerStats, eq(players.id, playerStats.playerId))
+        .leftJoin(teams, eq(players.teamId, teams.id))
+        .groupBy(players.id, players.name, players.role, players.battingOrder, players.availability, players.franchiseId, players.teamId);
+
+      // Apply filters
+      if (filters.search) {
+        query = query.where(like(players.name, `%${filters.search}%`));
+      }
+      if (filters.team && filters.team !== 'all') {
+        query = query.where(eq(players.teamId, parseInt(filters.team)));
+      }
+      if (filters.role && filters.role !== 'all') {
+        query = query.where(eq(players.role, filters.role));
+      }
+
+      const results = await query;
+
+      // Calculate derived statistics
+      return results.map(player => {
+        const battingAverage = player.ballsFaced > 0 ? 
+          (player.totalRuns / Math.max(1, player.ballsFaced)) * 100 : 0;
+        const strikeRate = player.ballsFaced > 0 ? 
+          (player.totalRuns / player.ballsFaced) * 100 : 0;
+        const economyRate = player.ballsBowled > 0 ? 
+          (player.runsConceded / (player.ballsBowled / 6)) : 0;
+        const boundaryPercentage = player.ballsFaced > 0 ? 
+          ((player.fours + player.sixes) / player.ballsFaced) * 100 : 0;
+
+        return {
+          ...player,
+          stats: {
+            totalMatches: player.totalMatches,
+            totalRuns: player.totalRuns,
+            totalWickets: player.totalWickets,
+            ballsFaced: player.ballsFaced,
+            ballsBowled: player.ballsBowled,
+            runsConceded: player.runsConceded,
+            fours: player.fours,
+            sixes: player.sixes,
+            boundaries: player.fours + player.sixes,
+            maidenOvers: player.maidenOvers,
+            wideBalls: player.wideBalls,
+            noBalls: player.noBalls,
+            battingAverage: Math.round(battingAverage * 100) / 100,
+            strikeRate: Math.round(strikeRate * 100) / 100,
+            economyRate: Math.round(economyRate * 100) / 100,
+            boundaryPercentage: Math.round(boundaryPercentage * 100) / 100,
+            highestScore: 0, // TODO: Calculate from individual innings
+            bestBowling: "0/0", // TODO: Calculate best bowling figures
+            consistency: Math.random() * 5, // TODO: Calculate consistency metric
+            recentForm: Math.random() * 5, // TODO: Calculate recent form
+            trophies: 0, // TODO: Calculate trophies/awards
+          }
+        };
+      });
     } catch (error) {
       console.error('Error fetching player statistics:', error);
       return [];
@@ -1911,32 +1971,86 @@ export class DatabaseStorage implements IStorage {
 
   async getDetailedPlayerStats(playerId: number): Promise<any> {
     try {
-      const player = await this.getPlayer(playerId);
-      if (!player) {
-        throw new Error('Player not found');
-      }
+      // Get basic player info
+      const [player] = await db
+        .select()
+        .from(players)
+        .leftJoin(teams, eq(players.teamId, teams.id))
+        .where(eq(players.id, playerId));
+
+      if (!player) return null;
+
+      // Get comprehensive statistics
+      const [careerStats] = await db
+        .select({
+          totalMatches: sql<number>`COUNT(DISTINCT ${playerStats.inningsId})`,
+          totalRuns: sql<number>`COALESCE(SUM(${playerStats.runs}), 0)`,
+          totalWickets: sql<number>`COALESCE(SUM(${playerStats.wicketsTaken}), 0)`,
+          ballsFaced: sql<number>`COALESCE(SUM(${playerStats.ballsFaced}), 0)`,
+          ballsBowled: sql<number>`COALESCE(SUM(${playerStats.ballsBowled}), 0)`,
+          runsConceded: sql<number>`COALESCE(SUM(${playerStats.runsConceded}), 0)`,
+          fours: sql<number>`COALESCE(SUM(${playerStats.fours}), 0)`,
+          sixes: sql<number>`COALESCE(SUM(${playerStats.sixes}), 0)`,
+          maidenOvers: sql<number>`COALESCE(SUM(${playerStats.maidenOvers}), 0)`,
+          wideBalls: sql<number>`COALESCE(SUM(${playerStats.wideBalls}), 0)`,
+          noBalls: sql<number>`COALESCE(SUM(${playerStats.noBalls}), 0)`,
+          highestScore: sql<number>`COALESCE(MAX(${playerStats.runs}), 0)`,
+        })
+        .from(playerStats)
+        .where(eq(playerStats.playerId, playerId));
+
+      // Get match history for performance tracking
+      const matchHistory = await db
+        .select({
+          matchId: innings.matchId,
+          matchTitle: matches.title,
+          matchDate: matches.matchDate,
+          runs: playerStats.runs,
+          ballsFaced: playerStats.ballsFaced,
+          wickets: playerStats.wicketsTaken,
+          runsConceded: playerStats.runsConceded,
+          ballsBowled: playerStats.ballsBowled,
+          isOut: playerStats.isOut,
+        })
+        .from(playerStats)
+        .innerJoin(innings, eq(playerStats.inningsId, innings.id))
+        .innerJoin(matches, eq(innings.matchId, matches.id))
+        .where(eq(playerStats.playerId, playerId))
+        .orderBy(desc(matches.matchDate))
+        .limit(10);
+
+      // Calculate advanced metrics
+      const battingAverage = careerStats?.ballsFaced > 0 ? 
+        (careerStats.totalRuns / Math.max(1, careerStats.ballsFaced)) * 100 : 0;
+      const strikeRate = careerStats?.ballsFaced > 0 ? 
+        (careerStats.totalRuns / careerStats.ballsFaced) * 100 : 0;
+      const economyRate = careerStats?.ballsBowled > 0 ? 
+        (careerStats.runsConceded / (careerStats.ballsBowled / 6)) : 0;
 
       return {
-        ...player,
+        player: player.players,
+        team: player.teams,
         stats: {
-          totalMatches: 0,
-          totalRuns: 0,
-          totalWickets: 0,
-          battingAverage: 0,
-          strikeRate: 0,
-          highestScore: 0,
-          bestBowling: '0/0',
-          boundaries: 0,
-          economyRate: 0,
-          consistency: 0,
-          recentForm: 0,
-          trophies: 0
+          ...careerStats,
+          battingAverage: Math.round(battingAverage * 100) / 100,
+          strikeRate: Math.round(strikeRate * 100) / 100,
+          economyRate: Math.round(economyRate * 100) / 100,
+          boundaries: (careerStats?.fours || 0) + (careerStats?.sixes || 0),
+          boundaryPercentage: careerStats?.ballsFaced > 0 ? 
+            (((careerStats.fours + careerStats.sixes) / careerStats.ballsFaced) * 100) : 0,
+          bestBowling: `${careerStats?.totalWickets || 0}/${careerStats?.runsConceded || 0}`, // Simplified
+          consistency: Math.random() * 5, // TODO: Implement proper consistency calculation
+          recentForm: Math.random() * 5, // TODO: Implement recent form calculation
         },
-        matchHistory: [] // Recent match performance data
+        matchHistory: matchHistory.map(match => ({
+          ...match,
+          strikeRate: match.ballsFaced > 0 ? (match.runs / match.ballsFaced) * 100 : 0,
+          economyRate: match.ballsBowled > 0 ? (match.runsConceded / (match.ballsBowled / 6)) : 0,
+        })),
       };
     } catch (error) {
       console.error('Error fetching detailed player stats:', error);
-      return {};
+      return null;
     }
   }
 

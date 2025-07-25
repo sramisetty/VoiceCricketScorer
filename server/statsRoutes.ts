@@ -62,15 +62,85 @@ export function registerStatsRoutes(app: Express) {
     }
   });
 
+  // All Player Statistics (for simplified endpoint)
+  app.get('/api/player-statistics/:franchise/:role', async (req, res) => {
+    try {
+      const { franchise, role } = req.params;
+      const playerStats = await storage.getPlayerStatistics({
+        search: '',
+        team: franchise === 'all' ? 'all' : franchise,
+        role: role === 'all' ? 'all' : role
+      });
+      res.json(playerStats);
+    } catch (error) {
+      console.error('Error fetching player statistics:', error);
+      res.status(500).json({ message: 'Failed to fetch player statistics' });
+    }
+  });
+
   // Detailed Player Statistics
   app.get('/api/players/:playerId/detailed-stats', async (req, res) => {
     try {
       const playerId = parseInt(req.params.playerId);
       const detailedStats = await storage.getDetailedPlayerStats(playerId);
+      
+      if (!detailedStats) {
+        return res.status(404).json({ message: 'Player not found' });
+      }
+      
       res.json(detailedStats);
     } catch (error) {
       console.error('Error fetching detailed player statistics:', error);
       res.status(500).json({ message: 'Failed to fetch detailed player statistics' });
+    }
+  });
+
+  // Player Performance Comparison
+  app.get('/api/player-statistics/compare', async (req, res) => {
+    try {
+      const { players } = req.query;
+      const playerIds = (players as string)?.split(',').map(id => parseInt(id)) || [];
+      
+      const comparisons = await Promise.all(
+        playerIds.map(id => storage.getDetailedPlayerStats(id))
+      );
+      
+      res.json(comparisons.filter(Boolean));
+    } catch (error) {
+      console.error('Error comparing player statistics:', error);
+      res.status(500).json({ message: 'Failed to compare player statistics' });
+    }
+  });
+
+  // Team Statistics Summary
+  app.get('/api/team-statistics/:teamId', async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      const teamStats = await storage.getPlayerStatistics({
+        search: '',
+        team: teamId.toString(),
+        role: 'all'
+      });
+      
+      // Calculate team aggregates
+      const teamSummary = {
+        totalPlayers: teamStats.length,
+        totalRuns: teamStats.reduce((sum, p) => sum + (p.stats?.totalRuns || 0), 0),
+        totalWickets: teamStats.reduce((sum, p) => sum + (p.stats?.totalWickets || 0), 0),
+        totalMatches: Math.max(...teamStats.map(p => p.stats?.totalMatches || 0)),
+        averageStrikeRate: teamStats.length > 0 ? 
+          teamStats.reduce((sum, p) => sum + (p.stats?.strikeRate || 0), 0) / teamStats.length : 0,
+        averageEconomyRate: teamStats.length > 0 ? 
+          teamStats.reduce((sum, p) => sum + (p.stats?.economyRate || 0), 0) / teamStats.length : 0,
+        topPerformers: teamStats
+          .sort((a, b) => (b.stats?.totalRuns || 0) - (a.stats?.totalRuns || 0))
+          .slice(0, 5)
+      };
+      
+      res.json({ teamSummary, players: teamStats });
+    } catch (error) {
+      console.error('Error fetching team statistics:', error);
+      res.status(500).json({ message: 'Failed to fetch team statistics' });
     }
   });
 }

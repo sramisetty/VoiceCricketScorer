@@ -20,7 +20,7 @@ export default function PlayerStats() {
 
   // Fetch players with stats
   const { data: players = [], isLoading } = useQuery({
-    queryKey: ['/api/player-statistics', searchTerm, selectedTeam, selectedRole],
+    queryKey: ['/api/player-statistics/all/all'],
   });
 
   // Fetch teams for filter
@@ -199,14 +199,14 @@ export default function PlayerStats() {
                           {player.team?.name || 'No team assigned'}
                         </p>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-sm">
                           <div>
                             <p className="text-gray-500">Matches</p>
                             <p className="font-semibold">{player.stats?.totalMatches || 0}</p>
                           </div>
                           <div>
                             <p className="text-gray-500">Runs</p>
-                            <p className="font-semibold">{player.stats?.totalRuns || 0}</p>
+                            <p className="font-semibold text-blue-600">{player.stats?.totalRuns || 0}</p>
                           </div>
                           <div>
                             <p className="text-gray-500">Average</p>
@@ -218,7 +218,11 @@ export default function PlayerStats() {
                           </div>
                           <div>
                             <p className="text-gray-500">Wickets</p>
-                            <p className="font-semibold">{player.stats?.totalWickets || 0}</p>
+                            <p className="font-semibold text-red-600">{player.stats?.totalWickets || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Boundaries</p>
+                            <p className="font-semibold text-green-600">{player.stats?.boundaries || 0}</p>
                           </div>
                         </div>
                       </div>
@@ -335,12 +339,32 @@ export default function PlayerStats() {
                         <span className="font-semibold">{selectedPlayer.stats?.bestBowling || '0/0'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Boundaries:</span>
-                        <span className="font-semibold">{selectedPlayer.stats?.boundaries || 0}</span>
+                        <span className="text-gray-600">Boundaries (4s+6s):</span>
+                        <span className="font-semibold text-green-600">{selectedPlayer.stats?.boundaries || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Fours:</span>
+                        <span className="font-semibold">{selectedPlayer.stats?.fours || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Sixes:</span>
+                        <span className="font-semibold">{selectedPlayer.stats?.sixes || 0}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Economy Rate:</span>
                         <span className="font-semibold">{formatStat(selectedPlayer.stats?.economyRate, 2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Maiden Overs:</span>
+                        <span className="font-semibold">{selectedPlayer.stats?.maidenOvers || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Balls Faced:</span>
+                        <span className="font-semibold">{selectedPlayer.stats?.ballsFaced || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Balls Bowled:</span>
+                        <span className="font-semibold">{selectedPlayer.stats?.ballsBowled || 0}</span>
                       </div>
                     </div>
                   </div>
