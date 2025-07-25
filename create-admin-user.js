@@ -96,9 +96,19 @@ async function createAdminUser() {
       return;
     }
 
-    // Hash the password
+    // Hash the password with verification
     console.log('Hashing password...');
     const passwordHash = await bcrypt.hash(password, 12);
+    
+    // Verify the hash immediately to ensure it works
+    const verifyHash = await bcrypt.compare(password, passwordHash);
+    if (!verifyHash) {
+      throw new Error('Password hashing failed - verification check failed');
+    }
+    
+    console.log('✓ Password hashed and verified successfully');
+    console.log(`  Hash length: ${passwordHash.length}`);
+    console.log(`  Hash preview: ${passwordHash.substring(0, 29)}...`);
 
     // Create the admin user
     const result = await pool.query(
