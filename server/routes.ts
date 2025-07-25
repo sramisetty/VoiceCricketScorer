@@ -732,6 +732,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Cannot record more than 10 wickets in an innings' });
       }
 
+      // ICC Rule 17.1: Check if current over is already complete (6 valid balls bowled)
+      const currentOverBalls = await storage.getBallsByInnings(ballData.inningsId);
+      const currentOverValidBalls = currentOverBalls.filter(ball => 
+        ball.overNumber === ballData.overNumber && 
+        (!ball.extraType || (ball.extraType !== 'wide' && ball.extraType !== 'noball'))
+      );
+      
+      // If 6 valid balls already bowled in this over, prevent adding more balls
+      if (currentOverValidBalls.length >= 6 && (!ballData.extraType || (ballData.extraType !== 'wide' && ballData.extraType !== 'noball'))) {
+        return res.status(400).json({ 
+          error: 'ICC Rule 17.1: Over is complete. Bowler must be changed before continuing.' 
+        });
+      }
+
       // Create and save the ball (this will validate consecutive bowling rule)
       try {
         var ball = await storage.createBall(ballData);

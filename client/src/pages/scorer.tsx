@@ -125,32 +125,24 @@ export default function Scorer() {
     }
   }, [currentData?.match.status, currentData?.currentInnings.id]);
 
-  // Check if over is completed and prompt for next bowler
+  // Check if over is completed and enforce mandatory bowler change
   useEffect(() => {
-    if (currentData?.currentInnings && !overCompletedDialogOpen && currentData.currentInnings.totalBalls !== null) {
-      const ballsInCurrentOver = currentData.currentInnings.totalBalls % 6;
-      const isOverCompleted = ballsInCurrentOver === 0 && currentData.currentInnings.totalBalls > 0;
-      const currentOverNumber = currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1;
+    if (currentData?.currentInnings && !overCompletedDialogOpen && currentData.recentBalls.length > 0) {
+      const currentOverNumber = currentData.recentBalls[0].overNumber;
       
-      // If over is completed, check if we need to change bowler
-      if (isOverCompleted && currentOverNumber > 0) {
-        // Get the last over's bowler
-        const lastOverBalls = currentData.recentBalls.filter(ball => ball.overNumber === currentOverNumber - 1);
-        const lastOverBowlerId = lastOverBalls.length > 0 ? lastOverBalls[0].bowlerId : null;
-        
-        // Check if current bowler is same as last over's bowler (ICC Rule 17.6 violation)
-        const isSameBowlerAsLastOver = lastOverBowlerId === currentData.currentBowler?.playerId;
-        
-        console.log(`Over ${currentOverNumber} completed. Last over bowler: ${lastOverBowlerId}, Current bowler: ${currentData.currentBowler?.playerId}, Same bowler: ${isSameBowlerAsLastOver}`);
-        
-        // Only show dialog if current bowler is same as last over's bowler
-        if (isSameBowlerAsLastOver) {
-          console.log(`ICC Rule 17.6: Must change bowler for over ${currentOverNumber}`);
-          setOverCompletedDialogOpen(true);
-        }
+      // Count valid balls in current over (exclude wide balls and no-balls)
+      const currentOverBalls = currentData.recentBalls.filter(ball => 
+        ball.overNumber === currentOverNumber && 
+        (!ball.extraType || (ball.extraType !== 'wide' && ball.extraType !== 'noball'))
+      );
+      
+      // ICC Rule 17.1: Over is complete after 6 valid balls - bowler MUST be changed
+      if (currentOverBalls.length >= 6) {
+        console.log(`ICC Rule 17.1: Over ${currentOverNumber} is complete with ${currentOverBalls.length} valid balls. Bowler must be changed.`);
+        setOverCompletedDialogOpen(true);
       }
     }
-  }, [currentData?.currentInnings.totalBalls, currentData?.recentBalls, currentData?.currentBowler?.playerId, overCompletedDialogOpen]);
+  }, [currentData?.recentBalls, overCompletedDialogOpen]);
 
 
 
@@ -1378,11 +1370,11 @@ export default function Scorer() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>ICC Rule 17.6 - Change Bowler Required</DialogTitle>
+            <DialogTitle>ICC Rule 17.1 - Over Complete - Bowler Must Change</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              The over has been completed. ICC rules require a different bowler for the next over (same bowler cannot bowl consecutive overs).
+              6 valid balls have been bowled in this over. According to ICC cricket rules, the bowler must be changed before the next over can begin.
             </p>
             <div>
               <Label htmlFor="next-bowler">Next Bowler</Label>
