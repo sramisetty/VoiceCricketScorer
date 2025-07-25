@@ -51,7 +51,7 @@ if (tableMatches) {
         
         // Extract columns from the table definition
         const columnSection = match.match(/{([^}]+)}/s)[1];
-        const columnMatches = columnSection.match(/(\w+):\s*[^,\n]+(?:,|\s*$)/g);
+        const columnMatches = columnSection.match(/(\w+):\s*[^,}]+/g);
         
         const columns = [];
         if (columnMatches) {
