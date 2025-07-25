@@ -947,29 +947,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check cricket rule: same bowler cannot bowl consecutive overs
-      try {
-        // Get current over number
-        const totalBalls = currentInnings.totalBalls ?? 0;
-        const currentOver = Math.floor(totalBalls / 6) + 1;
-        
-        // Validate consecutive bowling rule using ICC rules engine
-        const validation = await storage.validateBallWithICCRules({
-          inningsId: currentInnings.id,
-          bowlerId: newBowlerId,
-          overNumber: currentOver,
-          ballNumber: 1,
-          batsmanId: 0, // Placeholder for validation
-          runs: 0
-        }, currentInnings.id);
-        
-        if (!validation.isValid) {
-          throw new Error(validation.errorMessage || "ICC Cricket Rule Violation");
+      // Skip validation if no balls have been bowled yet (beginning of innings)
+      const totalBalls = currentInnings.totalBalls ?? 0;
+      
+      if (totalBalls > 0) {
+        try {
+          // Get current over number
+          const currentOver = Math.floor(totalBalls / 6) + 1;
+          
+          // Validate consecutive bowling rule using ICC rules engine
+          const validation = await storage.validateBallWithICCRules({
+            inningsId: currentInnings.id,
+            bowlerId: newBowlerId,
+            overNumber: currentOver,
+            ballNumber: 1,
+            batsmanId: 0, // Placeholder for validation
+            runs: 0
+          }, currentInnings.id);
+          
+          if (!validation.isValid) {
+            throw new Error(validation.errorMessage || "ICC Cricket Rule Violation");
+          }
+        } catch (error) {
+          if (error.message.includes('Cricket Rule Violation')) {
+            return res.status(400).json({ error: error.message });
+          }
+          throw error;
         }
-      } catch (error) {
-        if (error.message.includes('Cricket Rule Violation')) {
-          return res.status(400).json({ error: error.message });
-        }
-        throw error;
       }
       
       // Initialize the new bowler if they haven't bowled yet
