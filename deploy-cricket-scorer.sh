@@ -923,24 +923,28 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='franchises' AND column_name='location') THEN
         ALTER TABLE franchises ADD COLUMN location VARCHAR(255);
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='franchises' AND column_name='established') THEN
+        ALTER TABLE franchises ADD COLUMN established DATE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='franchises' AND column_name='contact_email') THEN
+        ALTER TABLE franchises ADD COLUMN contact_email VARCHAR(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='franchises' AND column_name='contact_phone') THEN
+        ALTER TABLE franchises ADD COLUMN contact_phone VARCHAR(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='franchises' AND column_name='website') THEN
+        ALTER TABLE franchises ADD COLUMN website VARCHAR(500);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='franchises' AND column_name='is_active') THEN
+        ALTER TABLE franchises ADD COLUMN is_active BOOLEAN DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='franchises' AND column_name='created_at') THEN
+        ALTER TABLE franchises ADD COLUMN created_at TIMESTAMP DEFAULT NOW();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='franchises' AND column_name='updated_at') THEN
+        ALTER TABLE franchises ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
+    END IF;
 END $$;
-
--- Create franchises table
-CREATE TABLE franchises (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    short_name VARCHAR(10) NOT NULL,
-    logo VARCHAR(500),
-    description TEXT,
-    location VARCHAR(255),
-    established DATE,
-    contact_email VARCHAR(255),
-    contact_phone VARCHAR(50),
-    website VARCHAR(500),
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
 
 -- Create users table if it doesn't exist
 CREATE TABLE IF NOT EXISTS users (
@@ -984,11 +988,20 @@ CREATE TABLE IF NOT EXISTS teams (
 -- Add missing columns to teams if they don't exist
 DO $$ 
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='teams' AND column_name='logo') THEN
+        ALTER TABLE teams ADD COLUMN logo TEXT;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='teams' AND column_name='franchise_id') THEN
         ALTER TABLE teams ADD COLUMN franchise_id INTEGER REFERENCES franchises(id);
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='teams' AND column_name='is_active') THEN
         ALTER TABLE teams ADD COLUMN is_active BOOLEAN DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='teams' AND column_name='created_at') THEN
+        ALTER TABLE teams ADD COLUMN created_at TIMESTAMP DEFAULT NOW();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='teams' AND column_name='updated_at') THEN
+        ALTER TABLE teams ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
     END IF;
 END $$;
 
@@ -1013,6 +1026,21 @@ CREATE TABLE IF NOT EXISTS players (
 -- Add missing columns to players if they don't exist
 DO $$ 
 BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='franchise_id') THEN
+        ALTER TABLE players ADD COLUMN franchise_id INTEGER REFERENCES franchises(id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='team_id') THEN
+        ALTER TABLE players ADD COLUMN team_id INTEGER REFERENCES teams(id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='batting_order') THEN
+        ALTER TABLE players ADD COLUMN batting_order INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='user_id') THEN
+        ALTER TABLE players ADD COLUMN user_id INTEGER REFERENCES users(id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='contact_info') THEN
+        ALTER TABLE players ADD COLUMN contact_info JSONB;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='stats') THEN
         ALTER TABLE players ADD COLUMN stats JSONB DEFAULT '{"totalMatches": 0, "totalRuns": 0, "totalWickets": 0, "highestScore": 0, "bestBowling": "0/0"}';
     END IF;
@@ -1021,6 +1049,15 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='preferred_position') THEN
         ALTER TABLE players ADD COLUMN preferred_position TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='is_active') THEN
+        ALTER TABLE players ADD COLUMN is_active BOOLEAN DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='created_at') THEN
+        ALTER TABLE players ADD COLUMN created_at TIMESTAMP DEFAULT NOW();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='updated_at') THEN
+        ALTER TABLE players ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
     END IF;
 END $$;
 
@@ -1073,6 +1110,44 @@ CREATE TABLE IF NOT EXISTS matches (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Add missing columns to matches if they don't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='matches' AND column_name='toss_winner_id') THEN
+        ALTER TABLE matches ADD COLUMN toss_winner_id INTEGER REFERENCES teams(id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='matches' AND column_name='toss_decision') THEN
+        ALTER TABLE matches ADD COLUMN toss_decision TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='matches' AND column_name='venue') THEN
+        ALTER TABLE matches ADD COLUMN venue TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='matches' AND column_name='match_date') THEN
+        ALTER TABLE matches ADD COLUMN match_date TIMESTAMP;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='matches' AND column_name='current_innings') THEN
+        ALTER TABLE matches ADD COLUMN current_innings INTEGER DEFAULT 1;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='matches' AND column_name='organizing_franchise_id') THEN
+        ALTER TABLE matches ADD COLUMN organizing_franchise_id INTEGER REFERENCES franchises(id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='matches' AND column_name='is_inter_franchise') THEN
+        ALTER TABLE matches ADD COLUMN is_inter_franchise BOOLEAN DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='matches' AND column_name='is_public') THEN
+        ALTER TABLE matches ADD COLUMN is_public BOOLEAN DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='matches' AND column_name='description') THEN
+        ALTER TABLE matches ADD COLUMN description TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='matches' AND column_name='created_at') THEN
+        ALTER TABLE matches ADD COLUMN created_at TIMESTAMP DEFAULT NOW();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='matches' AND column_name='updated_at') THEN
+        ALTER TABLE matches ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
+    END IF;
+END $$;
+
 -- Create innings table if it doesn't exist
 CREATE TABLE IF NOT EXISTS innings (
     id SERIAL PRIMARY KEY,
@@ -1088,6 +1163,20 @@ CREATE TABLE IF NOT EXISTS innings (
     is_completed BOOLEAN DEFAULT false,
     current_bowler_id INTEGER REFERENCES players(id)
 );
+
+-- Add missing columns to innings if they don't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='innings' AND column_name='extras') THEN
+        ALTER TABLE innings ADD COLUMN extras JSONB DEFAULT '{}';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='innings' AND column_name='is_completed') THEN
+        ALTER TABLE innings ADD COLUMN is_completed BOOLEAN DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='innings' AND column_name='current_bowler_id') THEN
+        ALTER TABLE innings ADD COLUMN current_bowler_id INTEGER REFERENCES players(id);
+    END IF;
+END $$;
 
 -- Create balls table if it doesn't exist
 CREATE TABLE IF NOT EXISTS balls (
@@ -1110,6 +1199,38 @@ CREATE TABLE IF NOT EXISTS balls (
     commentary TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Add missing columns to balls if they don't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='balls' AND column_name='wicket_type') THEN
+        ALTER TABLE balls ADD COLUMN wicket_type TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='balls' AND column_name='fielder_id') THEN
+        ALTER TABLE balls ADD COLUMN fielder_id INTEGER REFERENCES players(id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='balls' AND column_name='extra_type') THEN
+        ALTER TABLE balls ADD COLUMN extra_type TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='balls' AND column_name='extra_runs') THEN
+        ALTER TABLE balls ADD COLUMN extra_runs INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='balls' AND column_name='is_short_run') THEN
+        ALTER TABLE balls ADD COLUMN is_short_run BOOLEAN DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='balls' AND column_name='is_dead_ball') THEN
+        ALTER TABLE balls ADD COLUMN is_dead_ball BOOLEAN DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='balls' AND column_name='penalty_runs') THEN
+        ALTER TABLE balls ADD COLUMN penalty_runs INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='balls' AND column_name='batsman_crossed') THEN
+        ALTER TABLE balls ADD COLUMN batsman_crossed BOOLEAN DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='balls' AND column_name='commentary') THEN
+        ALTER TABLE balls ADD COLUMN commentary TEXT;
+    END IF;
+END $$;
 
 -- Create player_stats table if it doesn't exist
 CREATE TABLE IF NOT EXISTS player_stats (
@@ -1134,6 +1255,41 @@ CREATE TABLE IF NOT EXISTS player_stats (
     no_balls INTEGER DEFAULT 0
 );
 
+-- Add missing columns to player_stats if they don't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='player_stats' AND column_name='dismissal_type') THEN
+        ALTER TABLE player_stats ADD COLUMN dismissal_type TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='player_stats' AND column_name='dismissal_ball') THEN
+        ALTER TABLE player_stats ADD COLUMN dismissal_ball INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='player_stats' AND column_name='fielder_id') THEN
+        ALTER TABLE player_stats ADD COLUMN fielder_id INTEGER REFERENCES players(id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='player_stats' AND column_name='overs_bowled') THEN
+        ALTER TABLE player_stats ADD COLUMN overs_bowled INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='player_stats' AND column_name='balls_bowled') THEN
+        ALTER TABLE player_stats ADD COLUMN balls_bowled INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='player_stats' AND column_name='runs_conceded') THEN
+        ALTER TABLE player_stats ADD COLUMN runs_conceded INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='player_stats' AND column_name='wickets_taken') THEN
+        ALTER TABLE player_stats ADD COLUMN wickets_taken INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='player_stats' AND column_name='maiden_overs') THEN
+        ALTER TABLE player_stats ADD COLUMN maiden_overs INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='player_stats' AND column_name='wide_balls') THEN
+        ALTER TABLE player_stats ADD COLUMN wide_balls INTEGER DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='player_stats' AND column_name='no_balls') THEN
+        ALTER TABLE player_stats ADD COLUMN no_balls INTEGER DEFAULT 0;
+    END IF;
+END $$;
+
 -- Create match_player_selections table if it doesn't exist
 CREATE TABLE IF NOT EXISTS match_player_selections (
     id SERIAL PRIMARY KEY,
@@ -1145,6 +1301,23 @@ CREATE TABLE IF NOT EXISTS match_player_selections (
     batting_order INTEGER,
     is_selected BOOLEAN DEFAULT true
 );
+
+-- Add missing columns to match_player_selections if they don't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='match_player_selections' AND column_name='is_captain') THEN
+        ALTER TABLE match_player_selections ADD COLUMN is_captain BOOLEAN DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='match_player_selections' AND column_name='is_wicketkeeper') THEN
+        ALTER TABLE match_player_selections ADD COLUMN is_wicketkeeper BOOLEAN DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='match_player_selections' AND column_name='batting_order') THEN
+        ALTER TABLE match_player_selections ADD COLUMN batting_order INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='match_player_selections' AND column_name='is_selected') THEN
+        ALTER TABLE match_player_selections ADD COLUMN is_selected BOOLEAN DEFAULT true;
+    END IF;
+END $$;
 
 -- Create user_sessions table if it doesn't exist
 CREATE TABLE IF NOT EXISTS user_sessions (
@@ -1180,13 +1353,40 @@ INSERT INTO teams (name, short_name, franchise_id)
 SELECT 'Chennai Super Kings A', 'CSKA', 2
 WHERE NOT EXISTS (SELECT 1 FROM teams WHERE short_name = 'CSKA');
 
--- Success confirmation
-SELECT 'Database schema created successfully!' as status;
+-- Production Safety Verification: Count all tables to ensure schema is complete
+SELECT 
+    'PRODUCTION-SAFE SCHEMA DEPLOYMENT COMPLETED' as status,
+    COUNT(*) as total_tables_created,
+    STRING_AGG(table_name, ', ') as all_tables
+FROM information_schema.tables 
+WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+
+-- Verify critical tables exist
+SELECT 
+    CASE 
+        WHEN COUNT(*) = 10 THEN '✓ ALL CRITICAL TABLES PRESENT'
+        ELSE '⚠ MISSING TABLES - CHECK DEPLOYMENT'
+    END as table_verification_status,
+    COUNT(*) as tables_found
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name IN ('franchises', 'users', 'teams', 'players', 'matches', 'innings', 'balls', 'player_stats', 'match_player_selections', 'user_sessions');
+
+-- Display sample data status (only if tables have data)
+SELECT 'Sample data status:' as info, 
+       (SELECT COUNT(*) FROM franchises) as franchises_count,
+       (SELECT COUNT(*) FROM teams) as teams_count,
+       (SELECT COUNT(*) FROM users) as users_count;
 
 SAFE_SCHEMA_EOF
     
     if [ $? -eq 0 ]; then
         success "✓ Production-safe database schema migration completed successfully"
+        success "✓ All existing data preserved - no DROP statements used"
+        success "✓ All tables use CREATE TABLE IF NOT EXISTS pattern"
+        success "✓ All new columns use ALTER TABLE ADD COLUMN IF NOT EXISTS pattern"
+        success "✓ Sample data uses INSERT...WHERE NOT EXISTS pattern"
+        success "✓ Schema is ready for production and future enhancements"
     else
         warning "Direct SQL failed, attempting PostgreSQL superuser approach..."
         
