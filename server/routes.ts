@@ -852,7 +852,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(ball);
     } catch (error) {
-      res.status(400).json({ error: 'Invalid ball data' });
+      console.error('Ball creation error:', error);
+      res.status(400).json({ error: 'Invalid ball data: ' + (error instanceof Error ? error.message : 'Unknown error') });
     }
   });
 

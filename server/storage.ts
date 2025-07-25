@@ -1027,9 +1027,8 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Get existing balls in this over
-      const overBalls = await db.select().from(balls)
-        .where(eq(balls.inningsId, inningsId))
-        .where(eq(balls.overNumber, ball.overNumber));
+      const ballsArray = await db.select().from(balls)
+        .where(and(eq(balls.inningsId, inningsId), eq(balls.overNumber, ball.overNumber)));
 
       // ICC Rule 17.6: Bowler consecutive overs validation
       if (ball.overNumber > 1) {
@@ -1047,7 +1046,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       // ICC Rule 17: Over validation (6 balls max)
-      const overValidation = cricketRules.validateOver(overBalls, ball);
+      const overValidation = cricketRules.validateOver(ballsArray, ball);
       if (!overValidation.isValid) return overValidation;
 
       // ICC Rule 18: Scoring runs validation
