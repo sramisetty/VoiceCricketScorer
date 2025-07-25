@@ -1,0 +1,72 @@
+index-BZnbpLPG.js:329 Logo failed to load from /logo.svg, showing fallback
+onError @ index-BZnbpLPG.js:329
+xc @ react-vendor--0RGCJ5T.js:29
+Nc @ react-vendor--0RGCJ5T.js:29
+zc @ react-vendor--0RGCJ5T.js:29
+ui @ react-vendor--0RGCJ5T.js:29
+Ws @ react-vendor--0RGCJ5T.js:29
+(anonymous) @ react-vendor--0RGCJ5T.js:29
+Eo @ react-vendor--0RGCJ5T.js:32
+ms @ react-vendor--0RGCJ5T.js:29
+Rl @ react-vendor--0RGCJ5T.js:29
+Gu @ react-vendor--0RGCJ5T.js:29
+error (async)
+Qs @ react-vendor--0RGCJ5T.js:29
+D @ react-vendor--0RGCJ5T.js:29
+qf @ react-vendor--0RGCJ5T.js:32
+Ba @ react-vendor--0RGCJ5T.js:32
+Aa @ react-vendor--0RGCJ5T.js:32
+ud @ react-vendor--0RGCJ5T.js:32
+Zr @ react-vendor--0RGCJ5T.js:32
+Ua @ react-vendor--0RGCJ5T.js:32
+E @ react-vendor--0RGCJ5T.js:17
+ot @ react-vendor--0RGCJ5T.js:17
+index-BZnbpLPG.js:9 
+        
+        
+       GET https://score.ramisetty.net/api/players 500 (Internal Server Error)
+St @ index-BZnbpLPG.js:9
+queryFn @ index-BZnbpLPG.js:329
+i @ index-BZnbpLPG.js:9
+g @ index-BZnbpLPG.js:9
+start @ index-BZnbpLPG.js:9
+fetch @ index-BZnbpLPG.js:9
+Ln @ index-BZnbpLPG.js:9
+onSubscribe @ index-BZnbpLPG.js:9
+subscribe @ index-BZnbpLPG.js:9
+(anonymous) @ index-BZnbpLPG.js:9
+oa @ react-vendor--0RGCJ5T.js:30
+ol @ react-vendor--0RGCJ5T.js:32
+Gn @ react-vendor--0RGCJ5T.js:32
+Ii @ react-vendor--0RGCJ5T.js:32
+mn @ react-vendor--0RGCJ5T.js:30
+id @ react-vendor--0RGCJ5T.js:32
+gn @ react-vendor--0RGCJ5T.js:32
+Ua @ react-vendor--0RGCJ5T.js:32
+E @ react-vendor--0RGCJ5T.js:17
+ot @ react-vendor--0RGCJ5T.js:17
+index-BZnbpLPG.js:9 
+        
+        
+       GET https://score.ramisetty.net/api/players/available 500 (Internal Server Error)
+St @ index-BZnbpLPG.js:9
+queryFn @ index-BZnbpLPG.js:329
+i @ index-BZnbpLPG.js:9
+g @ index-BZnbpLPG.js:9
+start @ index-BZnbpLPG.js:9
+fetch @ index-BZnbpLPG.js:9
+Ln @ index-BZnbpLPG.js:9
+onSubscribe @ index-BZnbpLPG.js:9
+subscribe @ index-BZnbpLPG.js:9
+(anonymous) @ index-BZnbpLPG.js:9
+oa @ react-vendor--0RGCJ5T.js:30
+ol @ react-vendor--0RGCJ5T.js:32
+Gn @ react-vendor--0RGCJ5T.js:32
+Ii @ react-vendor--0RGCJ5T.js:32
+mn @ react-vendor--0RGCJ5T.js:30
+id @ react-vendor--0RGCJ5T.js:32
+gn @ react-vendor--0RGCJ5T.js:32
+Ua @ react-vendor--0RGCJ5T.js:32
+E @ react-vendor--0RGCJ5T.js:17
+ot @ react-vendor--0RGCJ5T.js:17
+content_script_bundle.js:1 Attempting initialization Fri Jul 25 2025 14:00:08 GMT-0400 (Eastern Daylight Time)
