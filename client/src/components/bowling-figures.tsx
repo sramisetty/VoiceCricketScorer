@@ -12,15 +12,15 @@ export function BowlingFigures({ bowlingStats, currentBowlerId }: BowlingFigures
     .sort((a, b) => b.ballsBowled - a.ballsBowled);
 
   const formatFigures = (stats: PlayerStats) => {
-    const overs = Math.floor(stats.ballsBowled / 6);
-    const balls = stats.ballsBowled % 6;
+    const overs = Math.floor((stats.ballsBowled || 0) / 6);
+    const balls = (stats.ballsBowled || 0) % 6;
     const oversString = balls > 0 ? `${overs}.${balls}` : overs.toString();
-    return `${oversString}-0-${stats.runsConceded}-${stats.wicketsTaken}`;
+    return `${oversString}-0-${stats.runsConceded || 0}-${stats.wicketsTaken || 0}`;
   };
 
   const getEconomy = (stats: PlayerStats) => {
-    if (stats.ballsBowled === 0) return '0.00';
-    return ((stats.runsConceded * 6) / stats.ballsBowled).toFixed(2);
+    if ((stats.ballsBowled || 0) === 0) return '0.00';
+    return (((stats.runsConceded || 0) * 6) / (stats.ballsBowled || 1)).toFixed(2);
   };
 
   return (

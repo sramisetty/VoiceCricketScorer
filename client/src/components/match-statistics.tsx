@@ -17,12 +17,19 @@ export function MatchStatistics({ matchData }: MatchStatisticsProps) {
   const currentBowler = matchData.currentBowler;
   const recentBalls = matchData.recentBalls;
 
-  // Calculate statistics
+  // Calculate statistics using database values (not mathematical calculations)
   const totalRuns = currentInnings.totalRuns;
   const totalWickets = currentInnings.totalWickets;
   const totalBalls = currentInnings.totalBalls;
-  const totalOvers = Math.floor(totalBalls / 6);
-  const ballsInCurrentOver = totalBalls % 6;
+  
+  // Use actual over number from recent balls instead of mathematical calculation
+  const currentOverNumber = recentBalls.length > 0 ? recentBalls[0].overNumber : 1;
+  const ballsInCurrentOver = recentBalls.filter(ball => 
+    ball.overNumber === currentOverNumber && 
+    (!ball.extraType || (ball.extraType === 'bye' || ball.extraType === 'legbye'))
+  ).length;
+  
+  const totalOvers = currentOverNumber - 1; // Previous completed overs
   const runRate = totalBalls > 0 ? (totalRuns / totalBalls * 6).toFixed(2) : '0.00';
   
   // Calculate batting statistics
@@ -40,8 +47,10 @@ export function MatchStatistics({ matchData }: MatchStatisticsProps) {
     economy: currentBowler.ballsBowled > 0 ? (currentBowler.runsConceded / currentBowler.ballsBowled * 6).toFixed(2) : '0.00'
   } : null;
 
-  // Calculate recent over statistics
-  const lastOver = recentBalls.slice(0, 6);
+  // Calculate recent over statistics for current innings only
+  const currentInningsId = currentInnings.id;
+  const currentInningsBalls = recentBalls.filter(ball => ball.inningsId === currentInningsId);
+  const lastOver = currentInningsBalls.slice(0, 6);
   const overRuns = lastOver.reduce((total, ball) => total + ball.runs + (ball.extraRuns || 0), 0);
   const overWickets = lastOver.filter(ball => ball.isWicket).length;
 

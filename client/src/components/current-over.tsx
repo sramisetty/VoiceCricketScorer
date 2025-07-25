@@ -42,23 +42,13 @@ export function CurrentOver({ balls, bowlerName, overNumber, totalBalls, current
 
   const wickets = currentOverBalls.filter(ball => ball.isWicket).length;
   
-  // Use current bowler stats if available, otherwise fall back to totalBalls calculation
-  let ballsInCurrentOver: number;
-  let ballsRemaining: number;
-  let validBallsBowled: number;
+  // Count valid balls in current over from database (most accurate)
+  const validBallsInOver = currentOverBalls.filter(ball => 
+    !ball.extraType || (ball.extraType === 'bye' || ball.extraType === 'legbye')
+  ).length;
   
-  if (currentBowlerStats) {
-    // Use the same calculation as Advanced Scorer
-    const bowlerBalls = currentBowlerStats.ballsBowled;
-    ballsInCurrentOver = bowlerBalls % 6;
-    validBallsBowled = ballsInCurrentOver;
-    ballsRemaining = ballsInCurrentOver === 0 && bowlerBalls > 0 ? 0 : 6 - ballsInCurrentOver;
-  } else {
-    // Fallback to totalBalls calculation
-    ballsInCurrentOver = totalBalls % 6;
-    validBallsBowled = ballsInCurrentOver;
-    ballsRemaining = ballsInCurrentOver === 0 && totalBalls > 0 ? 0 : 6 - ballsInCurrentOver;
-  }
+  const validBallsBowled = validBallsInOver;
+  const ballsRemaining = validBallsInOver >= 6 ? 0 : 6 - validBallsInOver;
 
   // Show all balls in the over (including extras), but only show valid balls 1-6 with placeholders
   const validBalls = currentOverBalls.filter(ball => !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye');
