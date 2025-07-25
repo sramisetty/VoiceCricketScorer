@@ -909,14 +909,12 @@ export default function Scorer() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Main Scoring Column */}
-          <div className="lg:col-span-2">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="live">🔴 Live</TabsTrigger>
-                <TabsTrigger value="statistics">📊 Statistics</TabsTrigger>
-              </TabsList>
+        <div className="space-y-4 sm:space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="live">🔴 Live</TabsTrigger>
+              <TabsTrigger value="statistics">📊 Statistics</TabsTrigger>
+            </TabsList>
               
               <TabsContent value="live" className="space-y-4 sm:space-y-6 mt-6">
             {/* Advanced Scorer */}
@@ -1168,6 +1166,22 @@ export default function Scorer() {
               </TabsContent>
 
               <TabsContent value="statistics" className="space-y-4 sm:space-y-6 mt-6">
+                {/* Team Statistics - Statistics Component */}
+                <Card className="shadow-lg border-2 border-cyan-200 min-h-[250px]">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-cyan-800 flex items-center">
+                      📈 Team Statistics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TeamStats
+                      innings={currentData.currentInnings}
+                      targetRuns={undefined}
+                      targetOvers={currentData.match.overs}
+                    />
+                  </CardContent>
+                </Card>
+
                 {/* Batting Figures - Statistics Component */}
                 <Card className="shadow-lg border-2 border-orange-200 min-h-[400px]">
                   <CardHeader className="pb-4">
@@ -1265,26 +1279,6 @@ export default function Scorer() {
                 </Card>
               </TabsContent>
             </Tabs>
-          </div>
-
-          {/* Sidebar Column */}
-          <div className="lg:col-span-1 space-y-4 sm:space-y-6">
-            {/* Team Stats */}
-            <Card className="shadow-lg border-2 border-cyan-200 min-h-[250px]">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-cyan-800 flex items-center">
-                  📈 Team Statistics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <TeamStats
-                  innings={currentData.currentInnings}
-                  targetRuns={undefined}
-                  targetOvers={currentData.match.overs}
-                />
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
 
