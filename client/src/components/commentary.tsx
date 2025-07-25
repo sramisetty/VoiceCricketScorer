@@ -86,7 +86,7 @@ export function Commentary({ balls, currentInningsId }: CommentaryProps) {
                         "px-2 py-1 rounded text-xs font-medium",
                         ball.isWicket 
                           ? "bg-red-100 text-red-800"
-                          : ball.runs >= 4 
+                          : (ball.runs || 0) >= 4 
                           ? "bg-cricket-light text-cricket-primary"
                           : "bg-gray-100 text-gray-700"
                       )}>
