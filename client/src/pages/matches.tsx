@@ -98,6 +98,8 @@ export default function Matches() {
       setIsTossDialogOpen(false);
       setSelectedMatchForToss(null);
       setTossData({ tossWinnerId: '', tossDecision: 'bat' });
+      // Navigate to scorer page after successful start
+      setLocation(`/scorer/${data.matchId || selectedMatchForToss?.id}`);
     },
     onError: () => {
       toast({
@@ -143,6 +145,7 @@ export default function Matches() {
   };
 
   const handleStartMatch = (match: any) => {
+    console.log('Starting match:', match);
     setSelectedMatchForToss(match);
     setTossData({ tossWinnerId: match.team1Id.toString(), tossDecision: 'bat' });
     setIsTossDialogOpen(true);
@@ -560,7 +563,11 @@ export default function Matches() {
 
                       <div className="flex gap-2 pt-2">
                         <Button 
-                          onClick={() => handleStartMatch(match)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleStartMatch(match);
+                          }}
                           className="flex-1 bg-green-500 hover:bg-green-600"
                           disabled={startMatchMutation.isPending}
                         >
