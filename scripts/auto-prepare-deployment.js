@@ -151,8 +151,8 @@ console.log('\n📝 Step 3: Updating deploy-cricket-scorer.sh...');
 const deployContent = fs.readFileSync(deployPath, 'utf8');
 
 // Find the database schema section and replace it
-const schemaStartMarker = '# Database Schema Creation';
-const schemaEndMarker = '# Verify database schema';
+const schemaStartMarker = '-- Production-Safe Cricket Scorer Database Schema Migration';
+const schemaEndMarker = 'SAFE_SCHEMA_EOF';
 
 const schemaStartIndex = deployContent.indexOf(schemaStartMarker);
 const schemaEndIndex = deployContent.indexOf(schemaEndMarker);
@@ -160,39 +160,41 @@ const schemaEndIndex = deployContent.indexOf(schemaEndMarker);
 if (schemaStartIndex === -1 || schemaEndIndex === -1) {
     console.error('❌ Could not find schema section markers in deploy script');
     console.log('Expected markers:');
-    console.log('- "# Database Schema Creation"');
-    console.log('- "# Verify database schema"');
+    console.log('- "-- Production-Safe Cricket Scorer Database Schema Migration"');
+    console.log('- "SAFE_SCHEMA_EOF"');
     process.exit(1);
 }
 
-// Create new schema section
-const newSchemaSection = `# Database Schema Creation
-log "Creating database schema with production-safe patterns..."
-
-# Set up database connection
-export PGPASSWORD=simple123
-
-# Create database if it doesn't exist
-sudo -u postgres psql -c "CREATE DATABASE IF NOT EXISTS cricket_scorer;" || true
-
-# Connect to database and create schema
-sudo -u postgres psql -d cricket_scorer << 'EOF'
-
--- Normalize database schema (handle column name inconsistencies)
-SELECT normalize_database_schema();
+// Create new schema section with production-safe SQL
+const newSchemaSection = `-- Production-Safe Cricket Scorer Database Schema Migration
+-- This creates/updates schema without losing existing data
+--
+-- KEY PRODUCTION SAFETY FEATURES:
+-- 1. CREATE TABLE IF NOT EXISTS - Only creates tables if they don't exist
+-- 2. ALTER TABLE ADD COLUMN IF NOT EXISTS - Only adds new columns safely  
+-- 3. INSERT...WHERE NOT EXISTS - Only inserts sample data if tables are empty
+-- 4. No DROP statements - Never destroys existing data
+-- 5. Incremental migration support - Perfect for production updates
+--
+-- This approach allows:
+-- - Fresh deployments (creates all tables from scratch)
+-- - Production updates (adds new columns/constraints without data loss)
+-- - Schema evolution (supports future enhancements safely)
+-- - Zero downtime deployments (existing data preserved)
 
 ${createTableSQL}
 ${columnCheckSQL}
 
--- Sample data insertion (safe patterns)
+-- Sample data insertion (safe patterns with WHERE NOT EXISTS)
 -- Insert admin user if not exists
-INSERT INTO users (email, password_hash, first_name, last_name, role, is_active)
-SELECT 'admin@cricket.com', 'admin123', 'Admin', 'User', 'admin', true
+INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, email_verified, created_at, updated_at)
+SELECT 'admin@cricket.com', 'admin123', 'Admin', 'User', 'admin', true, true, NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@cricket.com');
 
-EOF
-
-success "Database schema created/updated successfully"
+-- Insert sample franchise if not exists
+INSERT INTO franchises (name, short_name, is_active, created_at, updated_at)
+SELECT 'Default Franchise', 'DEFAULT', true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM franchises WHERE short_name = 'DEFAULT');
 
 `;
 
