@@ -80,55 +80,60 @@ fi
 
 echo ""
 echo "=== API Endpoint Tests ==="
-echo "Testing Teams API..."
-if curl -f -s http://localhost:3000/api/teams >/dev/null 2>&1; then
-    echo "✓ Teams GET API working"
-    # Test team creation
-    TEAM_RESULT=$(curl -s -w "%{http_code}" -X POST http://localhost:3000/api/teams \
-        -H "Content-Type: application/json" \
-        -d '{"name":"Test Team","shortName":"TEST"}' \
-        -o /tmp/team_response.json)
-    
-    if [ "$TEAM_RESULT" = "200" ]; then
-        echo "✓ Teams POST API working"
-        TEAM_ID=$(cat /tmp/team_response.json | grep -o '"id":[0-9]*' | cut -d':' -f2)
-        
-        # Test player creation
-        if [ -n "$TEAM_ID" ]; then
-            PLAYER_RESULT=$(curl -s -w "%{http_code}" -X POST http://localhost:3000/api/players \
-                -H "Content-Type: application/json" \
-                -d "{\"name\":\"Test Player\",\"teamId\":$TEAM_ID,\"role\":\"batsman\",\"battingOrder\":1}" \
-                -o /tmp/player_response.json)
-            
-            if [ "$PLAYER_RESULT" = "200" ]; then
-                echo "✓ Players POST API working"
-            else
-                echo "✗ Players POST API failed (HTTP $PLAYER_RESULT)"
-                cat /tmp/player_response.json 2>/dev/null
-            fi
-        fi
-    else
-        echo "✗ Teams POST API failed (HTTP $TEAM_RESULT)"
-        cat /tmp/team_response.json 2>/dev/null
-    fi
+echo "Testing public API endpoints..."
+
+# Test public matches endpoint (no auth required)
+if curl -f -s http://localhost:3000/api/matches >/dev/null 2>&1; then
+    echo "✓ Matches API working (public endpoint)"
 else
-    echo "✗ Teams GET API not responding"
+    echo "✗ Matches API not responding"
+fi
+
+# Test teams endpoint (no auth required for GET)
+if curl -f -s http://localhost:3000/api/teams >/dev/null 2>&1; then
+    echo "✓ Teams API working (public endpoint)"
+else
+    echo "✗ Teams API not responding"
+fi
+
+# Test franchises endpoint (no auth required for GET)
+if curl -f -s http://localhost:3000/api/franchises >/dev/null 2>&1; then
+    echo "✓ Franchises API working (public endpoint)"
+else
+    echo "✗ Franchises API not responding"
 fi
 
 echo ""
+echo "Note: Protected endpoints (Players, User Management) require authentication"
+echo "      and cannot be tested without admin credentials."
+
+echo ""
 echo "=== Database Connection Test ==="
-if command -v psql >/dev/null 2>&1; then
-    # Test database connection
-    if psql -U cricket_scorer -d cricket_scorer -c "SELECT COUNT(*) FROM teams;" >/dev/null 2>&1; then
-        echo "✓ Database connection working"
-        echo "Teams in database: $(psql -U cricket_scorer -d cricket_scorer -t -c "SELECT COUNT(*) FROM teams;" 2>/dev/null | xargs)"
-        echo "Players in database: $(psql -U cricket_scorer -d cricket_scorer -t -c "SELECT COUNT(*) FROM players;" 2>/dev/null | xargs)"
-    else
-        echo "✗ Database connection failed"
-        echo "Check database credentials and connection"
-    fi
+if [ -f "test-database-connection.js" ]; then
+    echo "Running comprehensive database test..."
+    node test-database-connection.js
 else
-    echo "⚠ psql not available for database testing"
+    echo "Using basic database test..."
+    if command -v psql >/dev/null 2>&1; then
+        # Test database connection using environment variables
+        if [ -f ".env" ]; then
+            export $(grep -v '^#' .env | xargs) 2>/dev/null
+        fi
+        
+        if psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM teams;" >/dev/null 2>&1; then
+            echo "✓ Database connection working"
+            echo "Teams in database: $(psql "$DATABASE_URL" -t -c "SELECT COUNT(*) FROM teams;" 2>/dev/null | xargs)"
+            echo "Players in database: $(psql "$DATABASE_URL" -t -c "SELECT COUNT(*) FROM players;" 2>/dev/null | xargs)"
+            echo "Users in database: $(psql "$DATABASE_URL" -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | xargs)"
+        else
+            echo "✗ Database connection failed"
+            echo "Check database credentials and connection"
+            echo "DATABASE_URL format should be: postgresql://username:password@localhost/database_name"
+        fi
+    else
+        echo "⚠ psql not available for database testing"
+        echo "⚠ Install PostgreSQL client or use: apt install postgresql-client"
+    fi
 fi
 
 echo ""
