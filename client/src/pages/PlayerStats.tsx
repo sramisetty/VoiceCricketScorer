@@ -13,7 +13,7 @@ import { apiRequest } from '@/lib/queryClient';
 
 export default function PlayerStats() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTeam, setSelectedTeam] = useState('all');
+  const [selectedFranchise, setSelectedFranchise] = useState('all');
   const [selectedRole, setSelectedRole] = useState('all');
   const [sortBy, setSortBy] = useState('runs');
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
@@ -23,9 +23,9 @@ export default function PlayerStats() {
     queryKey: ['/api/player-statistics/all/all'],
   });
 
-  // Fetch teams for filter
-  const { data: teams = [] } = useQuery({
-    queryKey: ['/api/teams'],
+  // Fetch franchises for filter
+  const { data: franchises = [] } = useQuery({
+    queryKey: ['/api/franchises'],
   });
 
   // Fetch detailed player stats when selected
@@ -38,10 +38,10 @@ export default function PlayerStats() {
   const filteredPlayers = players.filter((player: any) => {
     const matchesSearch = searchTerm === '' || 
       player.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTeam = selectedTeam === 'all' || player.teamId?.toString() === selectedTeam;
+    const matchesFranchise = selectedFranchise === 'all' || player.franchiseId?.toString() === selectedFranchise;
     const matchesRole = selectedRole === 'all' || player.role === selectedRole;
     
-    return matchesSearch && matchesTeam && matchesRole;
+    return matchesSearch && matchesFranchise && matchesRole;
   });
 
   const sortedPlayers = [...filteredPlayers].sort((a, b) => {
@@ -116,15 +116,15 @@ export default function PlayerStats() {
                 className="pl-10"
               />
             </div>
-            <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+            <Select value={selectedFranchise} onValueChange={setSelectedFranchise}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="All Teams" />
+                <SelectValue placeholder="All Franchises" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Teams</SelectItem>
-                {teams.map((team: any) => (
-                  <SelectItem key={team.id} value={team.id.toString()}>
-                    {team.name}
+                <SelectItem value="all">All Franchises</SelectItem>
+                {franchises.map((franchise: any) => (
+                  <SelectItem key={franchise.id} value={franchise.id.toString()}>
+                    {franchise.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -196,7 +196,7 @@ export default function PlayerStats() {
                           )}
                         </div>
                         <p className="text-sm text-gray-600 mb-2">
-                          {player.team?.name || 'No team assigned'}
+                          {player.franchise?.name || 'No franchise assigned'}
                         </p>
                         
                         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-sm">
@@ -262,7 +262,7 @@ export default function PlayerStats() {
                     </Avatar>
                     <div>
                       <p className="text-lg font-semibold">{selectedPlayer.name}</p>
-                      <p className="text-sm text-gray-600">{selectedPlayer.team?.name}</p>
+                      <p className="text-sm text-gray-600">{selectedPlayer.franchise?.name || 'No franchise'}</p>
                     </div>
                   </CardTitle>
                 </CardHeader>

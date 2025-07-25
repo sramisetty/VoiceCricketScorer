@@ -102,7 +102,7 @@ export interface IStorage {
   getMatchStatistics(matchId: number | null, timeRange: string): Promise<any>;
   getArchivedMatches(filters: { search?: string; status?: string; sort?: string }): Promise<any[]>;
   exportMatchData(matchId: number): Promise<any>;
-  getPlayerStatistics(filters: { search?: string; team?: string; role?: string }): Promise<any[]>;
+  getPlayerStatistics(filters: { search?: string; franchise?: string; role?: string }): Promise<any[]>;
   getDetailedPlayerStats(playerId: number): Promise<any>;
 }
 
@@ -1882,7 +1882,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getPlayerStatistics(filters: { search?: string; team?: string; role?: string }): Promise<any[]> {
+  async getPlayerStatistics(filters: { search?: string; franchise?: string; role?: string }): Promise<any[]> {
     try {
       // Build query with joins and aggregations
       let query = db
@@ -1909,15 +1909,16 @@ export class DatabaseStorage implements IStorage {
         })
         .from(players)
         .leftJoin(playerStats, eq(players.id, playerStats.playerId))
-        .leftJoin(teams, eq(players.teamId, teams.id))
+        .leftJoin(playerFranchiseLinks, eq(players.id, playerFranchiseLinks.playerId))
+        .leftJoin(franchises, eq(playerFranchiseLinks.franchiseId, franchises.id))
         .groupBy(players.id, players.name, players.role, players.battingOrder, players.availability, players.franchiseId, players.teamId);
 
       // Apply filters
       if (filters.search) {
         query = query.where(like(players.name, `%${filters.search}%`));
       }
-      if (filters.team && filters.team !== 'all') {
-        query = query.where(eq(players.teamId, parseInt(filters.team)));
+      if (filters.franchise && filters.franchise !== 'all') {
+        query = query.where(eq(playerFranchiseLinks.franchiseId, parseInt(filters.franchise)));
       }
       if (filters.role && filters.role !== 'all') {
         query = query.where(eq(players.role, filters.role));

@@ -49,10 +49,10 @@ export function registerStatsRoutes(app: Express) {
   // Player Statistics Routes  
   app.get('/api/player-statistics', async (req, res) => {
     try {
-      const { search, team, role } = req.query;
+      const { search, franchise, role } = req.query;
       const playerStats = await storage.getPlayerStatistics({
         search: search as string,
-        team: team as string,
+        franchise: franchise as string,
         role: role as string
       });
       res.json(playerStats);
@@ -68,7 +68,7 @@ export function registerStatsRoutes(app: Express) {
       const { franchise, role } = req.params;
       const playerStats = await storage.getPlayerStatistics({
         search: '',
-        team: franchise === 'all' ? 'all' : franchise,
+        franchise: franchise === 'all' ? 'all' : franchise,
         role: role === 'all' ? 'all' : role
       });
       res.json(playerStats);
@@ -112,35 +112,35 @@ export function registerStatsRoutes(app: Express) {
     }
   });
 
-  // Team Statistics Summary
-  app.get('/api/team-statistics/:teamId', async (req, res) => {
+  // Franchise Statistics Summary
+  app.get('/api/franchise-statistics/:franchiseId', async (req, res) => {
     try {
-      const teamId = parseInt(req.params.teamId);
-      const teamStats = await storage.getPlayerStatistics({
+      const franchiseId = parseInt(req.params.franchiseId);
+      const franchiseStats = await storage.getPlayerStatistics({
         search: '',
-        team: teamId.toString(),
+        franchise: franchiseId.toString(),
         role: 'all'
       });
       
-      // Calculate team aggregates
-      const teamSummary = {
-        totalPlayers: teamStats.length,
-        totalRuns: teamStats.reduce((sum, p) => sum + (p.stats?.totalRuns || 0), 0),
-        totalWickets: teamStats.reduce((sum, p) => sum + (p.stats?.totalWickets || 0), 0),
-        totalMatches: Math.max(...teamStats.map(p => p.stats?.totalMatches || 0)),
-        averageStrikeRate: teamStats.length > 0 ? 
-          teamStats.reduce((sum, p) => sum + (p.stats?.strikeRate || 0), 0) / teamStats.length : 0,
-        averageEconomyRate: teamStats.length > 0 ? 
-          teamStats.reduce((sum, p) => sum + (p.stats?.economyRate || 0), 0) / teamStats.length : 0,
-        topPerformers: teamStats
+      // Calculate franchise aggregates
+      const franchiseSummary = {
+        totalPlayers: franchiseStats.length,
+        totalRuns: franchiseStats.reduce((sum, p) => sum + (p.stats?.totalRuns || 0), 0),
+        totalWickets: franchiseStats.reduce((sum, p) => sum + (p.stats?.totalWickets || 0), 0),
+        totalMatches: Math.max(...franchiseStats.map(p => p.stats?.totalMatches || 0)),
+        averageStrikeRate: franchiseStats.length > 0 ? 
+          franchiseStats.reduce((sum, p) => sum + (p.stats?.strikeRate || 0), 0) / franchiseStats.length : 0,
+        averageEconomyRate: franchiseStats.length > 0 ? 
+          franchiseStats.reduce((sum, p) => sum + (p.stats?.economyRate || 0), 0) / franchiseStats.length : 0,
+        topPerformers: franchiseStats
           .sort((a, b) => (b.stats?.totalRuns || 0) - (a.stats?.totalRuns || 0))
           .slice(0, 5)
       };
       
-      res.json({ teamSummary, players: teamStats });
+      res.json({ franchiseSummary, players: franchiseStats });
     } catch (error) {
-      console.error('Error fetching team statistics:', error);
-      res.status(500).json({ message: 'Failed to fetch team statistics' });
+      console.error('Error fetching franchise statistics:', error);
+      res.status(500).json({ message: 'Failed to fetch franchise statistics' });
     }
   });
 }
