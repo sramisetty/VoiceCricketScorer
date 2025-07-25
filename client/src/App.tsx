@@ -96,12 +96,12 @@ function ScorerWithNav({ params }: { params: { matchId: string } }) {
   );
 }
 
-function ScoreboardWithNav({ params }: { params: { matchId: string } }) {
+function ScoreboardWithNav(props: any) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
       <div className="flex-1">
-        <Scoreboard params={params} />
+        <Scoreboard params={props.params} />
       </div>
       <Footer />
     </div>
@@ -144,7 +144,7 @@ function FranchiseManagementWithNav() {
   );
 }
 
-function MatchStatsWithNav() {
+function MatchStatsWithNav({ params }: { params?: { matchId?: string } }) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
@@ -180,12 +180,12 @@ function PlayerStatsWithNav() {
   );
 }
 
-function MatchSettingsWithNav({ params }: { params: { matchId: string } }) {
+function MatchSettingsWithNav(props: any) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
       <div className="flex-1">
-        <MatchSettings params={params} />
+        <MatchSettings params={props.params} />
       </div>
       <Footer />
     </div>

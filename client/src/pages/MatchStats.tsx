@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,15 @@ import { apiRequest } from '@/lib/queryClient';
 export default function MatchStats() {
   const [selectedMatch, setSelectedMatch] = useState<number | null>(null);
   const [timeRange, setTimeRange] = useState('all');
+
+  // Get match ID from query parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const matchId = urlParams.get('matchId');
+    if (matchId) {
+      setSelectedMatch(parseInt(matchId));
+    }
+  }, []);
 
   // Fetch matches for selection
   const { data: matches = [] } = useQuery({

@@ -133,14 +133,6 @@ export default function Navigation() {
             )}
             
             {/* Stats and Analytics - Available to all users */}
-            <Button
-              variant="ghost"
-              onClick={() => setLocation('/match-stats')}
-              className="flex items-center gap-2"
-            >
-              <Trophy className="w-4 h-4" />
-              Match Stats
-            </Button>
 
             <Button
               variant="ghost"

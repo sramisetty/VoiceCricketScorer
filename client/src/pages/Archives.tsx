@@ -11,6 +11,73 @@ import { Archive, Search, Calendar, Trophy, Users, Clock, Download, Eye, Filter,
 import { apiRequest } from '@/lib/queryClient';
 import { format } from 'date-fns';
 
+// Component to fetch and display match summary with proper innings data
+function MatchSummaryDisplay({ match }: { match: any }) {
+  const { data: completeData } = useQuery({
+    queryKey: ['/api/matches', match.id, 'complete'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/matches/${match.id}/complete`);
+      return response.json();
+    },
+  });
+
+  if (!completeData) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div>
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { innings } = completeData;
+  const firstInnings = innings?.[0];
+  const secondInnings = innings?.[1];
+
+  // Calculate match winner
+  const getWinner = () => {
+    if (!firstInnings || !secondInnings) return 'In Progress';
+    
+    const team1Runs = firstInnings.totalRuns || 0;
+    const team2Runs = secondInnings.totalRuns || 0;
+    
+    if (team1Runs > team2Runs) {
+      return `${firstInnings.battingTeam.name} by ${team1Runs - team2Runs} runs`;
+    } else if (team2Runs > team1Runs) {
+      const wicketsLeft = 10 - (secondInnings.totalWickets || 0);
+      return `${secondInnings.battingTeam.name} by ${wicketsLeft} wickets`;
+    } else {
+      return 'Match Tied';
+    }
+  };
+
+  const totalRuns = (firstInnings?.totalRuns || 0) + (secondInnings?.totalRuns || 0);
+  const totalWickets = (firstInnings?.totalWickets || 0) + (secondInnings?.totalWickets || 0);
+  const totalOvers = Math.max(firstInnings?.totalOvers || 0, secondInnings?.totalOvers || 0);
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div>
+        <p className="text-gray-500">Total Runs</p>
+        <p className="font-semibold">{totalRuns}</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Wickets</p>
+        <p className="font-semibold">{totalWickets}</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Overs</p>
+        <p className="font-semibold">{totalOvers}</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Winner</p>
+        <p className="font-semibold text-green-600">{getWinner()}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function Archives() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('completed');
@@ -24,8 +91,19 @@ export default function Archives() {
     queryKey: ['/api/matches'],
   });
 
-  // Filter for completed matches only
-  const matches = allMatches.filter((match: any) => match.status === 'completed');
+  // Fetch complete match data for detailed stats
+  const { data: completeMatchData } = useQuery({
+    queryKey: ['/api/matches', selectedMatch?.id, 'complete'],
+    queryFn: async () => {
+      if (!selectedMatch?.id) return null;
+      const response = await apiRequest('GET', `/api/matches/${selectedMatch.id}/complete`);
+      return response.json();
+    },
+    enabled: !!selectedMatch?.id,
+  });
+
+  // Filter for completed matches only  
+  const matches = (allMatches as any[]).filter((match: any) => match.status === 'completed');
 
   // Filter matches based on search and status
   const filteredMatches = matches.filter((match: any) => {
@@ -78,7 +156,8 @@ export default function Archives() {
 
   const exportMatchData = async (match: any) => {
     try {
-      const data = await apiRequest(`/api/matches/${match.id}/complete`);
+      const response = await apiRequest('GET', `/api/matches/${match.id}/complete`);
+      const data = await response.json();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -192,24 +271,7 @@ export default function Archives() {
 
                     {/* Match Summary */}
                     {match.status === 'completed' && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-500">Total Runs</p>
-                          <p className="font-semibold">{match.totalRuns || 0}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Wickets</p>
-                          <p className="font-semibold">{match.totalWickets || 0}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Overs</p>
-                          <p className="font-semibold">{match.totalOvers || 0}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Winner</p>
-                          <p className="font-semibold">{match.winner || 'TBD'}</p>
-                        </div>
-                      </div>
+                      <MatchSummaryDisplay match={match} />
                     )}
                   </div>
 
@@ -222,6 +284,12 @@ export default function Archives() {
                         </Button>
                       </Link>
                     )}
+                    <Link href={`/match-stats?matchId=${match.id}`}>
+                      <Button variant="outline" size="sm">
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Match Stats
+                      </Button>
+                    </Link>
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button
@@ -229,8 +297,8 @@ export default function Archives() {
                           size="sm"
                           onClick={() => setSelectedMatch(match)}
                         >
-                          <BarChart3 className="h-4 w-4 mr-2" />
-                          Quick Stats
+                          <Eye className="h-4 w-4 mr-2" />
+                          Quick View
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
