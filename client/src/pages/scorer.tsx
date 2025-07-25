@@ -827,6 +827,16 @@ export default function Scorer() {
   const striker = currentBatsmen.find(b => b.isOnStrike);
   const nonStriker = currentBatsmen.find(b => !b.isOnStrike);
 
+  // Calculate current over display values
+  const currentOverNumber = currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1;
+  const ballsInCurrentOver = currentData.recentBalls.filter(ball => 
+    ball.overNumber === currentOverNumber && 
+    (!ball.extraType || (ball.extraType === 'bye' || ball.extraType === 'legbye'))
+  ).length;
+  const completedOvers = currentOverNumber - 1;
+  const currentOverDisplay = `${currentOverNumber}.${ballsInCurrentOver}`;
+  const totalOversDisplay = ballsInCurrentOver > 0 ? `${completedOvers}.${ballsInCurrentOver} Overs` : `${completedOvers} Overs`;
+
   return (
     <div className="mobile-full-height bg-gray-50">
       {/* Header */}
@@ -880,14 +890,7 @@ export default function Scorer() {
                 </h2>
                 <div className="space-y-1">
                   <p className="text-gray-600">
-                    {currentData.match.matchType} Match • Over {currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1}.{(() => {
-                      const currentOverNumber = currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1;
-                      const ballsInOver = currentData.recentBalls.filter(ball => 
-                        ball.overNumber === currentOverNumber && 
-                        (!ball.extraType || (ball.extraType === 'bye' || ball.extraType === 'legbye'))
-                      ).length;
-                      return ballsInOver;
-                    })()} of {currentData.match.overs}
+                    {currentData.match.matchType} Match • Over {currentOverDisplay} of {currentData.match.overs}
                   </p>
                   <div className="flex items-center space-x-4 text-sm">
                     <div className="flex items-center space-x-2">
@@ -914,15 +917,7 @@ export default function Scorer() {
                     {currentData.currentInnings.totalRuns}/{currentData.currentInnings.totalWickets}
                   </div>
                   <div className="text-sm text-gray-600">
-                    {(() => {
-                      const currentOverNumber = currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1;
-                      const ballsInOver = currentData.recentBalls.filter(ball => 
-                        ball.overNumber === currentOverNumber && 
-                        (!ball.extraType || (ball.extraType === 'bye' || ball.extraType === 'legbye'))
-                      ).length;
-                      const completedOvers = currentOverNumber - 1;
-                      return ballsInOver > 0 ? `${completedOvers}.${ballsInOver} Overs` : `${completedOvers} Overs`;
-                    })()}
+                    {totalOversDisplay}
                   </div>
                 </div>
                 {!isMatchStarted && (

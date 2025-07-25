@@ -13,8 +13,8 @@ export function Commentary({ balls, currentInningsId }: CommentaryProps) {
   const filteredBalls = currentInningsId ? balls.filter(ball => ball.inningsId === currentInningsId) : balls;
   const getBallStyle = (ball: Ball) => {
     if (ball.isWicket) return 'bg-red-50 border-red-200';
-    if (ball.runs === 4) return 'bg-cricket-light border-cricket-primary/30';
-    if (ball.runs === 6) return 'bg-cricket-light border-cricket-primary/30';
+    if ((ball.runs || 0) === 4) return 'bg-cricket-light border-cricket-primary/30';
+    if ((ball.runs || 0) === 6) return 'bg-cricket-light border-cricket-primary/30';
     if (ball.extraType) return 'bg-yellow-50 border-yellow-200';
     return 'bg-gray-50 border-gray-200';
   };
@@ -27,24 +27,24 @@ export function Commentary({ balls, currentInningsId }: CommentaryProps) {
     if (ball.isWicket) {
       return `OUT! ${ball.wicketType || 'dismissed'}`;
     }
-    if (ball.runs === 4) {
+    if ((ball.runs || 0) === 4) {
       return 'FOUR!';
     }
-    if (ball.runs === 6) {
+    if ((ball.runs || 0) === 6) {
       return 'SIX!';
     }
     if (ball.extraType) {
       return ball.extraType.toUpperCase();
     }
-    return ball.runs.toString();
+    return (ball.runs || 0).toString();
   };
 
   const getBallColor = (ball: Ball) => {
     if (ball.isWicket) return 'bg-red-500';
-    if (ball.runs === 4) return 'bg-cricket-accent';
-    if (ball.runs === 6) return 'bg-cricket-accent';
+    if ((ball.runs || 0) === 4) return 'bg-cricket-accent';
+    if ((ball.runs || 0) === 6) return 'bg-cricket-accent';
     if (ball.extraType) return 'bg-yellow-500';
-    if (ball.runs > 0) return 'bg-cricket-primary';
+    if ((ball.runs || 0) > 0) return 'bg-cricket-primary';
     return 'bg-gray-500';
   };
 
