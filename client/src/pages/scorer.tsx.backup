@@ -1161,6 +1161,197 @@ export default function Scorer() {
               </TabsContent>
 
               <TabsContent value="statistics" className="space-y-4 sm:space-y-6 mt-6">
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="mobile-button w-full bg-cricket-primary hover:bg-cricket-secondary text-white touch-feedback"
+                        disabled={!isMatchStarted}
+                      >
+                        <User className="h-4 w-4 mr-2" />
+                        <span className="mobile-text">Change Bowler</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Change Bowler</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="current-bowler">Current Bowler</Label>
+                          <div className="p-2 bg-gray-50 rounded text-sm">
+                            {currentData?.currentBowler?.player.name || 'No bowler selected'}
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="new-bowler">New Bowler</Label>
+                          <Select value={selectedNewBowler} onValueChange={setSelectedNewBowler}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select new bowler" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableBowlers.map((player: any) => (
+                                <SelectItem key={player.id} value={player.id.toString()}>
+                                  {player.name} ({player.role})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex gap-3 pt-4">
+                          <Button
+                            onClick={() => changeBowlerMutation.mutate(selectedNewBowler)}
+                            disabled={!selectedNewBowler || changeBowlerMutation.isPending}
+                            className="flex-1"
+                          >
+                            {changeBowlerMutation.isPending ? 'Changing...' : 'Change Bowler'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setChangeBowlerDialogOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Timeout Dialog */}
+                  <Dialog open={timeoutDialogOpen} onOpenChange={setTimeoutDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline" 
+                        className="mobile-button w-full bg-blue-500 hover:bg-blue-600 text-white touch-feedback"
+                        disabled={!isMatchStarted}
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        <span className="mobile-text">Timeout</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Call Timeout</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="timeout-duration">Duration (minutes)</Label>
+                          <Input
+                            type="number"
+                            value={timeoutDuration}
+                            onChange={(e) => setTimeoutDuration(parseInt(e.target.value) || 5)}
+                            min="1"
+                            max="15"
+                            placeholder="5"
+                          />
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          The match will be paused for {timeoutDuration} minutes.
+                        </div>
+                        <div className="flex gap-3 pt-4">
+                          <Button
+                            onClick={() => timeoutMutation.mutate(timeoutDuration)}
+                            disabled={timeoutMutation.isPending}
+                            className="flex-1"
+                          >
+                            {timeoutMutation.isPending ? 'Calling...' : 'Call Timeout'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setTimeoutDialogOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Change Batsmen Button - Hidden after first ball is completed */}
+                  {currentData.currentInnings.totalBalls === 0 && (
+                    <Button
+                      variant="outline"
+                      className="w-full bg-green-500 hover:bg-green-600 text-white"
+                      onClick={() => {
+                        // Pre-populate current batsmen when changing
+                        if (currentData?.currentBatsmen?.length >= 2) {
+                          const striker = currentData.currentBatsmen.find(b => b.isOnStrike);
+                          const nonStriker = currentData.currentBatsmen.find(b => !b.isOnStrike);
+                          
+                          if (striker && nonStriker) {
+                            setSelectedOpener1(striker.playerId.toString());
+                            setSelectedOpener2(nonStriker.playerId.toString());
+                            setSelectedStriker(striker.playerId.toString());
+                          }
+                        }
+                        setOpenersDialogOpen(true);
+                      }}
+                      disabled={!isMatchStarted}
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      Change Batsmen
+                    </Button>
+                  )}
+
+                  {/* Quick Actions Row 1 */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Undo Last Ball */}
+                    <Button
+                      variant="outline"
+                      className="w-full bg-red-500 hover:bg-red-600 text-white disabled:bg-gray-400 disabled:text-gray-600"
+                      onClick={() => undoBallMutation.mutate()}
+                      disabled={undoBallMutation.isPending || !isMatchStarted || currentData.recentBalls.length === 0}
+                    >
+                      <Undo className="h-4 w-4 mr-2" />
+                      {undoBallMutation.isPending ? 'Undoing...' : 
+                       currentData.recentBalls.length === 0 ? 'No Balls to Undo' : 'Undo Last Ball'}
+                    </Button>
+
+                    {/* Switch Strike */}
+                    <Button
+                      variant="outline"
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-400 disabled:text-gray-600"
+                      onClick={() => switchStrikeMutation.mutate()}
+                      disabled={switchStrikeMutation.isPending || !isMatchStarted || currentData.currentBatsmen.length < 2}
+                    >
+                      <ArrowLeftRight className="h-4 w-4 mr-2" />
+                      {switchStrikeMutation.isPending ? 'Switching...' : 
+                       currentData.currentBatsmen.length < 2 ? 'Need 2 Batsmen' : 'Switch Strike'}
+                    </Button>
+                  </div>
+
+                  {/* Match Settings */}
+                  <Button
+                    variant="outline"
+                    className="w-full bg-gray-500 hover:bg-gray-600 text-white"
+                    onClick={() => setLocation(`/match-settings/${matchId}`)}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Match Settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            </div>
+            </div>
+
+            {/* Voice Input Panel - Moved to Bottom */}
+            <Card className="shadow-lg border-2 border-green-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-green-800 flex items-center">
+                  🎤 Voice Input & Quick Scoring
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VoiceInput
+                  onCommand={handleCommand}
+                  currentBatsman={striker?.player.name}
+                  currentBowler={currentData.currentBowler?.player.name}
+                />
+              </CardContent>
+            </Card>
+              </TabsContent>
+
+              <TabsContent value="statistics" className="space-y-4 sm:space-y-6 mt-6">
                 {/* Team Statistics - Statistics Component */}
                 <Card className="shadow-lg border-2 border-cyan-200 min-h-[250px]">
                   <CardHeader className="pb-4">
