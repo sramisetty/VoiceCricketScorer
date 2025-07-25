@@ -140,6 +140,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 ### January 25, 2025
+- **✓ End Innings Functionality**: Implemented comprehensive "End Innings" feature allowing scorers to manually end the current innings through Quick Actions panel. First innings ending automatically creates second innings with proper team swapping, while second innings ending completes the match with final score display and status update.
 - **✓ Comprehensive Player Statistics System**: Implemented complete cricket player statistics functionality with advanced database queries, aggregated career statistics, match history tracking, and detailed performance analytics including batting averages, strike rates, economy rates, boundary percentages, maiden overs, and comprehensive cricket metrics.
 - **✓ Enhanced Database Analytics**: Created sophisticated SQL queries with joins and aggregations to calculate real-time player statistics from ball-by-ball data, including totalRuns, totalWickets, ballsFaced, ballsBowled, fours, sixes, maidenOvers, wideBalls, noBalls with proper ICC cricket rule compliance.
 - **✓ Advanced Player Stats API**: Extended statsRoutes.ts with comprehensive player statistics endpoints including detailed player stats, performance comparisons, team statistics summaries, and enhanced filtering capabilities for franchise-based and role-based player analytics.

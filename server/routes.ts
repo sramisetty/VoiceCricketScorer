@@ -1205,33 +1205,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if this is the first innings
       if (currentInnings.inningsNumber === 1) {
-        // Check if there should be a second innings (match format allows it)
-        const match = liveData.match;
-        if (match && match.totalOvers > 0) {
-          shouldStartSecondInnings = true;
-          message = `First innings ended. ${currentInnings.battingTeam.name} scored ${currentInnings.totalRuns}/${currentInnings.totalWickets}. Starting second innings...`;
-          
-          // Update match to second innings
-          await storage.updateMatch(matchId, { currentInnings: 2 });
-          
-          // Create second innings with teams swapped
-          const secondInnings = await storage.createInnings({
-            matchId: matchId,
-            inningsNumber: 2,
-            battingTeamId: currentInnings.bowlingTeam.id,
-            bowlingTeamId: currentInnings.battingTeam.id,
-            totalRuns: 0,
-            totalWickets: 0,
-            totalBalls: 0,
-            isCompleted: false
-          });
-          
-          console.log(`Second innings created: ${secondInnings.id}`);
-        }
+        // Always start second innings after first innings ends
+        shouldStartSecondInnings = true;
+        message = `First innings ended. ${currentInnings.battingTeam.name} scored ${currentInnings.totalRuns}/${currentInnings.totalWickets}. Starting second innings...`;
+        
+        // Update match to second innings
+        await storage.updateMatch(matchId, { currentInnings: 2 });
+        
+        // Create second innings with teams swapped
+        const secondInnings = await storage.createInnings({
+          matchId: matchId,
+          inningsNumber: 2,
+          battingTeamId: currentInnings.bowlingTeam.id,
+          bowlingTeamId: currentInnings.battingTeam.id,
+          totalRuns: 0,
+          totalWickets: 0,
+          totalBalls: 0,
+          isCompleted: false
+        });
+        
+        console.log(`Second innings created: ${secondInnings.id}, Teams swapped: ${currentInnings.bowlingTeam.name} now batting`);
       } else {
         // Second innings ended - match is complete
-        message = `Match completed! Final scores: First innings: ${currentInnings.totalRuns}/${currentInnings.totalWickets}, Second innings: ${currentInnings.totalRuns}/${currentInnings.totalWickets}`;
+        // Get first innings data for final scores
+        const allInnings = await storage.getInningsByMatch(matchId);
+        const firstInnings = allInnings.find(i => i.inningsNumber === 1);
+        
+        message = `Match completed! Final scores - First innings: ${firstInnings?.totalRuns}/${firstInnings?.totalWickets}, Second innings: ${currentInnings.totalRuns}/${currentInnings.totalWickets}`;
         await storage.updateMatch(matchId, { status: 'completed' });
+        
+        console.log(`Match ${matchId} completed. Final result: First innings ${firstInnings?.totalRuns}/${firstInnings?.totalWickets}, Second innings ${currentInnings.totalRuns}/${currentInnings.totalWickets}`);
       }
       
       const updatedLiveData = await storage.getLiveMatchData(matchId);
