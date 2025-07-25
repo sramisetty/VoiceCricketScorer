@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Share, Download, Settings, Pause, Play, Clock, User, Undo, Trash, ArrowLeftRight } from 'lucide-react';
@@ -54,6 +55,7 @@ export default function Scorer() {
   const [tossDialogOpen, setTossDialogOpen] = useState(false);
   const [tossWinner, setTossWinner] = useState('');
   const [tossDecision, setTossDecision] = useState('');
+  const [activeTab, setActiveTab] = useState('live');
 
   // Fetch initial match data
   const { data: matchData, isLoading: liveDataLoading, error } = useQuery<LiveMatchData>({
@@ -909,7 +911,14 @@ export default function Scorer() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Main Scoring Column */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          <div className="lg:col-span-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="live">🔴 Live</TabsTrigger>
+                <TabsTrigger value="statistics">📊 Statistics</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="live" className="space-y-4 sm:space-y-6 mt-6">
             {/* Advanced Scorer */}
             <Card className="shadow-lg border-2 border-blue-200">
               <CardHeader className="pb-4">
@@ -925,103 +934,7 @@ export default function Scorer() {
               </CardContent>
             </Card>
 
-            {/* Batting Figures */}
-            <Card className="shadow-lg border-2 border-orange-200 min-h-[400px]">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-orange-800 flex items-center">
-                  🏏 Batting Figures
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-[350px] overflow-y-auto">
-                <div className="space-y-3">
-                  {currentData.currentInnings.playerStats
-                    .filter(stat => stat.player.teamId === currentData.currentInnings.battingTeam.id && stat.ballsFaced > 0)
-                    .sort((a, b) => b.runs - a.runs)
-                    .map((batsman) => {
-                      const isCurrentBatsman = currentBatsmen.some(cb => cb.playerId === batsman.playerId);
-                      const strikeRate = batsman.ballsFaced > 0 ? ((batsman.runs / batsman.ballsFaced) * 100).toFixed(1) : '0.0';
-                      const isOnStrike = currentBatsmen.find(cb => cb.playerId === batsman.playerId)?.isOnStrike;
-                      
-                      return (
-                        <div
-                          key={batsman.id}
-                          className={`flex justify-between items-center p-3 rounded-lg ${
-                            isCurrentBatsman
-                              ? isOnStrike 
-                                ? 'bg-cricket-light border border-cricket-primary'
-                                : 'bg-blue-50 border border-blue-200'
-                              : batsman.isOut 
-                                ? 'bg-red-50 border border-red-200'
-                                : 'bg-gray-50'
-                          }`}
-                        >
-                          <div>
-                            <div className="font-semibold text-gray-800 flex items-center">
-                              {batsman.player.name}
-                              {isOnStrike && <span className="ml-2 text-orange-500">*</span>}
-                              {isCurrentBatsman && !isOnStrike && <span className="ml-2 text-blue-500">•</span>}
-                              {batsman.isOut && (
-                                <span className="ml-2 text-xs bg-red-500 text-white px-2 py-1 rounded">
-                                  OUT
-                                </span>
-                              )}
-                              {isCurrentBatsman && !batsman.isOut && (
-                                <span className="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded">
-                                  BATTING
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              SR: {strikeRate} • {batsman.fours} fours • {batsman.sixes} sixes
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-semibold text-lg">{batsman.runs}</div>
-                            <div className="text-sm text-gray-600">({batsman.ballsFaced} balls)</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  
-                  {currentData.currentInnings.playerStats.filter(stat => 
-                    stat.player.teamId === currentData.currentInnings.battingTeam.id && stat.ballsFaced > 0
-                  ).length === 0 && (
-                    <div className="text-center text-gray-500 py-4">
-                      No batting figures available yet
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Match Statistics */}
-            <Card className="shadow-lg border-2 border-indigo-200 min-h-[400px]">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-indigo-800 flex items-center">
-                  📊 Match Statistics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MatchStatistics matchData={currentData} />
-              </CardContent>
-            </Card>
-
-            {/* Commentary */}
-            <Card className="shadow-lg border-2 border-teal-200 min-h-[400px]">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-teal-800 flex items-center">
-                  📝 Live Commentary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-[350px] overflow-y-auto">
-                <Commentary balls={currentData.recentBalls} />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar Column */}
-          <div className="lg:col-span-1 space-y-4 sm:space-y-6">
-            {/* Current Over */}
+            {/* Current Over - Live Component */}
             <Card className="shadow-lg border-2 border-purple-200 min-h-[250px]">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl font-bold text-purple-800 flex items-center">
@@ -1043,38 +956,19 @@ export default function Scorer() {
               </CardContent>
             </Card>
 
-            {/* Team Stats */}
-            <Card className="shadow-lg border-2 border-cyan-200 min-h-[250px]">
+            {/* Commentary - Live Component */}
+            <Card className="shadow-lg border-2 border-teal-200 min-h-[400px]">
               <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-cyan-800 flex items-center">
-                  📈 Team Statistics
+                <CardTitle className="text-xl font-bold text-teal-800 flex items-center">
+                  📝 Live Commentary
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <TeamStats
-                  innings={currentData.currentInnings}
-                  targetRuns={undefined}
-                  targetOvers={currentData.match.overs}
-                />
+              <CardContent className="max-h-[350px] overflow-y-auto">
+                <Commentary balls={currentData.recentBalls} />
               </CardContent>
             </Card>
 
-            {/* Bowling Figures */}
-            <Card className="shadow-lg border-2 border-red-200 min-h-[250px]">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-red-800 flex items-center">
-                  🎯 Bowling Figures
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-[200px] overflow-y-auto">
-                <BowlingFigures
-                  bowlingStats={currentData.currentInnings.playerStats.filter(s => s.ballsBowled > 0)}
-                  currentBowlerId={currentData.currentBowler?.playerId}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
+            {/* Quick Actions - Live Component */}
             <Card className="shadow-lg border-2 border-gray-200 min-h-[300px]">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl font-bold text-gray-800 flex items-center">
@@ -1268,6 +1162,125 @@ export default function Scorer() {
                   onCommand={handleCommand}
                   currentBatsman={striker?.player.name}
                   currentBowler={currentData.currentBowler?.player.name}
+                />
+              </CardContent>
+            </Card>
+              </TabsContent>
+
+              <TabsContent value="statistics" className="space-y-4 sm:space-y-6 mt-6">
+                {/* Batting Figures - Statistics Component */}
+                <Card className="shadow-lg border-2 border-orange-200 min-h-[400px]">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-orange-800 flex items-center">
+                      🏏 Batting Figures
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="max-h-[350px] overflow-y-auto">
+                    <div className="space-y-3">
+                      {currentData.currentInnings.playerStats
+                        .filter(stat => stat.player.teamId === currentData.currentInnings.battingTeam.id && stat.ballsFaced > 0)
+                        .sort((a, b) => b.runs - a.runs)
+                        .map((batsman) => {
+                          const isCurrentBatsman = currentBatsmen.some(cb => cb.playerId === batsman.playerId);
+                          const strikeRate = batsman.ballsFaced > 0 ? ((batsman.runs / batsman.ballsFaced) * 100).toFixed(1) : '0.0';
+                          const isOnStrike = currentBatsmen.find(cb => cb.playerId === batsman.playerId)?.isOnStrike;
+                          
+                          return (
+                            <div
+                              key={batsman.id}
+                              className={`flex justify-between items-center p-3 rounded-lg ${
+                                isCurrentBatsman
+                                  ? isOnStrike 
+                                    ? 'bg-cricket-light border border-cricket-primary'
+                                    : 'bg-blue-50 border border-blue-200'
+                                  : batsman.isOut 
+                                    ? 'bg-red-50 border border-red-200'
+                                    : 'bg-gray-50'
+                              }`}
+                            >
+                              <div>
+                                <div className="font-semibold text-gray-800 flex items-center">
+                                  {batsman.player.name}
+                                  {isOnStrike && <span className="ml-2 text-orange-500">*</span>}
+                                  {isCurrentBatsman && !isOnStrike && <span className="ml-2 text-blue-500">•</span>}
+                                  {batsman.isOut && (
+                                    <span className="ml-2 text-xs bg-red-500 text-white px-2 py-1 rounded">
+                                      OUT
+                                    </span>
+                                  )}
+                                  {isCurrentBatsman && !batsman.isOut && (
+                                    <span className="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded">
+                                      BATTING
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  SR: {strikeRate} • {batsman.fours} fours • {batsman.sixes} sixes
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold text-lg">{batsman.runs}</div>
+                                <div className="text-sm text-gray-600">({batsman.ballsFaced} balls)</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      
+                      {currentData.currentInnings.playerStats.filter(stat => 
+                        stat.player.teamId === currentData.currentInnings.battingTeam.id && stat.ballsFaced > 0
+                      ).length === 0 && (
+                        <div className="text-center text-gray-500 py-4">
+                          No batting figures available yet
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Bowling Figures - Statistics Component */}
+                <Card className="shadow-lg border-2 border-red-200 min-h-[250px]">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-red-800 flex items-center">
+                      🎯 Bowling Figures
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="max-h-[200px] overflow-y-auto">
+                    <BowlingFigures
+                      bowlingStats={currentData.currentInnings.playerStats.filter(s => s.ballsBowled > 0)}
+                      currentBowlerId={currentData.currentBowler?.playerId}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Match Statistics - Statistics Component */}
+                <Card className="shadow-lg border-2 border-indigo-200 min-h-[400px]">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-indigo-800 flex items-center">
+                      📊 Match Statistics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <MatchStatistics matchData={currentData} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Sidebar Column */}
+          <div className="lg:col-span-1 space-y-4 sm:space-y-6">
+            {/* Team Stats */}
+            <Card className="shadow-lg border-2 border-cyan-200 min-h-[250px]">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-cyan-800 flex items-center">
+                  📈 Team Statistics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TeamStats
+                  innings={currentData.currentInnings}
+                  targetRuns={undefined}
+                  targetOvers={currentData.match.overs}
                 />
               </CardContent>
             </Card>
