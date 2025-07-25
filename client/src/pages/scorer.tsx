@@ -835,6 +835,17 @@ export default function Scorer() {
   const striker = currentBatsmen.find(b => b?.isOnStrike);
   const nonStriker = currentBatsmen.find(b => !b?.isOnStrike);
 
+  // Helper function to calculate current over display
+  const getCurrentOverDisplay = () => {
+    if (!currentData?.recentBalls?.length) return "1.0";
+    const currentOverNumber = currentData.recentBalls[0].overNumber;
+    const validBallsInOver = currentData.recentBalls.filter(ball => 
+      ball.overNumber === currentOverNumber && 
+      (!ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye')
+    ).length;
+    return `${currentOverNumber}.${validBallsInOver}`;
+  };
+
   // Check if essential data is available
   if (!currentData.match || !currentData.currentInnings) {
     return (
@@ -908,7 +919,7 @@ export default function Scorer() {
                 </h2>
                 <div className="space-y-1">
                   <p className="text-gray-600">
-                    {currentData?.match?.matchType || 'T20'} Match • Over {currentData?.recentBalls?.length > 0 ? currentData.recentBalls[0]?.overNumber : 1}.{currentData?.recentBalls?.length > 0 ? currentData.recentBalls[0]?.ballNumber : 0} of {currentData?.match?.overs || 20}
+                    {currentData?.match?.matchType || 'T20'} Match • Over {getCurrentOverDisplay()} of {currentData?.match?.overs || 20}
                   </p>
                   <div className="flex items-center space-x-4 text-sm">
                     <div className="flex items-center space-x-2">
@@ -935,7 +946,7 @@ export default function Scorer() {
                     {currentData?.currentInnings?.totalRuns || 0}/{currentData?.currentInnings?.totalWickets || 0}
                   </div>
                   <div className="text-sm text-gray-600">
-                    {currentData?.recentBalls?.length > 0 ? currentData.recentBalls[0]?.overNumber : 1}.{currentData?.recentBalls?.length > 0 ? currentData.recentBalls[0]?.ballNumber : 0} Overs
+                    {getCurrentOverDisplay()} Overs
                   </div>
                 </div>
                 {!isMatchStarted && (

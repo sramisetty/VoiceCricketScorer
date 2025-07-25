@@ -29,7 +29,7 @@ export function MatchStatistics({ matchData }: MatchStatisticsProps) {
     (!ball.extraType || (ball.extraType === 'bye' || ball.extraType === 'legbye'))
   ).length;
   
-  const totalOvers = currentOverNumber - 1; // Previous completed overs
+  const totalOvers = Math.max(0, currentOverNumber - 1); // Previous completed overs
   const runRate = totalBalls > 0 ? (totalRuns / totalBalls * 6).toFixed(2) : '0.00';
   
   // Calculate batting statistics

@@ -12,8 +12,9 @@ export function BowlingFigures({ bowlingStats, currentBowlerId }: BowlingFigures
     .sort((a, b) => b.ballsBowled - a.ballsBowled);
 
   const formatFigures = (stats: PlayerStats) => {
-    const overs = Math.floor((stats.ballsBowled || 0) / 6);
-    const balls = (stats.ballsBowled || 0) % 6;
+    const totalValidBalls = stats.ballsBowled || 0;
+    const overs = Math.floor(totalValidBalls / 6);
+    const balls = totalValidBalls % 6;
     const oversString = balls > 0 ? `${overs}.${balls}` : overs.toString();
     return `${oversString}-0-${stats.runsConceded || 0}-${stats.wicketsTaken || 0}`;
   };
