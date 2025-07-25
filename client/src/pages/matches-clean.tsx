@@ -110,11 +110,17 @@ export default function MatchesClean() {
               {!userLoading && canCreateMatches && (
                 <Button 
                   onClick={() => setLocation('/match-setup')}
-                  className="bg-cricket-accent hover:bg-orange-600"
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Create New Match
                 </Button>
+              )}
+              {/* Debug info - remove in production */}
+              {!userLoading && (
+                <div className="text-xs text-white/70 self-center">
+                  User: {user ? (user as any).role : 'None'} | Can Create: {canCreateMatches ? 'Yes' : 'No'}
+                </div>
               )}
             </div>
           </div>
