@@ -523,6 +523,23 @@ export default function Matches() {
           )}
         </div>
 
+        {/* Test Toss Dialog Button */}
+        <div className="bg-yellow-100 p-4 rounded-lg mb-4">
+          <h3 className="font-bold mb-2">Debug Test</h3>
+          <Button 
+            onClick={() => {
+              console.log('Test button clicked');
+              setSelectedMatchForToss({ id: 5, team1: { name: 'Chiefs' }, team2: { name: 'Lions' }, team1Id: 1, team2Id: 2, matchType: 'T20', overs: 20 });
+              setTossData({ tossWinnerId: '1', tossDecision: 'bat' });
+              setIsTossDialogOpen(true);
+              console.log('Dialog should be open now');
+            }}
+            className="bg-red-500 hover:bg-red-600 text-white"
+          >
+            Test Toss Dialog
+          </Button>
+        </div>
+        
         {/* Setup Matches */}
         <div>
           <div className="flex items-center gap-2 mb-4">
@@ -543,7 +560,7 @@ export default function Matches() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {setupMatches.map((match) => (
-                <Card key={match.id} className="hover:shadow-lg transition-shadow">
+                <Card key={match.id} className="border-2 border-gray-200">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">
@@ -577,18 +594,20 @@ export default function Matches() {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Button 
+                        <button 
+                          type="button"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
+                            console.log('Start Match clicked for:', match.id);
                             handleStartMatch(match);
                           }}
-                          className="flex-1 bg-green-500 hover:bg-green-600"
+                          className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center justify-center"
                           disabled={startMatchMutation.isPending}
                         >
                           <Play className="w-4 h-4 mr-2" />
                           {startMatchMutation.isPending ? 'Starting...' : 'Start Match'}
-                        </Button>
+                        </button>
                         <Link href={`/scoreboard/${match.id}`}>
                           <Button variant="outline" size="sm">
                             <Eye className="w-4 h-4" />

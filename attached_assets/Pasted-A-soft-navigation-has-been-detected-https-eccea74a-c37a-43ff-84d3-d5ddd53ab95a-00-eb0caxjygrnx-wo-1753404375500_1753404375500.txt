@@ -1,0 +1,65 @@
+A soft navigation has been detected: https://eccea74a-c37a-43ff-84d3-d5ddd53ab95a-00-eb0caxjygrnx.worf.replit.dev/scorer/5
+Navigation.tsx:76 Logo failed to load, showing fallback
+onError @ Navigation.tsx:76
+callCallback2 @ chunk-RPCDYKBN.js?v=990724fe:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=990724fe:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=990724fe:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=990724fe:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=990724fe:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=990724fe:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=990724fe:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=990724fe:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=990724fe:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=990724fe:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=990724fe:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=990724fe:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=990724fe:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=990724fe:5472
+error (async)
+addEventBubbleListener @ chunk-RPCDYKBN.js?v=990724fe:5635
+addTrappedEventListener @ chunk-RPCDYKBN.js?v=990724fe:7120
+listenToNonDelegatedEvent @ chunk-RPCDYKBN.js?v=990724fe:7063
+setInitialProperties @ chunk-RPCDYKBN.js?v=990724fe:7564
+finalizeInitialChildren @ chunk-RPCDYKBN.js?v=990724fe:8345
+completeWork @ chunk-RPCDYKBN.js?v=990724fe:16293
+completeUnitOfWork @ chunk-RPCDYKBN.js?v=990724fe:19224
+performUnitOfWork @ chunk-RPCDYKBN.js?v=990724fe:19206
+workLoopSync @ chunk-RPCDYKBN.js?v=990724fe:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=990724fe:19116
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=990724fe:18874
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=990724fe:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=990724fe:18627
+Show 27 more frames
+Show less
+queryClient.ts:75 
+        
+        
+       GET https://eccea74a-c37a-43ff-84d3-d5ddd53ab95a-00-eb0caxjygrnx.worf.replit.dev/api/matches/5/live 404 (Not Found)
+(anonymous) @ queryClient.ts:75
+fetchFn @ @tanstack_react-query.js?v=990724fe:840
+run @ @tanstack_react-query.js?v=990724fe:494
+start @ @tanstack_react-query.js?v=990724fe:536
+fetch @ @tanstack_react-query.js?v=990724fe:926
+executeFetch_fn @ @tanstack_react-query.js?v=990724fe:2211
+onSubscribe @ @tanstack_react-query.js?v=990724fe:1898
+subscribe @ @tanstack_react-query.js?v=990724fe:24
+(anonymous) @ @tanstack_react-query.js?v=990724fe:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=990724fe:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=990724fe:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=990724fe:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=990724fe:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=990724fe:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=990724fe:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=990724fe:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=990724fe:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=990724fe:19416
+commitRoot @ chunk-RPCDYKBN.js?v=990724fe:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=990724fe:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=990724fe:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=990724fe:18627
+Show 21 more frames
+Show less
+queryClient.ts:75 
+        
+        
+       GET https://eccea74a-c37a-43ff-84d3-d5ddd53ab95a-00-eb0caxjygrnx.worf.replit.dev/api/matches/5/live 404 (Not Found)
