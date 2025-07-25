@@ -956,6 +956,74 @@ SCHEMA_EOF
     fi
     
     success "Database schema synchronized"
+    
+    # Create admin user if none exists
+    create_admin_user_if_needed
+}
+
+# Create admin user if no admin exists
+create_admin_user_if_needed() {
+    log "Checking for existing admin user..."
+    
+    # Check if any admin user exists
+    local admin_count
+    admin_count=$(PGPASSWORD=simple123 psql -h localhost -U cricket_user -d cricket_scorer -t -c "
+        SELECT COUNT(*) FROM users WHERE role IN ('admin', 'global_admin');
+    " 2>/dev/null | xargs)
+    
+    if [ "$admin_count" -gt 0 ]; then
+        success "Admin user already exists (count: $admin_count)"
+        return 0
+    fi
+    
+    log "No admin user found. Creating default admin user..."
+    
+    # Generate secure password hash for 'admin123'
+    local password_hash
+    password_hash=$(node -e "
+        const bcrypt = require('bcryptjs');
+        const password = 'admin123';
+        const saltRounds = 10;
+        const hash = bcrypt.hashSync(password, saltRounds);
+        console.log(hash);
+    " 2>/dev/null)
+    
+    if [ -z "$password_hash" ]; then
+        warning "Failed to generate password hash using Node.js, trying alternative method..."
+        
+        # Fallback: create a simple hash (less secure but functional)
+        password_hash='$2a$10$rOj0UpCJaB8X1.2OmEXZfuoarHgqUYI7MpZYQW.xEo8HNc8qFOyEC'  # This is 'admin123'
+    fi
+    
+    # Create the admin user
+    local create_result
+    create_result=$(PGPASSWORD=simple123 psql -h localhost -U cricket_user -d cricket_scorer -c "
+        INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, email_verified, created_at, updated_at) 
+        VALUES ('admin@cricket.com', 'admin@cricket.com', '$password_hash', 'System', 'Administrator', 'global_admin', true, true, NOW(), NOW()) 
+        RETURNING id, username, email, first_name, last_name, role;
+    " 2>&1)
+    
+    if echo "$create_result" | grep -q "INSERT 0 1"; then
+        success "✓ Default admin user created successfully"
+        log "  Email/Username: admin@cricket.com"
+        log "  Password: admin123"
+        log "  Role: global_admin"
+        log ""
+        log "⚠️  SECURITY NOTICE: Please change the default password after first login!"
+        log "     Login at: http://$DOMAIN/login"
+        log ""
+    else
+        warning "Failed to create admin user:"
+        log "$create_result"
+        
+        # Try alternative approach without password hashing
+        log "Attempting to create admin user with simpler approach..."
+        
+        PGPASSWORD=simple123 psql -h localhost -U cricket_user -d cricket_scorer -c "
+            INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, email_verified, created_at, updated_at) 
+            VALUES ('admin@cricket.com', 'admin@cricket.com', '$2a$10$rOj0UpCJaB8X1.2OmEXZfuoarHgqUYI7MpZYQW.xEo8HNc8qFOyEC', 'System', 'Administrator', 'global_admin', true, true, NOW(), NOW());
+        " && success "✓ Admin user created with fallback method" || warning "✗ Failed to create admin user"
+    fi
 }
 
 # Configure PM2 for production
