@@ -1,0 +1,56 @@
+Building client with production config...
+vite v5.4.19 building for production...
+transforming (2) ../vite/modulepreload-polyfill.jsBrowserslist: browsers data (caniuse-lite) is 9 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 2972 modules transformed.
+x Build failed in 17.49s
+error during build:
+[vite:esbuild-transpile] Transform failed with 4 errors:
+assets/index-!~{001}~.js:52262:16: ERROR: Big integer literals are not available in the configured target environment ("chrome87", "edge88", "es2020", "firefox78", "safari13" + 2 overrides)
+assets/index-!~{001}~.js:52263:15: ERROR: Big integer literals are not available in the configured target environment ("chrome87", "edge88", "es2020", "firefox78", "safari13" + 2 overrides)
+assets/index-!~{001}~.js:52264:24: ERROR: Big integer literals are not available in the configured target environment ("chrome87", "edge88", "es2020", "firefox78", "safari13" + 2 overrides)
+assets/index-!~{001}~.js:52424:27: ERROR: Big integer literals are not available in the configured target environment ("chrome87", "edge88", "es2020", "firefox78", "safari13" + 2 overrides)
+
+Big integer literals are not available in the configured target environment ("chrome87", "edge88", "es2020", "firefox78", "safari13" + 2 overrides)
+52260|      INT48_MAX: 140737488355327,
+52261|      INT48_UNSIGNED_MAX: 281474976710655,
+52262|      INT64_MIN: -9223372036854775808n,
+   |                  ^
+52263|      INT64_MAX: 9223372036854775807n,
+52264|      INT64_UNSIGNED_MAX: 18446744073709551615n,
+
+Big integer literals are not available in the configured target environment ("chrome87", "edge88", "es2020", "firefox78", "safari13" + 2 overrides)
+52261|      INT48_UNSIGNED_MAX: 281474976710655,
+52262|      INT64_MIN: -9223372036854775808n,
+52263|      INT64_MAX: 9223372036854775807n,
+   |                 ^
+52264|      INT64_UNSIGNED_MAX: 18446744073709551615n,
+52265|  };
+
+Big integer literals are not available in the configured target environment ("chrome87", "edge88", "es2020", "firefox78", "safari13" + 2 overrides)
+52262|      INT64_MIN: -9223372036854775808n,
+52263|      INT64_MAX: 9223372036854775807n,
+52264|      INT64_UNSIGNED_MAX: 18446744073709551615n,
+   |                          ^
+52265|  };
+52266|
+
+Big integer literals are not available in the configured target environment ("chrome87", "edge88", "es2020", "firefox78", "safari13" + 2 overrides)
+52422|  function bigintColumnToSchema(column, z, coerce) {
+52423|      const unsigned = column.getSQLType().includes('unsigned');
+52424|      const min = unsigned ? 0n : CONSTANTS.INT64_MIN;
+   |                             ^
+52425|      const max = unsigned ? CONSTANTS.INT64_UNSIGNED_MAX : CONSTANTS.INT64_MAX;
+52426|      const schema = coerce === true || coerce?.bigint ? z.coerce.bigint() : z.bigint();
+
+    at failureErrorWithLog (/opt/cricket-scorer/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+    at /opt/cricket-scorer/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+    at responseCallbacks.<computed> (/opt/cricket-scorer/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/opt/cricket-scorer/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/opt/cricket-scorer/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)

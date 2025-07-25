@@ -24,21 +24,15 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "server/public"),
     emptyOutDir: true,
     // Production optimizations for VPS
-    minify: "terser",
+    minify: "esbuild",
     sourcemap: false,
-    target: ["es2020", "edge88", "firefox78", "chrome87", "safari13"],
+    target: ["es2022", "chrome90", "firefox80", "safari14", "edge90"],
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ["react", "react-dom"],
           ui: ["@radix-ui/react-dialog", "@radix-ui/react-select"],
         },
-      },
-    },
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
       },
     },
     chunkSizeWarningLimit: 1000,

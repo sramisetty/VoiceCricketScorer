@@ -170,7 +170,7 @@ EOF
     
     # Build production server
     log "Building production server..."
-    npx esbuild server/index.prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+    npx esbuild server/index.prod.ts --platform=node --packages=external --bundle --format=esm --target=es2022 --outfile=dist/index.js
     
     # Verify server build succeeded
     if [ ! -f "dist/index.js" ]; then
