@@ -22,12 +22,39 @@ export function MatchStatistics({ matchData }: MatchStatisticsProps) {
   const totalWickets = currentInnings.totalWickets;
   const totalBalls = currentInnings.totalBalls;
   
-  // Use actual over number from recent balls instead of mathematical calculation
-  const currentOverNumber = recentBalls.length > 0 ? recentBalls[0].overNumber : 1;
-  const ballsInCurrentOver = recentBalls.filter(ball => 
-    ball.overNumber === currentOverNumber && 
-    (!ball.extraType || (ball.extraType === 'bye' || ball.extraType === 'legbye'))
-  ).length;
+  // Calculate current over display logic - same as scorer page
+  const getCurrentOverInfo = () => {
+    if (!recentBalls?.length) return { display: "1.0", overNumber: 1, validBalls: 0 };
+    
+    const lastBall = recentBalls[0];
+    const lastOverNumber = lastBall.overNumber;
+    
+    // Get all balls in the last over that was bowled
+    const lastOverBalls = recentBalls.filter(ball => ball.overNumber === lastOverNumber);
+    const validBallsInLastOver = lastOverBalls.filter(ball => 
+      !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye'
+    ).length;
+    
+    // If the last over is complete (6 valid balls), show next over as X.0
+    if (validBallsInLastOver >= 6) {
+      return { 
+        display: `${lastOverNumber + 1}.0`, 
+        overNumber: lastOverNumber + 1,
+        validBalls: 0
+      };
+    }
+    
+    // Otherwise show current over with balls bowled
+    return { 
+      display: `${lastOverNumber}.${validBallsInLastOver}`, 
+      overNumber: lastOverNumber,
+      validBalls: validBallsInLastOver
+    };
+  };
+
+  const currentOverInfo = getCurrentOverInfo();
+  const currentOverNumber = currentOverInfo.overNumber;
+  const ballsInCurrentOver = currentOverInfo.validBalls;
   
   const totalOvers = Math.max(0, currentOverNumber - 1); // Previous completed overs
   const runRate = totalBalls > 0 ? (totalRuns / totalBalls * 6).toFixed(2) : '0.00';

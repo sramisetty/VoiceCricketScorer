@@ -835,16 +835,35 @@ export default function Scorer() {
   const striker = currentBatsmen.find(b => b?.isOnStrike);
   const nonStriker = currentBatsmen.find(b => !b?.isOnStrike);
 
-  // Helper function to calculate current over display
-  const getCurrentOverDisplay = () => {
-    if (!currentData?.recentBalls?.length) return "1.0";
-    const currentOverNumber = currentData.recentBalls[0].overNumber;
-    const validBallsInOver = currentData.recentBalls.filter(ball => 
-      ball.overNumber === currentOverNumber && 
-      (!ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye')
+  // Helper function to calculate current over display and number
+  const getCurrentOverInfo = () => {
+    if (!currentData?.recentBalls?.length) return { display: "1.0", overNumber: 1 };
+    
+    const lastBall = currentData.recentBalls[0];
+    const lastOverNumber = lastBall.overNumber;
+    
+    // Get all balls in the last over that was bowled
+    const lastOverBalls = currentData.recentBalls.filter(ball => ball.overNumber === lastOverNumber);
+    const validBallsInLastOver = lastOverBalls.filter(ball => 
+      !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye'
     ).length;
-    return `${currentOverNumber}.${validBallsInOver}`;
+    
+    // If the last over is complete (6 valid balls), show next over as X.0
+    if (validBallsInLastOver >= 6) {
+      return { 
+        display: `${lastOverNumber + 1}.0`, 
+        overNumber: lastOverNumber + 1 
+      };
+    }
+    
+    // Otherwise show current over with balls bowled
+    return { 
+      display: `${lastOverNumber}.${validBallsInLastOver}`, 
+      overNumber: lastOverNumber 
+    };
   };
+
+  const getCurrentOverDisplay = () => getCurrentOverInfo().display;
 
   // Check if essential data is available
   if (!currentData.match || !currentData.currentInnings) {
@@ -1266,7 +1285,7 @@ export default function Scorer() {
                 <CurrentOver
                   balls={currentData.currentInnings.balls}
                   bowlerName={currentData.currentBowler?.player.name || 'Unknown'}
-                  overNumber={currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1}
+                  overNumber={getCurrentOverInfo().overNumber}
                   totalBalls={currentData.currentInnings.totalBalls}
                   currentBowlerStats={currentData.currentBowler ? {
                     ballsBowled: currentData.currentBowler.ballsBowled || 0,
