@@ -45,7 +45,7 @@ export default function Scorer() {
   const [nextBowlerId, setNextBowlerId] = useState('');
   const [openersDialogOpen, setOpenersDialogOpen] = useState(false);
   const [openersSetComplete, setOpenersSetComplete] = useState(false);
-  const [lastBowlerChangeOverNumber, setLastBowlerChangeOverNumber] = useState(0);
+  const [lastBowlerChangeTime, setLastBowlerChangeTime] = useState(0);
   const [selectedOpener1, setSelectedOpener1] = useState('');
   const [selectedOpener2, setSelectedOpener2] = useState('');
   const [selectedStriker, setSelectedStriker] = useState('');
@@ -127,8 +127,15 @@ export default function Scorer() {
 
   // Check if over is completed and enforce mandatory bowler change
   useEffect(() => {
-    if (currentData?.currentInnings && !overCompletedDialogOpen && currentData.recentBalls.length > 0) {
+    if (currentData?.currentInnings && !overCompletedDialogOpen && !changeBowlerMutation.isPending && currentData.recentBalls.length > 0) {
       const currentOverNumber = currentData.recentBalls[0].overNumber;
+      
+      // Debounce: Don't show dialog within 2 seconds of a bowler change
+      const timeSinceLastChange = Date.now() - lastBowlerChangeTime;
+      if (timeSinceLastChange < 2000) {
+        console.log(`Debouncing over completion dialog (${timeSinceLastChange}ms since last bowler change)`);
+        return;
+      }
       
       // Count valid balls in current over (exclude wide balls and no-balls)
       const currentOverBalls = currentData.recentBalls.filter(ball => 
@@ -142,7 +149,7 @@ export default function Scorer() {
         setOverCompletedDialogOpen(true);
       }
     }
-  }, [currentData?.recentBalls, overCompletedDialogOpen]);
+  }, [currentData?.recentBalls, overCompletedDialogOpen, changeBowlerMutation.isPending, lastBowlerChangeTime]);
 
 
 
@@ -386,6 +393,9 @@ export default function Scorer() {
     },
     onSuccess: () => {
       console.log('Bowler change successful - closing all dialogs');
+      
+      // Set timestamp to prevent dialog from re-triggering immediately
+      setLastBowlerChangeTime(Date.now());
       
       // Force close all bowler-related dialogs
       setChangeBowlerDialogOpen(false);
