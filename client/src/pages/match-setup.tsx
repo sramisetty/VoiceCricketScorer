@@ -144,10 +144,10 @@ export default function MatchSetup() {
       return;
     }
 
-    if (team1Players.length < 11 || team2Players.length < 11) {
+    if (team1Players.length < 5 || team1Players.length > 11 || team2Players.length < 5 || team2Players.length > 11) {
       toast({
         title: "Validation Error",
-        description: "Please select all 11 players for both teams.",
+        description: "Each team must have between 5 and 11 players.",
         variant: "destructive",
       });
       return;
@@ -706,7 +706,7 @@ export default function MatchSetup() {
             <CardContent>
               {team1Players.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">
-                  No players selected. Click "Add Player" to select from available players.
+                  No players selected. Select 5-11 players to form the team.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -758,7 +758,7 @@ export default function MatchSetup() {
             <CardContent>
               {team2Players.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">
-                  No players selected. Click "Add Player" to select from available players.
+                  No players selected. Select 5-11 players to form the team.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -802,7 +802,7 @@ export default function MatchSetup() {
                 {(() => {
                   const franchiseId = currentTeam === 'team1' ? matchData.team1FranchiseId : matchData.team2FranchiseId;
                   const franchise = franchises.find(f => f.id === franchiseId);
-                  return `Showing players from ${franchise?.name || 'selected franchise'}. Selected players: ${currentTeam === 'team1' ? team1Players.length : team2Players.length}/11`;
+                  return `Showing players from ${franchise?.name || 'selected franchise'}. Selected players: ${currentTeam === 'team1' ? team1Players.length : team2Players.length}/11 (5-11 required)`;
                 })()}
               </DialogDescription>
             </DialogHeader>

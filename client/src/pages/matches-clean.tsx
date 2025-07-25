@@ -116,12 +116,6 @@ export default function MatchesClean() {
                   Create New Match
                 </Button>
               )}
-              {/* Debug info - remove in production */}
-              {!userLoading && (
-                <div className="text-xs text-white/70 self-center">
-                  User: {user ? (user as any).role : 'None'} | Can Create: {canCreateMatches ? 'Yes' : 'No'}
-                </div>
-              )}
             </div>
           </div>
         </div>
