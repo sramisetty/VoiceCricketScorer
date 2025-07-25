@@ -75,6 +75,28 @@ export default function Scorer() {
   const isLoading = liveDataLoading || basicDataLoading;
 
   const currentData = liveData || matchData;
+  
+  // Error handling for failed API calls
+  if (error && !matchData && !basicMatchData) {
+    return (
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Unable to Load Match</h2>
+          <p className="text-gray-600 mb-4">Please check your connection and try again.</p>
+          <p className="text-sm text-gray-500">The match data might be temporarily unavailable.</p>
+          <Button 
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/matches', matchId] });
+              window.location.reload();
+            }}
+            className="mt-4"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch available bowlers (bowling team players)
   const { data: availableBowlers = [] } = useQuery({
@@ -96,7 +118,7 @@ export default function Scorer() {
 
   // Check if over is completed and prompt for next bowler
   useEffect(() => {
-    if (currentData?.currentInnings && !overCompletedDialogOpen) {
+    if (currentData?.currentInnings && !overCompletedDialogOpen && currentData.currentInnings.totalBalls !== null) {
       const ballsInCurrentOver = currentData.currentInnings.totalBalls % 6;
       const isOverCompleted = ballsInCurrentOver === 0 && currentData.currentInnings.totalBalls > 0;
       const currentOverNumber = Math.floor(currentData.currentInnings.totalBalls / 6);
@@ -626,7 +648,7 @@ export default function Scorer() {
   }
 
   // If no live data but basic match exists, show start match interface
-  if (!currentData && basicMatchData) {
+  if (!currentData && basicMatchData && basicMatchData.status !== 'live') {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
@@ -660,10 +682,10 @@ export default function Scorer() {
             <CardContent className="pt-6">
               <div className="text-center">
                 <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                  {basicMatchData.team1.name} vs {basicMatchData.team2.name}
+                  {basicMatchData?.team1?.name || 'Team 1'} vs {basicMatchData?.team2?.name || 'Team 2'}
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  {basicMatchData.matchType} Match • {basicMatchData.overs} Overs
+                  {basicMatchData?.matchType || 'Cricket'} Match • {basicMatchData?.overs || 20} Overs
                 </p>
                 <div className="bg-blue-50 p-6 rounded-lg mb-6">
                   <h3 className="text-lg font-semibold text-blue-800 mb-2">Ready to Start!</h3>
@@ -691,7 +713,29 @@ export default function Scorer() {
     );
   }
 
-  if (error || !currentData) {
+  // Use basic match data if available, even if currentData is not available
+  const fallbackData = currentData || basicMatchData;
+  
+  // Show the scoring interface if we have any data (live or basic) and the match is live
+  if (fallbackData && fallbackData.status === 'live') {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <div className="max-w-7xl mx-auto p-6 space-y-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Live Cricket Match</h1>
+            <p className="text-gray-600">Scoring interface is loading...</p>
+            <div className="mt-4">
+              <Button onClick={() => setLocation('/matches')} variant="outline">
+                Back to Matches
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !fallbackData) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center p-8">
