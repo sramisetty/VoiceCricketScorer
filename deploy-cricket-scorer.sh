@@ -871,8 +871,10 @@ EOF
     # Normalize database schema BEFORE running migrations
     normalize_database_schema
     
-    # Now run Drizzle migrations
-    npm run db:push || {
+    # Now run Drizzle migrations with force flag to skip prompts
+    log "Running Drizzle schema push with automatic acceptance..."
+    export DATABASE_URL="$DATABASE_URL"
+    npx drizzle-kit push --force || {
         warning "Drizzle migration failed, creating basic schema manually..."
         log "Note: Schema normalization may have already handled column conflicts"
         
