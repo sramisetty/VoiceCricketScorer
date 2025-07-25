@@ -125,31 +125,7 @@ export default function Scorer() {
     }
   }, [currentData?.match.status, currentData?.currentInnings.id]);
 
-  // Check if over is completed and enforce mandatory bowler change
-  useEffect(() => {
-    if (currentData?.currentInnings && !overCompletedDialogOpen && !changeBowlerMutation.isPending && currentData.recentBalls.length > 0) {
-      const currentOverNumber = currentData.recentBalls[0].overNumber;
-      
-      // Debounce: Don't show dialog within 2 seconds of a bowler change
-      const timeSinceLastChange = Date.now() - lastBowlerChangeTime;
-      if (timeSinceLastChange < 2000) {
-        console.log(`Debouncing over completion dialog (${timeSinceLastChange}ms since last bowler change)`);
-        return;
-      }
-      
-      // Count valid balls in current over (exclude wide balls and no-balls)
-      const currentOverBalls = currentData.recentBalls.filter(ball => 
-        ball.overNumber === currentOverNumber && 
-        (!ball.extraType || (ball.extraType !== 'wide' && ball.extraType !== 'noball'))
-      );
-      
-      // ICC Rule 17.1: Over is complete after 6 valid balls - bowler MUST be changed
-      if (currentOverBalls.length >= 6) {
-        console.log(`ICC Rule 17.1: Over ${currentOverNumber} is complete with ${currentOverBalls.length} valid balls. Bowler must be changed.`);
-        setOverCompletedDialogOpen(true);
-      }
-    }
-  }, [currentData?.recentBalls, overCompletedDialogOpen, changeBowlerMutation.isPending, lastBowlerChangeTime]);
+
 
 
 
@@ -427,6 +403,32 @@ export default function Scorer() {
     }
   });
 
+  // Check if over is completed and enforce mandatory bowler change
+  useEffect(() => {
+    if (currentData?.currentInnings && !overCompletedDialogOpen && !changeBowlerMutation.isPending && currentData.recentBalls.length > 0) {
+      const currentOverNumber = currentData.recentBalls[0].overNumber;
+      
+      // Debounce: Don't show dialog within 2 seconds of a bowler change
+      const timeSinceLastChange = Date.now() - lastBowlerChangeTime;
+      if (timeSinceLastChange < 2000) {
+        console.log(`Debouncing over completion dialog (${timeSinceLastChange}ms since last bowler change)`);
+        return;
+      }
+      
+      // Count valid balls in current over (exclude wide balls and no-balls)
+      const currentOverBalls = currentData.recentBalls.filter(ball => 
+        ball.overNumber === currentOverNumber && 
+        (!ball.extraType || (ball.extraType !== 'wide' && ball.extraType !== 'noball'))
+      );
+      
+      // ICC Rule 17.1: Over is complete after 6 valid balls - bowler MUST be changed
+      if (currentOverBalls.length >= 6) {
+        console.log(`ICC Rule 17.1: Over ${currentOverNumber} is complete with ${currentOverBalls.length} valid balls. Bowler must be changed.`);
+        setOverCompletedDialogOpen(true);
+      }
+    }
+  }, [currentData?.recentBalls, overCompletedDialogOpen, changeBowlerMutation.isPending, lastBowlerChangeTime]);
+
   const setOpenersMutation = useMutation({
     mutationFn: async (openerData: { opener1Id: string, opener2Id: string, strikerId: string }) => {
       const response = await apiRequest('POST', `/api/matches/${matchId}/set-openers`, {
@@ -681,7 +683,7 @@ export default function Scorer() {
   }
 
   // If no live data but basic match exists, show start match interface
-  if (!currentData && basicMatchData && basicMatchData.status !== 'live') {
+  if (!currentData && basicMatchData && (basicMatchData as any).status !== 'live') {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
@@ -750,7 +752,7 @@ export default function Scorer() {
   const fallbackData = currentData || basicMatchData;
   
   // Show the scoring interface if we have any data (live or basic) and the match is live
-  if (fallbackData && fallbackData.status === 'live') {
+  if (fallbackData && (fallbackData as any).status === 'live') {
     return (
       <div className="min-h-screen bg-gray-100">
         <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -806,7 +808,22 @@ export default function Scorer() {
     );
   }
 
-  const currentBatsmen = currentData.currentBatsmen;
+  // Ensure currentData exists before rendering
+  if (!currentData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Loading Match Data</h2>
+          <p className="text-gray-600">Please wait while we load the match information...</p>
+          <Button onClick={() => setLocation('/matches')} variant="outline" className="mt-4">
+            Back to Matches
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const currentBatsmen = currentData?.currentBatsmen || [];
   const striker = currentBatsmen.find(b => b.isOnStrike);
   const nonStriker = currentBatsmen.find(b => !b.isOnStrike);
 
@@ -1587,11 +1604,11 @@ export default function Scorer() {
                 <SelectContent>
                   {basicMatchData && (
                     <>
-                      <SelectItem value={basicMatchData.team1Id.toString()}>
-                        {basicMatchData.team1.name}
+                      <SelectItem value={(basicMatchData as any).team1Id?.toString() || '1'}>
+                        {(basicMatchData as any).team1?.name || 'Team 1'}
                       </SelectItem>
-                      <SelectItem value={basicMatchData.team2Id.toString()}>
-                        {basicMatchData.team2.name}
+                      <SelectItem value={(basicMatchData as any).team2Id?.toString() || '2'}>
+                        {(basicMatchData as any).team2?.name || 'Team 2'}
                       </SelectItem>
                     </>
                   )}
