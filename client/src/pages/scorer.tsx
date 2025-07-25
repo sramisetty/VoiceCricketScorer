@@ -824,9 +824,36 @@ export default function Scorer() {
     );
   }
 
-  const currentBatsmen = currentData.currentBatsmen;
-  const striker = currentBatsmen.find(b => b.isOnStrike);
-  const nonStriker = currentBatsmen.find(b => !b.isOnStrike);
+  // Debug logging to understand the data structure
+  console.log('currentData:', currentData);
+  console.log('currentData.currentBatsmen:', currentData?.currentBatsmen);
+  console.log('currentData.match:', currentData?.match);
+  console.log('currentData.currentInnings:', currentData?.currentInnings);
+
+  // Safe property access with proper null checks
+  const currentBatsmen = currentData?.currentBatsmen || [];
+  const striker = currentBatsmen.find(b => b?.isOnStrike);
+  const nonStriker = currentBatsmen.find(b => !b?.isOnStrike);
+
+  // Check if essential data is available
+  if (!currentData.match || !currentData.currentInnings) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Data Loading Error</h2>
+          <p className="text-gray-600 mb-4">Match data is incomplete. Please try refreshing the page.</p>
+          <div className="space-y-2">
+            <Button onClick={() => window.location.reload()} className="bg-blue-600 hover:bg-blue-700 text-white">
+              Refresh Page
+            </Button>
+            <Button onClick={() => setLocation('/matches')} variant="outline">
+              Back to Matches
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mobile-full-height bg-gray-50">
@@ -838,9 +865,9 @@ export default function Scorer() {
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse flex-shrink-0" />
               <div className="min-w-0 flex-1">
                 <h1 className="text-lg sm:text-xl font-bold truncate">Cricket Voice Scorer</h1>
-                {currentData && (
+                {currentData && currentData.currentInnings && (
                   <div className="text-xs sm:text-sm text-cricket-light">
-                    {currentData.currentInnings.inningsNumber === 1 ? "1st" : "2nd"} Innings - {currentData.currentInnings.battingTeam.name} Batting
+                    {currentData.currentInnings.inningsNumber === 1 ? "1st" : "2nd"} Innings - {currentData.currentInnings.battingTeam?.name || 'Team'} Batting
                   </div>
                 )}
               </div>
@@ -877,27 +904,27 @@ export default function Scorer() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
               <div className="mb-4 md:mb-0">
                 <h2 className="text-2xl font-bold text-gray-800">
-                  {currentData.match.team1.name} vs {currentData.match.team2.name}
+                  {currentData?.match?.team1?.name || 'Team 1'} vs {currentData?.match?.team2?.name || 'Team 2'}
                 </h2>
                 <div className="space-y-1">
                   <p className="text-gray-600">
-                    {currentData.match.matchType} Match • Over {currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1}.{currentData.recentBalls.length > 0 ? currentData.recentBalls[0].ballNumber : 0} of {currentData.match.overs}
+                    {currentData?.match?.matchType || 'T20'} Match • Over {currentData?.recentBalls?.length > 0 ? currentData.recentBalls[0]?.overNumber : 1}.{currentData?.recentBalls?.length > 0 ? currentData.recentBalls[0]?.ballNumber : 0} of {currentData?.match?.overs || 20}
                   </p>
                   <div className="flex items-center space-x-4 text-sm">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <span className="font-semibold text-green-700">
-                        {currentData.currentInnings.battingTeam.name} Batting
+                        {currentData?.currentInnings?.battingTeam?.name || 'Team 1'} Batting
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                       <span className="font-semibold text-red-700">
-                        {currentData.currentInnings.bowlingTeam.name} Bowling
+                        {currentData?.currentInnings?.bowlingTeam?.name || 'Team 2'} Bowling
                       </span>
                     </div>
                     <div className="bg-blue-100 px-2 py-1 rounded text-blue-800 font-medium">
-                      {currentData.currentInnings.inningsNumber === 1 ? "1st" : "2nd"} Innings
+                      {currentData?.currentInnings?.inningsNumber === 1 ? "1st" : "2nd"} Innings
                     </div>
                   </div>
                 </div>
@@ -905,10 +932,10 @@ export default function Scorer() {
               <div className="flex items-center space-x-4">
                 <div className="text-right">
                   <div className="text-3xl font-bold text-cricket-primary">
-                    {currentData.currentInnings.totalRuns}/{currentData.currentInnings.totalWickets}
+                    {currentData?.currentInnings?.totalRuns || 0}/{currentData?.currentInnings?.totalWickets || 0}
                   </div>
                   <div className="text-sm text-gray-600">
-                    {currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1}.{currentData.recentBalls.length > 0 ? currentData.recentBalls[0].ballNumber : 0} Overs
+                    {currentData?.recentBalls?.length > 0 ? currentData.recentBalls[0]?.overNumber : 1}.{currentData?.recentBalls?.length > 0 ? currentData.recentBalls[0]?.ballNumber : 0} Overs
                   </div>
                 </div>
                 {!isMatchStarted && (
