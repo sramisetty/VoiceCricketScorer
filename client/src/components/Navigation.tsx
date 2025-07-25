@@ -23,7 +23,7 @@ function LogoComponent() {
   return (
     <img 
       src="/logo.svg" 
-      alt="CricketScore Pro" 
+      alt="Score Pro" 
       className="h-10 w-auto" 
       onError={() => {
         console.error('Logo failed to load from /logo.svg, showing fallback');
@@ -99,7 +99,7 @@ export default function Navigation() {
             <div className="flex-shrink-0 flex items-center space-x-3">
               <LogoComponent />
               <div className="flex flex-col">
-                <h1 className="text-xl font-bold text-gray-900">CricketScore Pro</h1>
+                <h1 className="text-xl font-bold text-gray-900">Score Pro</h1>
                 <p className="text-xs text-gray-500">Professional Cricket Scoring</p>
               </div>
             </div>

@@ -66,7 +66,7 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-green-100 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-green-800">Cricket Scorer</CardTitle>
+          <CardTitle className="text-2xl font-bold text-green-800">Score Pro</CardTitle>
           <CardDescription>Create your account</CardDescription>
         </CardHeader>
         <CardContent>
