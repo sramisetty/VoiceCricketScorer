@@ -53,7 +53,7 @@ export function MatchSummary({ matchId }: MatchSummaryProps) {
       return { winner: null, margin: '', status: 'In Progress' };
     }
 
-    const team1Runs = firstInnings?.totalRuns || 0;
+    const team1Runs = firstInnings?.totalRuns ?? 0;
     const team2Runs = secondInnings?.totalRuns || 0;
     const team1Wickets = firstInnings?.totalWickets || 0;
     const team2Wickets = secondInnings?.totalWickets || 0;
@@ -135,7 +135,7 @@ export function MatchSummary({ matchId }: MatchSummaryProps) {
               <div>
                 <CardTitle className="text-2xl">{match.team1.name} vs {match.team2.name}</CardTitle>
                 <p className="text-muted-foreground">
-                  {match.venue} • {new Date(match.date).toLocaleDateString()}
+                  {match.venue} • {new Date(match.createdAt).toLocaleDateString()}
                 </p>
               </div>
             </div>

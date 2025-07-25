@@ -3,10 +3,10 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Share2 } from 'lucide-react';
 import { MatchSummary } from '@/components/match-summary';
 import { Navigation } from '@/components/Navigation';
-import { Footer } from '@/components/Footer';
+import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 
-export function MatchDetails() {
+export default function MatchDetails() {
   const [, params] = useRoute('/match-details/:id');
   const [, setLocation] = useLocation();
   const { toast } = useToast();
