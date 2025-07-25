@@ -191,9 +191,10 @@ export default function Matches() {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | Date | null) => {
     if (!dateString) return 'Unknown';
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const date = dateString instanceof Date ? dateString : new Date(dateString);
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -449,6 +450,24 @@ export default function Matches() {
       </Dialog>
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        {/* Test Toss Dialog Button */}
+        <div className="bg-yellow-100 p-4 rounded-lg border-2 border-yellow-300">
+          <h3 className="font-bold mb-2">DEBUG: Toss Dialog Test</h3>
+          <button 
+            type="button"
+            onClick={() => {
+              console.log('Test button clicked');
+              setSelectedMatchForToss({ id: 5, team1: { name: 'Chiefs' }, team2: { name: 'Lions' }, team1Id: 1, team2Id: 2, matchType: 'T20', overs: 20 });
+              setTossData({ tossWinnerId: '1', tossDecision: 'bat' });
+              setIsTossDialogOpen(true);
+              console.log('Dialog should be open now');
+            }}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-bold"
+          >
+            Test Toss Dialog
+          </button>
+        </div>
+        
         {/* Live Matches */}
         <div>
           <div className="flex items-center gap-2 mb-4">
@@ -523,23 +542,7 @@ export default function Matches() {
           )}
         </div>
 
-        {/* Test Toss Dialog Button */}
-        <div className="bg-yellow-100 p-4 rounded-lg mb-4">
-          <h3 className="font-bold mb-2">Debug Test</h3>
-          <Button 
-            onClick={() => {
-              console.log('Test button clicked');
-              setSelectedMatchForToss({ id: 5, team1: { name: 'Chiefs' }, team2: { name: 'Lions' }, team1Id: 1, team2Id: 2, matchType: 'T20', overs: 20 });
-              setTossData({ tossWinnerId: '1', tossDecision: 'bat' });
-              setIsTossDialogOpen(true);
-              console.log('Dialog should be open now');
-            }}
-            className="bg-red-500 hover:bg-red-600 text-white"
-          >
-            Test Toss Dialog
-          </Button>
-        </div>
-        
+
         {/* Setup Matches */}
         <div>
           <div className="flex items-center gap-2 mb-4">
