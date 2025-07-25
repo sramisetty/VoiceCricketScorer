@@ -1191,6 +1191,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if innings is already completed
       if (currentInnings.isCompleted) {
+        // Special case: If first innings is completed but we don't have second innings, create it
+        if (currentInnings.inningsNumber === 1 && liveData.match.currentInnings === 1) {
+          console.log('First innings was completed but second innings was not created. Creating it now...');
+          
+          // Update match to second innings
+          await storage.updateMatch(matchId, { currentInnings: 2 });
+          
+          // Create second innings with teams swapped
+          const secondInnings = await storage.createInnings({
+            matchId: matchId,
+            inningsNumber: 2,
+            battingTeamId: currentInnings.bowlingTeam.id,
+            bowlingTeamId: currentInnings.battingTeam.id,
+            totalRuns: 0,
+            totalWickets: 0,
+            totalBalls: 0,
+            isCompleted: false
+          });
+          
+          const updatedLiveData = await storage.getLiveMatchData(matchId);
+          broadcastToMatch(matchId, { type: 'innings_complete', data: updatedLiveData });
+          
+          return res.json({ 
+            success: true, 
+            message: `Second innings created. ${currentInnings.bowlingTeam.name} now batting.`,
+            inningsEnded: 1,
+            shouldStartSecondInnings: true
+          });
+        }
+        
         const message = currentInnings.inningsNumber === 1 
           ? 'First innings is already completed. Second innings should have started automatically.'
           : 'Second innings is already completed. Match should be finished.';
