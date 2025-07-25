@@ -1191,7 +1191,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if innings is already completed
       if (currentInnings.isCompleted) {
-        return res.status(400).json({ error: 'Current innings is already completed' });
+        const message = currentInnings.inningsNumber === 1 
+          ? 'First innings is already completed. Second innings should have started automatically.'
+          : 'Second innings is already completed. Match should be finished.';
+        return res.status(400).json({ error: message });
       }
       
       // Mark the current innings as completed

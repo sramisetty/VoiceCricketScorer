@@ -1132,10 +1132,12 @@ export default function Scorer() {
                               <Button
                                 variant="outline"
                                 className="w-full bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-400 disabled:text-gray-600"
-                                disabled={!isMatchStarted || endInningsMutation.isPending}
+                                disabled={!isMatchStarted || endInningsMutation.isPending || currentData?.currentInnings?.isCompleted || currentData?.match?.status === 'completed'}
                               >
                                 <Pause className="h-4 w-4 mr-2" />
-                                {endInningsMutation.isPending ? 'Ending Innings...' : 'End Innings'}
+                                {endInningsMutation.isPending ? 'Ending Innings...' : 
+                                 currentData?.currentInnings?.isCompleted ? 'Innings Completed' :
+                                 currentData?.match?.status === 'completed' ? 'Match Completed' : 'End Innings'}
                               </Button>
                             </DialogTrigger>
                             <DialogContent>
