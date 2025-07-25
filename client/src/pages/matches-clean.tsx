@@ -35,9 +35,11 @@ export default function MatchesClean() {
     queryKey: ['/api/matches'],
   });
 
-  // Fetch user data for permissions
+  // Fetch user data for permissions (allow null for guest users)
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['/api/user'],
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   // Check if user can create matches

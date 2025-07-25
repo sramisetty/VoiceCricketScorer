@@ -83,11 +83,14 @@ export const getQueryFn: <T>(options: {
       return null;
     }
 
-    // Handle unauthorized responses
+    // Handle unauthorized responses - only redirect for authenticated routes that require login
     if (res.status === 401 || res.status === 403) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const isAuthRoute = queryKey.some(key => key.toString().includes('/api/user') || key.toString().includes('/api/auth'));
+      if (isAuthRoute && unauthorizedBehavior === "throw") {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        // Don't auto-redirect for guest users - let components handle it
+      }
     }
 
     await throwIfResNotOk(res);
@@ -97,7 +100,7 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: "returnNull" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
