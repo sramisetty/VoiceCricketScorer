@@ -6,8 +6,8 @@
  * Example: node create-admin-user.js admin@example.com securepassword Admin User
  */
 
-const bcrypt = require('bcryptjs');
-const { Pool } = require('pg');
+import bcrypt from 'bcryptjs';
+import { Pool } from 'pg';
 
 async function createAdminUser() {
   const args = process.argv.slice(2);

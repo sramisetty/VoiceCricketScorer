@@ -109,7 +109,10 @@ echo "      and cannot be tested without admin credentials."
 
 echo ""
 echo "=== Database Connection Test ==="
-if [ -f "test-database-connection.js" ]; then
+if [ -f "quick-database-test.cjs" ]; then
+    echo "Running comprehensive database test..."
+    node quick-database-test.cjs
+elif [ -f "test-database-connection.js" ]; then
     echo "Running comprehensive database test..."
     node test-database-connection.js
 else

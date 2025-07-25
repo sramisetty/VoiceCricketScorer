@@ -5,7 +5,7 @@
  * This will help diagnose database connectivity issues
  */
 
-const { Pool } = require('pg');
+import { Pool } from 'pg';
 
 async function testDatabaseConnection() {
   console.log('=== Database Connection Test ===');

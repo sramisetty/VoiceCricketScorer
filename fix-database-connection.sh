@@ -37,10 +37,12 @@ echo "DATABASE_URL is configured"
 # Test database connection using Node.js
 echo ""
 echo "Testing database connection..."
-if [ -f "test-database-connection.js" ]; then
+if [ -f "quick-database-test.cjs" ]; then
+    node quick-database-test.cjs
+elif [ -f "test-database-connection.js" ]; then
     node test-database-connection.js
 else
-    echo "⚠ test-database-connection.js not found"
+    echo "⚠ Database test scripts not found"
     echo "Testing with psql instead..."
     
     # Try to connect with psql
