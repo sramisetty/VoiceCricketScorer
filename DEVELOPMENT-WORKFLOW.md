@@ -3,6 +3,10 @@
 
 ### ⚡ Quick Reference Commands
 ```bash
+# AUTOMATED: Prepare deployment script (all 4 steps)  
+./prepare-deployment.sh
+
+# OR MANUAL APPROACH:
 # 1. Validate schema before deployment
 ./validate-schema.sh
 
@@ -10,6 +14,25 @@
 npm run db:push
 
 # 3. Deploy to production (only after validation passes)
+./deploy-cricket-scorer.sh
+```
+
+### 🤖 AUTOMATED WORKFLOW (RECOMMENDED)
+When you need to prepare deploy-cricket-scorer.sh for production:
+
+```bash
+# Single command automates all 4 steps:
+./prepare-deployment.sh
+```
+
+This automatically:
+- ✅ Analyzes shared/schema.ts for all tables and columns
+- ✅ Generates production-safe SQL with IF NOT EXISTS patterns  
+- ✅ Updates deploy-cricket-scorer.sh with new schema
+- ✅ Validates the final result
+
+Then simply deploy:
+```bash
 ./deploy-cricket-scorer.sh
 ```
 
