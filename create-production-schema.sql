@@ -1,3 +1,10 @@
+-- Fix column name mismatches in production database
+-- Rename shortName to short_name in teams table
+ALTER TABLE teams RENAME COLUMN "shortName" TO short_name;
+
+-- Rename shortName to short_name in franchises table  
+ALTER TABLE franchises RENAME COLUMN "shortName" TO short_name;
+
 -- Create player_franchise_links table for production
 CREATE TABLE IF NOT EXISTS player_franchise_links (
   id SERIAL PRIMARY KEY,
@@ -18,6 +25,22 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false;
 ALTER TABLE franchises ADD COLUMN IF NOT EXISTS contact_email VARCHAR(255);
 ALTER TABLE franchises ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(50);
 ALTER TABLE franchises ADD COLUMN IF NOT EXISTS website VARCHAR(500);
+
+-- Fix other potential column name mismatches
+ALTER TABLE teams RENAME COLUMN "franchiseId" TO franchise_id;
+ALTER TABLE teams RENAME COLUMN "isActive" TO is_active;
+ALTER TABLE teams RENAME COLUMN "createdAt" TO created_at;
+ALTER TABLE teams RENAME COLUMN "updatedAt" TO updated_at;
+
+ALTER TABLE players RENAME COLUMN "franchiseId" TO franchise_id;
+ALTER TABLE players RENAME COLUMN "teamId" TO team_id;
+ALTER TABLE players RENAME COLUMN "battingOrder" TO batting_order;
+ALTER TABLE players RENAME COLUMN "userId" TO user_id;
+ALTER TABLE players RENAME COLUMN "contactInfo" TO contact_info;
+ALTER TABLE players RENAME COLUMN "preferredPosition" TO preferred_position;
+ALTER TABLE players RENAME COLUMN "isActive" TO is_active;
+ALTER TABLE players RENAME COLUMN "createdAt" TO created_at;
+ALTER TABLE players RENAME COLUMN "updatedAt" TO updated_at;
 
 -- Grant permissions
 GRANT ALL PRIVILEGES ON player_franchise_links TO cricket_user;
