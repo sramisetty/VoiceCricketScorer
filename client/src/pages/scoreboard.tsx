@@ -149,7 +149,7 @@ export default function Scoreboard() {
                       <span className="text-red-300">{currentData.currentInnings.totalWickets}</span>
                     </div>
                     <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-100 mb-2">
-                      📏 {Math.floor(currentData.currentInnings.totalBalls / 6)}.{currentData.currentInnings.totalBalls % 6} / {currentData.match.overs}.0 Overs
+                      📏 {currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1}.{currentData.recentBalls.length > 0 ? currentData.recentBalls[0].ballNumber : 0} / {currentData.match.overs}.0 Overs
                     </div>
                     <div className="text-sm sm:text-base lg:text-lg text-green-200">
                       Run Rate: {currentData.currentInnings.totalBalls > 0 ? 
@@ -162,7 +162,7 @@ export default function Scoreboard() {
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                   <div className="text-center">
                     <div className="text-lg sm:text-xl font-bold text-green-100 mb-3">
-                      📈 Current Over {Math.floor(currentData.currentInnings.totalBalls / 6) + 1}
+                      📈 Current Over {currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1}
                     </div>
                     <div className="flex justify-center space-x-2 sm:space-x-3">
                       {currentData.recentBalls.slice(0, 6).reverse().map((ball, index) => (

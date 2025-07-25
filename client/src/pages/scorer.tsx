@@ -130,7 +130,7 @@ export default function Scorer() {
     if (currentData?.currentInnings && !overCompletedDialogOpen && currentData.currentInnings.totalBalls !== null) {
       const ballsInCurrentOver = currentData.currentInnings.totalBalls % 6;
       const isOverCompleted = ballsInCurrentOver === 0 && currentData.currentInnings.totalBalls > 0;
-      const currentOverNumber = Math.floor(currentData.currentInnings.totalBalls / 6);
+      const currentOverNumber = currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1;
       
       // If over is completed, check if we need to change bowler
       if (isOverCompleted && currentOverNumber > 0) {
@@ -861,7 +861,7 @@ export default function Scorer() {
                 </h2>
                 <div className="space-y-1">
                   <p className="text-gray-600">
-                    {currentData.match.matchType} Match • Over {Math.floor(currentData.currentInnings.totalBalls / 6)}.{currentData.currentInnings.totalBalls % 6} of {currentData.match.overs}
+                    {currentData.match.matchType} Match • Over {currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1}.{currentData.recentBalls.length > 0 ? currentData.recentBalls[0].ballNumber : 0} of {currentData.match.overs}
                   </p>
                   <div className="flex items-center space-x-4 text-sm">
                     <div className="flex items-center space-x-2">
@@ -888,7 +888,7 @@ export default function Scorer() {
                     {currentData.currentInnings.totalRuns}/{currentData.currentInnings.totalWickets}
                   </div>
                   <div className="text-sm text-gray-600">
-                    {Math.floor(currentData.currentInnings.totalBalls / 6)}.{currentData.currentInnings.totalBalls % 6} Overs
+                    {currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1}.{currentData.recentBalls.length > 0 ? currentData.recentBalls[0].ballNumber : 0} Overs
                   </div>
                 </div>
                 {!isMatchStarted && (
@@ -1208,7 +1208,7 @@ export default function Scorer() {
                 <CurrentOver
                   balls={currentData.currentInnings.balls}
                   bowlerName={currentData.currentBowler?.player.name || 'Unknown'}
-                  overNumber={Math.floor(currentData.currentInnings.totalBalls / 6) + 1}
+                  overNumber={currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1}
                   totalBalls={currentData.currentInnings.totalBalls}
                   currentBowlerStats={currentData.currentBowler ? {
                     ballsBowled: currentData.currentBowler.ballsBowled || 0,

@@ -139,10 +139,39 @@ export function AdvancedScorer({ matchData, matchId }: AdvancedScorerProps) {
       return;
     }
 
+    // Calculate the correct over and ball numbers based on most recent ball
+    let overNumber = 1;
+    let ballNumber = 1;
+    
+    if (matchData.recentBalls.length > 0) {
+      const lastBall = matchData.recentBalls[0];
+      overNumber = lastBall.overNumber;
+      
+      // For extras (wide, no-ball), use same ball number
+      // For valid balls, increment ball number
+      if (extraType === 'wide' || extraType === 'noball') {
+        ballNumber = lastBall.ballNumber; // Keep same ball number
+      } else {
+        // Valid ball - increment ball number or start new over if over is complete
+        const currentOverBalls = matchData.recentBalls.filter(b => 
+          b.overNumber === lastBall.overNumber && 
+          (!b.extraType || (b.extraType !== 'wide' && b.extraType !== 'noball'))
+        );
+        
+        if (currentOverBalls.length >= 6) {
+          // Over is complete, start new over
+          overNumber = lastBall.overNumber + 1;
+          ballNumber = 1;
+        } else {
+          ballNumber = currentOverBalls.length + 1;
+        }
+      }
+    }
+
     const ballData = {
       inningsId: currentInnings.id,
-      overNumber: Math.floor(currentInnings.totalBalls / 6) + 1,
-      ballNumber: (currentInnings.totalBalls % 6) + 1,
+      overNumber,
+      ballNumber,
       batsmanId: selectedBatsman,
       bowlerId: selectedBowler,
       runs: runs,
