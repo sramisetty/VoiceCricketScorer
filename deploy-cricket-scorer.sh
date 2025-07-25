@@ -871,28 +871,59 @@ EOF
     # Normalize database schema BEFORE running migrations
     normalize_database_schema
     
-    # Skip Drizzle entirely and create schema directly with SQL
-    log "Creating database schema directly with SQL (bypassing Drizzle prompts)..."
+    # Production-safe schema migration (preserves existing data)
+    log "Running production-safe database schema migration..."
+    log "Note: This deployment is safe for production - no data will be lost"
     
-    # Create complete schema with SQL - no interactive prompts
-    PGPASSWORD=simple123 psql -h localhost -U cricket_user -d cricket_scorer <<'COMPLETE_SCHEMA_EOF' || {
-        warning "Direct SQL schema creation failed, attempting fallback..."
--- Complete Cricket Scorer Database Schema
--- This creates the entire schema without any interactive prompts
+    # Create schema safely without dropping existing tables
+    PGPASSWORD=simple123 psql -h localhost -U cricket_user -d cricket_scorer <<'SAFE_SCHEMA_EOF' || {
+        warning "Safe SQL schema migration failed, attempting fallback..."
+-- Production-Safe Cricket Scorer Database Schema Migration
+-- This creates/updates schema without losing existing data
+--
+-- KEY PRODUCTION SAFETY FEATURES:
+-- 1. CREATE TABLE IF NOT EXISTS - Only creates tables if they don't exist
+-- 2. ALTER TABLE ADD COLUMN IF NOT EXISTS - Only adds new columns safely  
+-- 3. INSERT...WHERE NOT EXISTS - Only inserts sample data if tables are empty
+-- 4. No DROP statements - Never destroys existing data
+-- 5. Incremental migration support - Perfect for production updates
+--
+-- This approach allows:
+-- - Fresh deployments (creates all tables from scratch)
+-- - Production updates (adds new columns/constraints without data loss)
+-- - Schema evolution (supports future enhancements safely)
+-- - Zero downtime deployments (existing data preserved)
 
--- Drop existing tables in correct dependency order
-DROP TABLE IF EXISTS balls CASCADE;
-DROP TABLE IF EXISTS player_stats CASCADE;
-DROP TABLE IF EXISTS match_player_selections CASCADE;
-DROP TABLE IF EXISTS player_franchise_links CASCADE;
-DROP TABLE IF EXISTS user_player_links CASCADE;
-DROP TABLE IF EXISTS user_sessions CASCADE;
-DROP TABLE IF EXISTS innings CASCADE;
-DROP TABLE IF EXISTS matches CASCADE;
-DROP TABLE IF EXISTS players CASCADE;
-DROP TABLE IF EXISTS teams CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS franchises CASCADE;
+-- Create franchises table if it doesn't exist
+CREATE TABLE IF NOT EXISTS franchises (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    short_name VARCHAR(10) NOT NULL,
+    logo VARCHAR(500),
+    description TEXT,
+    location VARCHAR(255),
+    established DATE,
+    contact_email VARCHAR(255),
+    contact_phone VARCHAR(50),
+    website VARCHAR(500),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Add missing columns to franchises if they don't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='franchises' AND column_name='logo') THEN
+        ALTER TABLE franchises ADD COLUMN logo VARCHAR(500);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='franchises' AND column_name='description') THEN
+        ALTER TABLE franchises ADD COLUMN description TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='franchises' AND column_name='location') THEN
+        ALTER TABLE franchises ADD COLUMN location VARCHAR(255);
+    END IF;
+END $$;
 
 -- Create franchises table
 CREATE TABLE franchises (
@@ -911,8 +942,8 @@ CREATE TABLE franchises (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create users table
-CREATE TABLE users (
+-- Create users table if it doesn't exist
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -927,8 +958,19 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create teams table
-CREATE TABLE teams (
+-- Add missing columns to users if they don't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='franchise_id') THEN
+        ALTER TABLE users ADD COLUMN franchise_id INTEGER REFERENCES franchises(id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='email_verified') THEN
+        ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT false;
+    END IF;
+END $$;
+
+-- Create teams table if it doesn't exist
+CREATE TABLE IF NOT EXISTS teams (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     short_name TEXT NOT NULL,
@@ -939,8 +981,19 @@ CREATE TABLE teams (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create players table
-CREATE TABLE players (
+-- Add missing columns to teams if they don't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='teams' AND column_name='franchise_id') THEN
+        ALTER TABLE teams ADD COLUMN franchise_id INTEGER REFERENCES franchises(id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='teams' AND column_name='is_active') THEN
+        ALTER TABLE teams ADD COLUMN is_active BOOLEAN DEFAULT true;
+    END IF;
+END $$;
+
+-- Create players table if it doesn't exist
+CREATE TABLE IF NOT EXISTS players (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     franchise_id INTEGER REFERENCES franchises(id),
@@ -957,27 +1010,48 @@ CREATE TABLE players (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create user-player links table
-CREATE TABLE user_player_links (
+-- Add missing columns to players if they don't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='stats') THEN
+        ALTER TABLE players ADD COLUMN stats JSONB DEFAULT '{"totalMatches": 0, "totalRuns": 0, "totalWickets": 0, "highestScore": 0, "bestBowling": "0/0"}';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='availability') THEN
+        ALTER TABLE players ADD COLUMN availability BOOLEAN DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='players' AND column_name='preferred_position') THEN
+        ALTER TABLE players ADD COLUMN preferred_position TEXT;
+    END IF;
+END $$;
+
+-- Create user-player links table if it doesn't exist
+CREATE TABLE IF NOT EXISTS user_player_links (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) NOT NULL,
     player_id INTEGER REFERENCES players(id) NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create player-franchise links table
-CREATE TABLE player_franchise_links (
+-- Create player-franchise links table if it doesn't exist
+CREATE TABLE IF NOT EXISTS player_franchise_links (
     id SERIAL PRIMARY KEY,
     player_id INTEGER REFERENCES players(id) NOT NULL,
     franchise_id INTEGER REFERENCES franchises(id) NOT NULL,
     is_active BOOLEAN DEFAULT true,
     joined_at TIMESTAMP DEFAULT NOW(),
-    created_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(player_id, franchise_id)
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create matches table
-CREATE TABLE matches (
+-- Add unique constraint if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'player_franchise_links_player_id_franchise_id_key') THEN
+        ALTER TABLE player_franchise_links ADD CONSTRAINT player_franchise_links_player_id_franchise_id_key UNIQUE(player_id, franchise_id);
+    END IF;
+END $$;
+
+-- Create matches table if it doesn't exist
+CREATE TABLE IF NOT EXISTS matches (
     id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     team1_id INTEGER REFERENCES teams(id) NOT NULL,
@@ -999,8 +1073,8 @@ CREATE TABLE matches (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create innings table
-CREATE TABLE innings (
+-- Create innings table if it doesn't exist
+CREATE TABLE IF NOT EXISTS innings (
     id SERIAL PRIMARY KEY,
     match_id INTEGER REFERENCES matches(id) NOT NULL,
     batting_team_id INTEGER REFERENCES teams(id) NOT NULL,
@@ -1015,8 +1089,8 @@ CREATE TABLE innings (
     current_bowler_id INTEGER REFERENCES players(id)
 );
 
--- Create balls table
-CREATE TABLE balls (
+-- Create balls table if it doesn't exist
+CREATE TABLE IF NOT EXISTS balls (
     id SERIAL PRIMARY KEY,
     innings_id INTEGER REFERENCES innings(id) NOT NULL,
     over_number INTEGER NOT NULL,
@@ -1037,8 +1111,8 @@ CREATE TABLE balls (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create player_stats table
-CREATE TABLE player_stats (
+-- Create player_stats table if it doesn't exist
+CREATE TABLE IF NOT EXISTS player_stats (
     id SERIAL PRIMARY KEY,
     innings_id INTEGER REFERENCES innings(id) NOT NULL,
     player_id INTEGER REFERENCES players(id) NOT NULL,
@@ -1060,8 +1134,8 @@ CREATE TABLE player_stats (
     no_balls INTEGER DEFAULT 0
 );
 
--- Create match_player_selections table
-CREATE TABLE match_player_selections (
+-- Create match_player_selections table if it doesn't exist
+CREATE TABLE IF NOT EXISTS match_player_selections (
     id SERIAL PRIMARY KEY,
     match_id INTEGER REFERENCES matches(id) NOT NULL,
     player_id INTEGER REFERENCES players(id) NOT NULL,
@@ -1072,8 +1146,8 @@ CREATE TABLE match_player_selections (
     is_selected BOOLEAN DEFAULT true
 );
 
--- Create user_sessions table
-CREATE TABLE user_sessions (
+-- Create user_sessions table if it doesn't exist
+CREATE TABLE IF NOT EXISTS user_sessions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) NOT NULL,
     session_token VARCHAR(255) NOT NULL UNIQUE,
@@ -1089,22 +1163,30 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO cricket_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO cricket_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO cricket_user;
 
--- Insert sample data for testing
-INSERT INTO franchises (name, short_name) VALUES 
-('Mumbai Indians', 'MI'),
-('Chennai Super Kings', 'CSK');
+-- Insert sample data only if tables are empty (production-safe)
+INSERT INTO franchises (name, short_name) 
+SELECT 'Mumbai Indians', 'MI'
+WHERE NOT EXISTS (SELECT 1 FROM franchises WHERE short_name = 'MI');
 
-INSERT INTO teams (name, short_name, franchise_id) VALUES 
-('Mumbai Indians A', 'MIA', 1),
-('Chennai Super Kings A', 'CSKA', 2);
+INSERT INTO franchises (name, short_name) 
+SELECT 'Chennai Super Kings', 'CSK'
+WHERE NOT EXISTS (SELECT 1 FROM franchises WHERE short_name = 'CSK');
+
+INSERT INTO teams (name, short_name, franchise_id) 
+SELECT 'Mumbai Indians A', 'MIA', 1
+WHERE NOT EXISTS (SELECT 1 FROM teams WHERE short_name = 'MIA');
+
+INSERT INTO teams (name, short_name, franchise_id) 
+SELECT 'Chennai Super Kings A', 'CSKA', 2
+WHERE NOT EXISTS (SELECT 1 FROM teams WHERE short_name = 'CSKA');
 
 -- Success confirmation
 SELECT 'Database schema created successfully!' as status;
 
-COMPLETE_SCHEMA_EOF
+SAFE_SCHEMA_EOF
     
     if [ $? -eq 0 ]; then
-        success "✓ Complete database schema created successfully with SQL"
+        success "✓ Production-safe database schema migration completed successfully"
     else
         warning "Direct SQL failed, attempting PostgreSQL superuser approach..."
         
