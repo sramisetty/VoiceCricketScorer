@@ -211,30 +211,7 @@ restore_production_files() {
     fi
 }
 
-# Comprehensive Database Schema Normalization
-# This function handles all column name conflicts between Drizzle ORM and production database
-normalize_database_schema() {
-    log "Normalizing database schema to handle column name conflicts..."
-    
-    # This function ensures the production database schema matches Drizzle ORM expectations
-    # Drizzle uses snake_case while production may have camelCase columns
-    
-    log "Running schema normalization SQL commands..."
-    sudo -u postgres psql -d cricket_scorer -c "
-        -- Basic schema normalization placeholder
-        SELECT 'Database schema normalization completed successfully' as status;
-    " 2>/dev/null || {
-        warning "Schema normalization skipped - will use production-safe deployment instead"
-    }
-    
-    if [ $? -eq 0 ]; then
-        success "Database schema normalized successfully"
-    else
-        warning "Schema normalization had some issues, but continuing..."
-    fi
-}
-
-# Setup database
+# Setup database with comprehensive schema
 setup_database() {
     log "Setting up database schema..."
     
@@ -287,9 +264,6 @@ setup_database() {
     
     success "Database users and permissions configured"
     
-    # Run schema normalization
-    normalize_database_schema
-    
     # Create comprehensive production-safe schema
     log "Creating/updating comprehensive database schema..."
     
@@ -306,7 +280,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     expire TIMESTAMP NOT NULL
 );
 
--- 2. Users table (8 comprehensive columns)
+-- 2. Users table (comprehensive columns)
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR UNIQUE,
@@ -316,14 +290,12 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR DEFAULT 'viewer',
     is_active BOOLEAN DEFAULT true,
     is_verified BOOLEAN DEFAULT false,
+    profile_image_url VARCHAR,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Add missing user columns (production-safe)
-ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image_url VARCHAR;
-
--- 3. Franchises table (8 comprehensive columns)
+-- 3. Franchises table (comprehensive columns)
 CREATE TABLE IF NOT EXISTS franchises (
     id SERIAL PRIMARY KEY,
     name VARCHAR NOT NULL,
@@ -336,7 +308,7 @@ CREATE TABLE IF NOT EXISTS franchises (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 4. Teams table (7 comprehensive columns)
+-- 4. Teams table (comprehensive columns)
 CREATE TABLE IF NOT EXISTS teams (
     id SERIAL PRIMARY KEY,
     name VARCHAR NOT NULL,
@@ -347,12 +319,14 @@ CREATE TABLE IF NOT EXISTS teams (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 5. Players table (13 comprehensive columns)
+-- 5. Players table (comprehensive columns)
 CREATE TABLE IF NOT EXISTS players (
     id SERIAL PRIMARY KEY,
     first_name VARCHAR NOT NULL,
     last_name VARCHAR NOT NULL,
     email VARCHAR,
+    phone VARCHAR,
+    date_of_birth DATE,
     role VARCHAR DEFAULT 'batsman',
     batting_style VARCHAR,
     bowling_style VARCHAR,
@@ -363,11 +337,7 @@ CREATE TABLE IF NOT EXISTS players (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Add missing player columns (production-safe)
-ALTER TABLE players ADD COLUMN IF NOT EXISTS phone VARCHAR;
-ALTER TABLE players ADD COLUMN IF NOT EXISTS date_of_birth DATE;
-
--- 6. User-Player Links table (3 comprehensive columns)
+-- 6. User-Player Links table
 CREATE TABLE IF NOT EXISTS user_player_links (
     id SERIAL PRIMARY KEY,
     user_id VARCHAR REFERENCES users(id) ON DELETE CASCADE,
@@ -376,7 +346,7 @@ CREATE TABLE IF NOT EXISTS user_player_links (
     UNIQUE(user_id, player_id)
 );
 
--- 7. Player-Franchise Links table (5 comprehensive columns)
+-- 7. Player-Franchise Links table
 CREATE TABLE IF NOT EXISTS player_franchise_links (
     id SERIAL PRIMARY KEY,
     player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
@@ -386,7 +356,7 @@ CREATE TABLE IF NOT EXISTS player_franchise_links (
     UNIQUE(player_id, franchise_id)
 );
 
--- 8. Matches table (18 comprehensive columns)
+-- 8. Matches table (comprehensive columns)
 CREATE TABLE IF NOT EXISTS matches (
     id SERIAL PRIMARY KEY,
     title VARCHAR NOT NULL,
@@ -408,7 +378,7 @@ CREATE TABLE IF NOT EXISTS matches (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 9. Innings table (11 comprehensive columns)
+-- 9. Innings table (comprehensive columns)
 CREATE TABLE IF NOT EXISTS innings (
     id SERIAL PRIMARY KEY,
     match_id INTEGER REFERENCES matches(id) ON DELETE CASCADE,
@@ -424,7 +394,7 @@ CREATE TABLE IF NOT EXISTS innings (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 10. Balls table (17 comprehensive columns)
+-- 10. Balls table (comprehensive columns)
 CREATE TABLE IF NOT EXISTS balls (
     id SERIAL PRIMARY KEY,
     match_id INTEGER REFERENCES matches(id) ON DELETE CASCADE,
@@ -445,7 +415,7 @@ CREATE TABLE IF NOT EXISTS balls (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 11. Player Stats table (18 comprehensive columns)
+-- 11. Player Stats table (comprehensive columns)
 CREATE TABLE IF NOT EXISTS player_stats (
     id SERIAL PRIMARY KEY,
     match_id INTEGER REFERENCES matches(id) ON DELETE CASCADE,
@@ -468,7 +438,7 @@ CREATE TABLE IF NOT EXISTS player_stats (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- 12. Match Player Selections table (7 comprehensive columns)
+-- 12. Match Player Selections table
 CREATE TABLE IF NOT EXISTS match_player_selections (
     id SERIAL PRIMARY KEY,
     match_id INTEGER REFERENCES matches(id) ON DELETE CASCADE,
