@@ -86,7 +86,7 @@ export function Commentary({ balls }: CommentaryProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
                       <p className="text-gray-800 font-medium text-sm">
-                        {ball.bowler.name} to {ball.batsman.name}
+                        {ball.bowler?.name || 'Unknown Bowler'} to {ball.batsman?.name || 'Unknown Batsman'}
                       </p>
                       <span className={cn(
                         "px-2 py-1 rounded text-xs font-medium",
