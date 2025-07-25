@@ -244,6 +244,66 @@ export default function MatchesClean() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         
+        {/* Live Matches */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <h2 className="text-2xl font-bold text-gray-800">Live Matches</h2>
+            <Badge variant="secondary">{liveMatches.length}</Badge>
+          </div>
+          
+          {liveMatches.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <Play className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-500">No live matches</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {liveMatches.map((match: any) => (
+                <Card key={match.id} className="border-2 border-green-200 shadow-lg">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">
+                        {match.team1?.name || 'Team 1'} vs {match.team2?.name || 'Team 2'}
+                      </CardTitle>
+                      <Badge className="bg-green-500 animate-pulse">Live</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Trophy className="w-4 h-4" />
+                        <span>{match.matchType}</span>
+                        <span>•</span>
+                        <Target className="w-4 h-4" />
+                        <span>{match.overs} overs</span>
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <Link href={`/scorer/${match.id}`} className="flex-1">
+                          <Button className="w-full bg-cricket-primary hover:bg-cricket-secondary">
+                            <Play className="w-4 h-4 mr-2" />
+                            Score
+                          </Button>
+                        </Link>
+                        <Link href={`/scoreboard/${match.id}`}>
+                          <Button variant="outline" size="sm">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+        
         {/* Setup Matches */}
         <div>
           <div className="flex items-center gap-2 mb-4">
@@ -311,69 +371,29 @@ export default function MatchesClean() {
           )}
         </div>
 
-        {/* Live Matches */}
-        {liveMatches.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <h2 className="text-2xl font-bold text-gray-800">Live Matches</h2>
-              <Badge variant="secondary">{liveMatches.length}</Badge>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {liveMatches.map((match: any) => (
-                <Card key={match.id} className="border-2 border-green-200">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">
-                        {match.team1?.name || 'Team 1'} vs {match.team2?.name || 'Team 2'}
-                      </CardTitle>
-                      <Badge className="bg-green-500">Live</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Trophy className="w-4 h-4" />
-                        <span>{match.matchType}</span>
-                        <span>•</span>
-                        <Target className="w-4 h-4" />
-                        <span>{match.overs} overs</span>
-                      </div>
 
-                      <div className="flex gap-2 pt-2">
-                        <Link href={`/scorer/${match.id}`} className="flex-1">
-                          <Button className="w-full bg-cricket-primary hover:bg-cricket-secondary">
-                            <Play className="w-4 h-4 mr-2" />
-                            Score
-                          </Button>
-                        </Link>
-                        <Link href={`/scoreboard/${match.id}`}>
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Completed Matches */}
-        {completedMatches.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-              <h2 className="text-2xl font-bold text-gray-800">Completed Matches</h2>
-              <Badge variant="secondary">{completedMatches.length}</Badge>
-            </div>
-            
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+            <h2 className="text-2xl font-bold text-gray-800">Completed Matches</h2>
+            <Badge variant="secondary">{completedMatches.length}</Badge>
+          </div>
+          
+          {completedMatches.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <Trophy className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-500">No completed matches</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {completedMatches.map((match: any) => (
-                <Card key={match.id}>
+                <Card key={match.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">
@@ -391,6 +411,17 @@ export default function MatchesClean() {
                         <Target className="w-4 h-4" />
                         <span>{match.overs} overs</span>
                       </div>
+                      
+                      {match.venue && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span>{match.venue}</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Clock className="w-4 h-4" />
+                        <span>Completed: {new Date(match.createdAt).toLocaleDateString()}</span>
+                      </div>
 
                       <div className="flex gap-2 pt-2">
                         <Link href={`/scoreboard/${match.id}`} className="flex-1">
@@ -405,8 +436,8 @@ export default function MatchesClean() {
                 </Card>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
