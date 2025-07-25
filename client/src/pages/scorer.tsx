@@ -910,22 +910,6 @@ export default function Scorer() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Main Scoring Column */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Voice Input Panel */}
-            <Card className="shadow-lg border-2 border-green-200">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-green-800 flex items-center">
-                  🎤 Voice Input & Quick Scoring
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <VoiceInput
-                  onCommand={handleCommand}
-                  currentBatsman={striker?.player.name}
-                  currentBowler={currentData.currentBowler?.player.name}
-                />
-              </CardContent>
-            </Card>
-
             {/* Advanced Scorer */}
             <Card className="shadow-lg border-2 border-blue-200">
               <CardHeader className="pb-4">
@@ -1269,6 +1253,22 @@ export default function Scorer() {
                     Match Settings
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Voice Input Panel - Moved to Bottom */}
+            <Card className="shadow-lg border-2 border-green-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-bold text-green-800 flex items-center">
+                  🎤 Voice Input & Quick Scoring
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VoiceInput
+                  onCommand={handleCommand}
+                  currentBatsman={striker?.player.name}
+                  currentBowler={currentData.currentBowler?.player.name}
+                />
               </CardContent>
             </Card>
           </div>
