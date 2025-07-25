@@ -3,7 +3,8 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Play, Eye, Trophy, Target, Clock, Users, BarChart3 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Plus, Play, Eye, Trophy, Target, Clock, Users, BarChart3, FileText } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { Link } from 'wouter';
 import { queryClient, apiRequest } from '@/lib/queryClient';
@@ -20,6 +21,9 @@ export default function MatchesClean() {
     tossWinnerId: '',
     tossDecision: 'bat' as 'bat' | 'bowl'
   });
+
+  // State for match summary dialog
+  const [selectedMatchForSummary, setSelectedMatchForSummary] = useState<any>(null);
 
   // Fetch matches data
   const { data: matches = [], isLoading } = useQuery({
@@ -432,12 +436,28 @@ export default function MatchesClean() {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Link href={`/match-details/${match.id}`} className="flex-1">
-                          <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                            <BarChart3 className="w-4 h-4 mr-2" />
-                            Full Summary
-                          </Button>
-                        </Link>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              className="w-full bg-blue-600 hover:bg-blue-700"
+                              onClick={() => setSelectedMatchForSummary(match)}
+                            >
+                              <FileText className="w-4 h-4 mr-2" />
+                              Full Summary
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>{match.title} - Complete Match Summary</DialogTitle>
+                              <DialogDescription>
+                                Comprehensive match details, innings breakdown, and player statistics
+                              </DialogDescription>
+                            </DialogHeader>
+                            {selectedMatchForSummary && selectedMatchForSummary.id === match.id && (
+                              <MatchSummaryContent matchId={match.id} />
+                            )}
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </div>
                   </CardContent>
@@ -447,6 +467,94 @@ export default function MatchesClean() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Component to display complete match summary in popup
+function MatchSummaryContent({ matchId }: { matchId: number }) {
+  const { data: completeData, isLoading } = useQuery({
+    queryKey: ['/api/matches', matchId, 'complete'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/matches/${matchId}/complete`);
+      return response.json();
+    },
+  });
+
+  if (isLoading) {
+    return <div className="p-4 text-center">Loading complete match data...</div>;
+  }
+
+  if (!completeData) {
+    return <div className="p-4 text-center text-red-600">Failed to load match data</div>;
+  }
+
+  const { match, innings } = completeData;
+  const firstInnings = innings?.[0];
+  const secondInnings = innings?.[1];
+
+  return (
+    <div className="space-y-6">
+      {/* Match Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Match Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-600">{match.team1?.name}</p>
+              <p className="text-sm text-gray-600">vs</p>
+              <p className="text-2xl font-bold text-red-600">{match.team2?.name}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold">Total Runs</p>
+              <p className="text-2xl font-bold">{(firstInnings?.totalRuns || 0) + (secondInnings?.totalRuns || 0)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold">Total Wickets</p>
+              <p className="text-2xl font-bold">{(firstInnings?.totalWickets || 0) + (secondInnings?.totalWickets || 0)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold">Status</p>
+              <Badge className="text-lg">{match.status}</Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Innings Details */}
+      {innings && innings.length > 0 && (
+        <div className="grid gap-4">
+          {innings.map((inning: any, index: number) => (
+            <Card key={inning.id}>
+              <CardHeader>
+                <CardTitle>Innings {inning.inningsNumber} - {inning.battingTeam.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-4 gap-4 text-center">
+                  <div>
+                    <p className="text-lg font-bold">{inning.totalRuns || 0}</p>
+                    <p className="text-sm text-gray-600">Runs</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold">{inning.totalWickets || 0}</p>
+                    <p className="text-sm text-gray-600">Wickets</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold">{Math.floor((inning.totalBalls || 0) / 6)}.{(inning.totalBalls || 0) % 6}</p>
+                    <p className="text-sm text-gray-600">Overs</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold">{inning.isCompleted ? 'Complete' : 'In Progress'}</p>
+                    <p className="text-sm text-gray-600">Status</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
