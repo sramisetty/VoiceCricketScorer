@@ -42,21 +42,24 @@ console.log('📊 Step 1: Analyzing schema.ts...');
 const schemaContent = fs.readFileSync(schemaPath, 'utf8');
 
 // Extract table definitions with detailed column analysis
-const tableMatches = schemaContent.match(/export const (\w+) = pgTable\("(\w+)",\s*{([^}]+)}/gs);
+const tableMatches = schemaContent.match(/export const (\w+) = pgTable\("(\w+)",\s*{[\s\S]*?}\);/g);
 const tables = [];
 
 if (tableMatches) {
     tableMatches.forEach(match => {
         const [, varName, tableName] = match.match(/export const (\w+) = pgTable\("(\w+)"/);
         
-        // Extract columns from the table definition
-        const columnSection = match.match(/{([^}]+)}/s)[1];
-        const columnMatches = columnSection.match(/(\w+):\s*[^,}]+/g);
+        // Extract columns from the table definition - handle multi-line better
+        const columnSection = match.match(/{([\s\S]*?)}\);/)[1];
+        const columnMatches = columnSection.match(/\s+(\w+):\s+[^,\n]+(?:\([^)]*\))?(?:\.[^,\n]*)*,?/g);
         
         const columns = [];
         if (columnMatches) {
             columnMatches.forEach(colMatch => {
-                const colName = colMatch.match(/(\w+):/)[1];
+                const colNameMatch = colMatch.match(/\s+(\w+):/);
+                if (!colNameMatch) return;
+                
+                const colName = colNameMatch[1];
                 const colDef = colMatch.trim();
                 
                 // Determine SQL type from Drizzle definition
@@ -75,28 +78,37 @@ if (tableMatches) {
                 } else if (colDef.includes('text(')) {
                     sqlType = 'TEXT';
                 } else if (colDef.includes('varchar(')) {
-                    sqlType = 'VARCHAR(255)';
+                    const lengthMatch = colDef.match(/varchar\([^,]*length:\s*(\d+)/);
+                    sqlType = lengthMatch ? `VARCHAR(${lengthMatch[1]})` : 'VARCHAR(255)';
                 } else if (colDef.includes('boolean(')) {
                     sqlType = 'BOOLEAN';
                 } else if (colDef.includes('timestamp(')) {
                     sqlType = 'TIMESTAMP';
                 } else if (colDef.includes('jsonb(')) {
                     sqlType = 'JSONB';
+                } else if (colDef.includes('date(')) {
+                    sqlType = 'DATE';
+                } else if (colDef.includes('uuid(')) {
+                    sqlType = 'UUID';
                 }
                 
                 if (colDef.includes('.notNull()')) constraints += ' NOT NULL';
+                if (colDef.includes('.unique()')) constraints += ' UNIQUE';
                 if (colDef.includes('.defaultNow()')) constraints += ' DEFAULT NOW()';
                 if (colDef.includes('.default(false)')) constraints += ' DEFAULT false';
                 if (colDef.includes('.default(true)')) constraints += ' DEFAULT true';
                 
-                // Extract default values
+                // Extract other default values
                 const defaultMatch = colDef.match(/\.default\(([^)]+)\)/);
                 if (defaultMatch && !constraints.includes('DEFAULT')) {
                     const defaultVal = defaultMatch[1];
-                    if (defaultVal.includes("'") || defaultVal.includes('"')) {
+                    if (defaultVal.startsWith('"') || defaultVal.startsWith("'")) {
                         constraints += ` DEFAULT ${defaultVal}`;
                     } else if (!isNaN(defaultVal)) {
                         constraints += ` DEFAULT ${defaultVal}`;
+                    } else if (defaultVal.includes('{')) {
+                        // Handle JSON defaults
+                        constraints += ` DEFAULT '${defaultVal.replace(/'/g, "''")}'`;
                     }
                 }
                 
