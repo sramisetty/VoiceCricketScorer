@@ -26,29 +26,23 @@ export function MatchStatistics({ matchData }: MatchStatisticsProps) {
   const getCurrentOverInfo = () => {
     if (!recentBalls?.length) return { display: "0.0", overNumber: 1, validBalls: 0 };
     
-    const lastBall = recentBalls[0];
-    const lastOverNumber = lastBall.overNumber;
-    
-    // Get all balls in the last over that was bowled
-    const lastOverBalls = recentBalls.filter(ball => ball.overNumber === lastOverNumber);
-    const validBallsInLastOver = lastOverBalls.filter(ball => 
+    // Calculate total completed overs and current over balls
+    const allBalls = recentBalls;
+    const validBalls = allBalls.filter(ball => 
       !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye'
-    ).length;
+    );
     
-    // If the last over is complete (6 valid balls), show completed overs count
-    if (validBallsInLastOver >= 6) {
-      return { 
-        display: `${lastOverNumber}.0`, 
-        overNumber: lastOverNumber + 1,
-        validBalls: 0
-      };
-    }
+    const totalValidBalls = validBalls.length;
+    const completedOvers = Math.floor(totalValidBalls / 6);
+    const ballsInCurrentOver = totalValidBalls % 6;
     
-    // Otherwise show current over with balls bowled
+    // Display shows completed overs + balls in current over
+    const display = `${completedOvers}.${ballsInCurrentOver}`;
+    
     return { 
-      display: `${lastOverNumber}.${validBallsInLastOver}`, 
-      overNumber: lastOverNumber,
-      validBalls: validBallsInLastOver
+      display,
+      overNumber: completedOvers + 1,
+      validBalls: ballsInCurrentOver
     };
   };
 

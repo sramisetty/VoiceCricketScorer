@@ -839,29 +839,26 @@ export default function Scorer() {
   const getCurrentOverInfo = () => {
     if (!currentData?.recentBalls?.length) return { display: "0.0", overNumber: 1, isComplete: false };
     
-    const lastBall = currentData.recentBalls[0];
-    const lastOverNumber = lastBall.overNumber;
-    
-    // Get all balls in the last over that was bowled
-    const lastOverBalls = currentData.recentBalls.filter(ball => ball.overNumber === lastOverNumber);
-    const validBallsInLastOver = lastOverBalls.filter(ball => 
+    // Calculate total completed overs and current over balls
+    const allBalls = currentData.recentBalls;
+    const validBalls = allBalls.filter(ball => 
       !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye'
-    ).length;
+    );
     
-    // If the last over is complete (6 valid balls), show completed overs count
-    if (validBallsInLastOver >= 6) {
-      return { 
-        display: `${lastOverNumber}.0`, 
-        overNumber: lastOverNumber + 1,  // Next over number for CurrentOver component
-        isComplete: true
-      };
-    }
+    const totalValidBalls = validBalls.length;
+    const completedOvers = Math.floor(totalValidBalls / 6);
+    const ballsInCurrentOver = totalValidBalls % 6;
     
-    // Otherwise show current over with balls bowled
+    // Display shows completed overs + balls in current over
+    const display = `${completedOvers}.${ballsInCurrentOver}`;
+    
+    // For CurrentOver component, use the actual current over number from database
+    const currentOverNumber = allBalls[0].overNumber;
+    
     return { 
-      display: `${lastOverNumber}.${validBallsInLastOver}`, 
-      overNumber: lastOverNumber,
-      isComplete: false
+      display,
+      overNumber: currentOverNumber,
+      isComplete: ballsInCurrentOver === 0 && totalValidBalls > 0
     };
   };
 

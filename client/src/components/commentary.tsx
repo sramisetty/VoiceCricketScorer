@@ -17,22 +17,16 @@ export function Commentary({ balls }: CommentaryProps) {
   };
 
   const getBallNumber = (ball: Ball, ballIndex: number, allBalls: Ball[]) => {
-    // Calculate display using same logic as other components
-    const ballsInThisOver = allBalls.filter(b => b.overNumber === ball.overNumber);
-    const validBallsInOver = ballsInThisOver.filter(b => 
+    // Calculate valid balls up to and including this ball
+    const ballsUpToThis = allBalls.slice(ballIndex);
+    const validBallsUpToThis = ballsUpToThis.filter(b => 
       !b.extraType || b.extraType === 'bye' || b.extraType === 'legbye'
     ).length;
     
-    // If this ball completed the over (6 valid balls), show completed over count
-    const validBallPosition = ballsInThisOver
-      .filter(b => (!b.extraType || b.extraType === 'bye' || b.extraType === 'legbye') && b.ballNumber <= ball.ballNumber)
-      .length;
+    const completedOvers = Math.floor(validBallsUpToThis / 6);
+    const ballsInCurrentOver = validBallsUpToThis % 6;
     
-    if (validBallsInOver >= 6 && validBallPosition === 6) {
-      return `${ball.overNumber}.0`;
-    }
-    
-    return `${ball.overNumber}.${validBallPosition}`;
+    return `${completedOvers}.${ballsInCurrentOver}`;
   };
 
   const getBallContent = (ball: Ball) => {

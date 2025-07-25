@@ -47,6 +47,11 @@ export function CurrentOver({ balls, bowlerName, overNumber, totalBalls, current
     !ball.extraType || (ball.extraType === 'bye' || ball.extraType === 'legbye')
   ).length;
   
+  // Calculate total valid balls from all balls to show correct over count
+  const allValidBalls = balls.filter(ball => 
+    !ball.extraType || (ball.extraType === 'bye' || ball.extraType === 'legbye')
+  ).length;
+  
   const validBallsBowled = validBallsInOver;
   const ballsRemaining = validBallsInOver >= 6 ? 0 : 6 - validBallsInOver;
 
@@ -68,11 +73,7 @@ export function CurrentOver({ balls, bowlerName, overNumber, totalBalls, current
       <CardContent>
         <div className="text-center mb-4">
           <div className="text-2xl font-bold text-cricket-primary">
-            {currentOverBalls.length === 0 ? (
-              `Over ${Math.max(1, overNumber - 1)}.0`
-            ) : (
-              `Over ${overNumber}.${validBallsBowled}`
-            )}
+            Over {Math.max(0, Math.floor(allValidBalls / 6))}.{allValidBalls % 6}
           </div>
           <div className="text-sm text-gray-600">{bowlerName} bowling</div>
           {currentBowlerStats && (
