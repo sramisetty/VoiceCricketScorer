@@ -18,6 +18,8 @@ import FranchiseManagementComplete from "@/pages/FranchiseManagementComplete";
 import MatchStats from "@/pages/MatchStats";
 import Archives from "@/pages/Archives";
 import PlayerStats from "@/pages/PlayerStats";
+import Profile from "@/pages/Profile";
+import Settings from "@/pages/Settings";
 import MatchDetails from "@/pages/match-details";
 import TossTest from "@/pages/toss-test";
 import NotFound from "@/pages/not-found";
@@ -41,6 +43,8 @@ function Router() {
       <Route path="/match-stats" component={MatchStatsWithNav} />
       <Route path="/archives" component={ArchivesWithNav} />
       <Route path="/player-stats" component={PlayerStatsWithNav} />
+      <Route path="/profile" component={ProfileWithNav} />
+      <Route path="/settings" component={SettingsWithNav} />
       <Route path="/match-details/:id" component={MatchDetails} />
       <Route path="/toss-test" component={TossTest} />
       <Route component={NotFound} />
@@ -174,6 +178,30 @@ function PlayerStatsWithNav() {
       <Navigation />
       <div className="flex-1">
         <PlayerStats />
+      </div>
+      <Footer />
+    </div>
+  );
+}
+
+function ProfileWithNav() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navigation />
+      <div className="flex-1">
+        <Profile />
+      </div>
+      <Footer />
+    </div>
+  );
+}
+
+function SettingsWithNav() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navigation />
+      <div className="flex-1">
+        <Settings />
       </div>
       <Footer />
     </div>

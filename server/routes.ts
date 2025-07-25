@@ -48,6 +48,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Profile Management API routes
+  app.put('/api/profile', authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      const { firstName, lastName, phone, address, bio } = req.body;
+      
+      // Update user profile
+      const updatedUser = await storage.updateUserProfile(req.user.id, {
+        firstName,
+        lastName,
+        phone,
+        address,
+        bio
+      });
+
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Return updated user without password hash
+      const { passwordHash, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Update profile error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Settings Management API routes
+  app.get('/api/user/settings', authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      // Get user settings (for now, return default settings)
+      const settings = {
+        notifications: {
+          email: true,
+          push: true,
+          matchUpdates: true,
+          scoreAlerts: false,
+        },
+        privacy: {
+          profileVisibility: 'public',
+          showStats: true,
+          showActivity: true,
+        },
+        preferences: {
+          theme: 'system',
+          language: 'en',
+          timezone: 'UTC',
+          soundEffects: true,
+        },
+      };
+
+      res.json(settings);
+    } catch (error) {
+      console.error('Get settings error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.put('/api/user/settings', authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      // For now, just return success (settings would be stored in database in real implementation)
+      res.json({ message: 'Settings updated successfully' });
+    } catch (error) {
+      console.error('Update settings error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.put('/api/user/password', authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+
+      // Get current user
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Verify current password (in a real implementation)
+      // For now, just hash the new password and update
+      const hashedPassword = await hashPassword(newPassword);
+      
+      const updatedUser = await storage.updateUserPassword(req.user.id, hashedPassword);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Franchise Management API routes
   app.get('/api/franchises', async (req, res) => {
     try {

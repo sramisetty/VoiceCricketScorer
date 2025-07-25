@@ -27,6 +27,8 @@ export interface IStorage {
   deleteUser(id: number): Promise<boolean>;
   getAllUsers(): Promise<User[]>;
   linkUserToPlayer(userId: number, playerId: number | null): Promise<User | undefined>;
+  updateUserProfile(id: number, profile: { firstName?: string; lastName?: string; phone?: string; address?: string; bio?: string }): Promise<User | undefined>;
+  updateUserPassword(id: number, passwordHash: string): Promise<User | undefined>;
 
   // Teams
   createTeam(team: InsertTeam): Promise<Team>;
@@ -639,6 +641,32 @@ export class DatabaseStorage implements IStorage {
       return this.getUser(userId);
     } catch (error) {
       console.error("Error linking user to player:", error);
+      return undefined;
+    }
+  }
+
+  async updateUserProfile(id: number, profile: { firstName?: string; lastName?: string; phone?: string; address?: string; bio?: string }): Promise<User | undefined> {
+    try {
+      const [updatedUser] = await db.update(users)
+        .set({ ...profile, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      return undefined;
+    }
+  }
+
+  async updateUserPassword(id: number, passwordHash: string): Promise<User | undefined> {
+    try {
+      const [updatedUser] = await db.update(users)
+        .set({ passwordHash, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user password:", error);
       return undefined;
     }
   }
