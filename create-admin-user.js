@@ -111,13 +111,12 @@ async function createAdminUser() {
     console.log(`  Hash length: ${passwordHash.length}`);
     console.log(`  Hash preview: ${passwordHash.substring(0, 29)}...`);
 
-    // Create the admin user (generate username from email)
-    const username = email.split('@')[0]; // Use email prefix as username
+    // Create the admin user (use email as username)
     const result = await pool.query(
       `INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, email_verified, created_at, updated_at) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) 
        RETURNING id, username, email, first_name, last_name, role`,
-      [username, email, passwordHash, firstName, lastName, 'global_admin', true, true]
+      [email, email, passwordHash, firstName, lastName, 'global_admin', true, true]
     );
 
     const newUser = result.rows[0];
