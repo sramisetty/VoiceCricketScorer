@@ -24,7 +24,7 @@ export function MatchStatistics({ matchData }: MatchStatisticsProps) {
   
   // Calculate current over display logic - same as scorer page
   const getCurrentOverInfo = () => {
-    if (!recentBalls?.length) return { display: "1.0", overNumber: 1, validBalls: 0 };
+    if (!recentBalls?.length) return { display: "0.0", overNumber: 1, validBalls: 0 };
     
     const lastBall = recentBalls[0];
     const lastOverNumber = lastBall.overNumber;
@@ -35,10 +35,10 @@ export function MatchStatistics({ matchData }: MatchStatisticsProps) {
       !ball.extraType || ball.extraType === 'bye' || ball.extraType === 'legbye'
     ).length;
     
-    // If the last over is complete (6 valid balls), show next over as X.0
+    // If the last over is complete (6 valid balls), show completed overs count
     if (validBallsInLastOver >= 6) {
       return { 
-        display: `${lastOverNumber + 1}.0`, 
+        display: `${lastOverNumber}.0`, 
         overNumber: lastOverNumber + 1,
         validBalls: 0
       };

@@ -16,8 +16,23 @@ export function Commentary({ balls }: CommentaryProps) {
     return 'bg-gray-50 border-gray-200';
   };
 
-  const getBallNumber = (ball: Ball) => {
-    return `${ball.overNumber}.${ball.ballNumber}`;
+  const getBallNumber = (ball: Ball, ballIndex: number, allBalls: Ball[]) => {
+    // Calculate display using same logic as other components
+    const ballsInThisOver = allBalls.filter(b => b.overNumber === ball.overNumber);
+    const validBallsInOver = ballsInThisOver.filter(b => 
+      !b.extraType || b.extraType === 'bye' || b.extraType === 'legbye'
+    ).length;
+    
+    // If this ball completed the over (6 valid balls), show completed over count
+    const validBallPosition = ballsInThisOver
+      .filter(b => (!b.extraType || b.extraType === 'bye' || b.extraType === 'legbye') && b.ballNumber <= ball.ballNumber)
+      .length;
+    
+    if (validBallsInOver >= 6 && validBallPosition === 6) {
+      return `${ball.overNumber}.0`;
+    }
+    
+    return `${ball.overNumber}.${validBallPosition}`;
   };
 
   const getBallContent = (ball: Ball) => {
@@ -72,7 +87,7 @@ export function Commentary({ balls }: CommentaryProps) {
                     "text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold flex-shrink-0",
                     getBallColor(ball)
                   )}>
-                    {getBallNumber(ball)}
+                    {getBallNumber(ball, index, balls)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
