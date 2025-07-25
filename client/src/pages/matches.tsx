@@ -209,6 +209,37 @@ export default function Matches() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* EMERGENCY DEBUG */}
+      <div style={{
+        position: 'fixed',
+        top: '10px',
+        left: '10px',
+        backgroundColor: 'red',
+        color: 'white',
+        padding: '10px',
+        zIndex: 9999,
+        border: '3px solid yellow'
+      }}>
+        <h3>EMERGENCY DEBUG</h3>
+        <button 
+          onClick={() => {
+            console.log('EMERGENCY: Test button clicked');
+            setIsTossDialogOpen(true);
+            console.log('EMERGENCY: Dialog state set to true');
+          }}
+          style={{
+            backgroundColor: 'blue',
+            color: 'white',
+            padding: '5px 10px',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          Emergency Test
+        </button>
+        <div>Dialog Open: {isTossDialogOpen ? 'YES' : 'NO'}</div>
+      </div>
+
       {/* Header */}
       <header className="bg-cricket-primary text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
@@ -375,7 +406,49 @@ export default function Matches() {
       )}
 
       {/* Toss Dialog */}
-      <Dialog open={isTossDialogOpen} onOpenChange={setIsTossDialogOpen}>
+      {isTossDialogOpen && (
+        <div style={{
+          position: 'fixed',
+          top: '0',
+          left: '0',
+          right: '0',
+          bottom: '0',
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            maxWidth: '500px',
+            width: '90%'
+          }}>
+            <h2 style={{ marginBottom: '20px', fontSize: '24px', fontWeight: 'bold' }}>
+              Start Match - Toss Details
+            </h2>
+            <p>BASIC TOSS DIALOG IS WORKING!</p>
+            <button 
+              onClick={() => setIsTossDialogOpen(false)}
+              style={{
+                backgroundColor: 'red',
+                color: 'white',
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                marginTop: '20px'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      <Dialog open={false} onOpenChange={setIsTossDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Start Match - Toss Details</DialogTitle>
