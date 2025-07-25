@@ -353,6 +353,261 @@ EOF
     fi
 }
 
+# Comprehensive Database Schema Normalization
+# This function handles all column name conflicts between Drizzle ORM and production database
+normalize_database_schema() {
+    log "Normalizing database schema to handle column name conflicts..."
+    
+    # This function ensures the production database schema matches Drizzle ORM expectations
+    # Drizzle uses snake_case while production may have camelCase columns
+    
+    sudo -u postgres psql -d cricket_scorer <<'NORMALIZE_SCHEMA_EOF'
+
+-- Function to check if column exists
+CREATE OR REPLACE FUNCTION column_exists(table_name text, column_name text) 
+RETURNS boolean AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = $1 AND column_name = $2
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Normalize teams table columns
+DO $$ 
+BEGIN
+    -- Handle shortName -> short_name
+    IF column_exists('teams', 'shortName') AND NOT column_exists('teams', 'short_name') THEN
+        ALTER TABLE teams RENAME COLUMN "shortName" TO short_name;
+        RAISE NOTICE 'Renamed teams.shortName to short_name';
+    END IF;
+    
+    -- Handle franchiseId -> franchise_id
+    IF column_exists('teams', 'franchiseId') AND NOT column_exists('teams', 'franchise_id') THEN
+        ALTER TABLE teams RENAME COLUMN "franchiseId" TO franchise_id;
+        RAISE NOTICE 'Renamed teams.franchiseId to franchise_id';
+    END IF;
+    
+    -- Handle isActive -> is_active
+    IF column_exists('teams', 'isActive') AND NOT column_exists('teams', 'is_active') THEN
+        ALTER TABLE teams RENAME COLUMN "isActive" TO is_active;
+        RAISE NOTICE 'Renamed teams.isActive to is_active';
+    END IF;
+    
+    -- Handle createdAt -> created_at
+    IF column_exists('teams', 'createdAt') AND NOT column_exists('teams', 'created_at') THEN
+        ALTER TABLE teams RENAME COLUMN "createdAt" TO created_at;
+        RAISE NOTICE 'Renamed teams.createdAt to created_at';
+    END IF;
+    
+    -- Handle updatedAt -> updated_at
+    IF column_exists('teams', 'updatedAt') AND NOT column_exists('teams', 'updated_at') THEN
+        ALTER TABLE teams RENAME COLUMN "updatedAt" TO updated_at;
+        RAISE NOTICE 'Renamed teams.updatedAt to updated_at';
+    END IF;
+END $$;
+
+-- Normalize franchises table columns
+DO $$ 
+BEGIN
+    -- Handle shortName -> short_name
+    IF column_exists('franchises', 'shortName') AND NOT column_exists('franchises', 'short_name') THEN
+        ALTER TABLE franchises RENAME COLUMN "shortName" TO short_name;
+        RAISE NOTICE 'Renamed franchises.shortName to short_name';
+    END IF;
+    
+    -- Handle contactEmail -> contact_email
+    IF column_exists('franchises', 'contactEmail') AND NOT column_exists('franchises', 'contact_email') THEN
+        ALTER TABLE franchises RENAME COLUMN "contactEmail" TO contact_email;
+        RAISE NOTICE 'Renamed franchises.contactEmail to contact_email';
+    END IF;
+    
+    -- Handle contactPhone -> contact_phone
+    IF column_exists('franchises', 'contactPhone') AND NOT column_exists('franchises', 'contact_phone') THEN
+        ALTER TABLE franchises RENAME COLUMN "contactPhone" TO contact_phone;
+        RAISE NOTICE 'Renamed franchises.contactPhone to contact_phone';
+    END IF;
+    
+    -- Handle isActive -> is_active
+    IF column_exists('franchises', 'isActive') AND NOT column_exists('franchises', 'is_active') THEN
+        ALTER TABLE franchises RENAME COLUMN "isActive" TO is_active;
+        RAISE NOTICE 'Renamed franchises.isActive to is_active';
+    END IF;
+    
+    -- Handle createdAt -> created_at
+    IF column_exists('franchises', 'createdAt') AND NOT column_exists('franchises', 'created_at') THEN
+        ALTER TABLE franchises RENAME COLUMN "createdAt" TO created_at;
+        RAISE NOTICE 'Renamed franchises.createdAt to created_at';
+    END IF;
+    
+    -- Handle updatedAt -> updated_at
+    IF column_exists('franchises', 'updatedAt') AND NOT column_exists('franchises', 'updated_at') THEN
+        ALTER TABLE franchises RENAME COLUMN "updatedAt" TO updated_at;
+        RAISE NOTICE 'Renamed franchises.updatedAt to updated_at';
+    END IF;
+END $$;
+
+-- Normalize players table columns
+DO $$ 
+BEGIN
+    -- Handle franchiseId -> franchise_id
+    IF column_exists('players', 'franchiseId') AND NOT column_exists('players', 'franchise_id') THEN
+        ALTER TABLE players RENAME COLUMN "franchiseId" TO franchise_id;
+        RAISE NOTICE 'Renamed players.franchiseId to franchise_id';
+    END IF;
+    
+    -- Handle teamId -> team_id
+    IF column_exists('players', 'teamId') AND NOT column_exists('players', 'team_id') THEN
+        ALTER TABLE players RENAME COLUMN "teamId" TO team_id;
+        RAISE NOTICE 'Renamed players.teamId to team_id';
+    END IF;
+    
+    -- Handle battingOrder -> batting_order
+    IF column_exists('players', 'battingOrder') AND NOT column_exists('players', 'batting_order') THEN
+        ALTER TABLE players RENAME COLUMN "battingOrder" TO batting_order;
+        RAISE NOTICE 'Renamed players.battingOrder to batting_order';
+    END IF;
+    
+    -- Handle userId -> user_id
+    IF column_exists('players', 'userId') AND NOT column_exists('players', 'user_id') THEN
+        ALTER TABLE players RENAME COLUMN "userId" TO user_id;
+        RAISE NOTICE 'Renamed players.userId to user_id';
+    END IF;
+    
+    -- Handle contactInfo -> contact_info
+    IF column_exists('players', 'contactInfo') AND NOT column_exists('players', 'contact_info') THEN
+        ALTER TABLE players RENAME COLUMN "contactInfo" TO contact_info;
+        RAISE NOTICE 'Renamed players.contactInfo to contact_info';
+    END IF;
+    
+    -- Handle preferredPosition -> preferred_position
+    IF column_exists('players', 'preferredPosition') AND NOT column_exists('players', 'preferred_position') THEN
+        ALTER TABLE players RENAME COLUMN "preferredPosition" TO preferred_position;
+        RAISE NOTICE 'Renamed players.preferredPosition to preferred_position';
+    END IF;
+    
+    -- Handle isActive -> is_active
+    IF column_exists('players', 'isActive') AND NOT column_exists('players', 'is_active') THEN
+        ALTER TABLE players RENAME COLUMN "isActive" TO is_active;
+        RAISE NOTICE 'Renamed players.isActive to is_active';
+    END IF;
+    
+    -- Handle createdAt -> created_at
+    IF column_exists('players', 'createdAt') AND NOT column_exists('players', 'created_at') THEN
+        ALTER TABLE players RENAME COLUMN "createdAt" TO created_at;
+        RAISE NOTICE 'Renamed players.createdAt to created_at';
+    END IF;
+    
+    -- Handle updatedAt -> updated_at
+    IF column_exists('players', 'updatedAt') AND NOT column_exists('players', 'updated_at') THEN
+        ALTER TABLE players RENAME COLUMN "updatedAt" TO updated_at;
+        RAISE NOTICE 'Renamed players.updatedAt to updated_at';
+    END IF;
+END $$;
+
+-- Normalize users table columns
+DO $$ 
+BEGIN
+    -- Handle passwordHash -> password_hash
+    IF column_exists('users', 'passwordHash') AND NOT column_exists('users', 'password_hash') THEN
+        ALTER TABLE users RENAME COLUMN "passwordHash" TO password_hash;
+        RAISE NOTICE 'Renamed users.passwordHash to password_hash';
+    END IF;
+    
+    -- Handle firstName -> first_name
+    IF column_exists('users', 'firstName') AND NOT column_exists('users', 'first_name') THEN
+        ALTER TABLE users RENAME COLUMN "firstName" TO first_name;
+        RAISE NOTICE 'Renamed users.firstName to first_name';
+    END IF;
+    
+    -- Handle lastName -> last_name
+    IF column_exists('users', 'lastName') AND NOT column_exists('users', 'last_name') THEN
+        ALTER TABLE users RENAME COLUMN "lastName" TO last_name;
+        RAISE NOTICE 'Renamed users.lastName to last_name';
+    END IF;
+    
+    -- Handle franchiseId -> franchise_id
+    IF column_exists('users', 'franchiseId') AND NOT column_exists('users', 'franchise_id') THEN
+        ALTER TABLE users RENAME COLUMN "franchiseId" TO franchise_id;
+        RAISE NOTICE 'Renamed users.franchiseId to franchise_id';
+    END IF;
+    
+    -- Handle isActive -> is_active
+    IF column_exists('users', 'isActive') AND NOT column_exists('users', 'is_active') THEN
+        ALTER TABLE users RENAME COLUMN "isActive" TO is_active;
+        RAISE NOTICE 'Renamed users.isActive to is_active';
+    END IF;
+    
+    -- Handle emailVerified -> email_verified
+    IF column_exists('users', 'emailVerified') AND NOT column_exists('users', 'email_verified') THEN
+        ALTER TABLE users RENAME COLUMN "emailVerified" TO email_verified;
+        RAISE NOTICE 'Renamed users.emailVerified to email_verified';
+    END IF;
+    
+    -- Handle createdAt -> created_at
+    IF column_exists('users', 'createdAt') AND NOT column_exists('users', 'created_at') THEN
+        ALTER TABLE users RENAME COLUMN "createdAt" TO created_at;
+        RAISE NOTICE 'Renamed users.createdAt to created_at';
+    END IF;
+    
+    -- Handle updatedAt -> updated_at
+    IF column_exists('users', 'updatedAt') AND NOT column_exists('users', 'updated_at') THEN
+        ALTER TABLE users RENAME COLUMN "updatedAt" TO updated_at;
+        RAISE NOTICE 'Renamed users.updatedAt to updated_at';
+    END IF;
+END $$;
+
+-- Create player_franchise_links table if it doesn't exist
+CREATE TABLE IF NOT EXISTS player_franchise_links (
+    id SERIAL PRIMARY KEY,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    franchise_id INTEGER NOT NULL REFERENCES franchises(id) ON DELETE CASCADE,
+    is_active BOOLEAN DEFAULT true,
+    joined_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create unique index to prevent duplicate player-franchise associations
+CREATE UNIQUE INDEX IF NOT EXISTS unique_player_franchise ON player_franchise_links(player_id, franchise_id);
+
+-- Add missing columns if they don't exist
+ALTER TABLE players ADD COLUMN IF NOT EXISTS availability BOOLEAN DEFAULT true;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS preferred_position TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false;
+ALTER TABLE franchises ADD COLUMN IF NOT EXISTS contact_email VARCHAR(255);
+ALTER TABLE franchises ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(50);
+ALTER TABLE franchises ADD COLUMN IF NOT EXISTS website VARCHAR(500);
+
+-- Grant permissions on new tables
+GRANT ALL PRIVILEGES ON player_franchise_links TO cricket_user;
+GRANT USAGE, SELECT ON SEQUENCE player_franchise_links_id_seq TO cricket_user;
+
+-- Migrate existing franchise associations to player_franchise_links
+INSERT INTO player_franchise_links (player_id, franchise_id, is_active)
+SELECT p.id, p.franchise_id, true
+FROM players p
+WHERE p.franchise_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM player_franchise_links pfl 
+    WHERE pfl.player_id = p.id AND pfl.franchise_id = p.franchise_id
+  );
+
+-- Clean up helper function
+DROP FUNCTION IF EXISTS column_exists(text, text);
+
+-- Display summary
+SELECT 'Database schema normalization completed successfully' as status;
+
+NORMALIZE_SCHEMA_EOF
+
+    if [ $? -eq 0 ]; then
+        success "Database schema normalized successfully"
+    else
+        warning "Schema normalization had some issues, but continuing..."
+    fi
+}
+
 # Setup database
 setup_database() {
     log "Setting up database schema..."
@@ -484,6 +739,10 @@ export default defineConfig({
 EOF
     fi
     
+    # Normalize database schema BEFORE running migrations
+    normalize_database_schema
+    
+    # Now run Drizzle migrations
     npm run db:push || {
         warning "Drizzle migration failed, creating basic schema manually..."
         
