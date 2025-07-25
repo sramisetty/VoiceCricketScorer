@@ -32,7 +32,7 @@ export default function MatchesClean() {
   });
 
   // Check if user can create matches
-  const canCreateMatches = user && ['admin', 'global_admin', 'franchise_admin'].includes(user.role);
+  const canCreateMatches = user && ['admin', 'global_admin', 'franchise_admin'].includes((user as any)?.role);
 
   // Start match mutation
   const startMatchMutation = useMutation({
@@ -92,9 +92,10 @@ export default function MatchesClean() {
     );
   }
 
-  const setupMatches = matches.filter((match: any) => match.status === 'setup');
-  const liveMatches = matches.filter((match: any) => match.status === 'live');
-  const completedMatches = matches.filter((match: any) => match.status === 'completed');
+  const matchList = (matches as any[]) || [];
+  const setupMatches = matchList.filter((match: any) => match.status === 'setup');
+  const liveMatches = matchList.filter((match: any) => match.status === 'live');
+  const completedMatches = matchList.filter((match: any) => match.status === 'completed');
 
   return (
     <div className="min-h-screen bg-gray-50">
