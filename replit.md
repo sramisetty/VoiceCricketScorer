@@ -139,6 +139,12 @@ Preferred communication style: Simple, everyday language.
 - **Cricket-Specific**: Tailored for cricket scoring terminology and rules
 
 ## Recent Changes (January 2025)
+### January 25, 2025
+- **✓ Toss Dialog Implementation Fix**: Resolved critical issue where Start Match functionality was not opening toss dialog on matches page. Root cause was TypeScript errors and component rendering conflicts in original matches.tsx preventing dialog state updates from taking effect properly.
+- **✓ Clean Matches Page Architecture**: Created matches-clean.tsx as replacement for problematic matches.tsx, eliminating TypeScript errors that were blocking dialog functionality. New implementation uses basic modal approach instead of shadcn Dialog component for reliable rendering.
+- **✓ Comprehensive Toss Capture System**: Successfully implemented complete toss capture workflow including team selection dropdown, toss decision (bat/bowl first), form validation, loading states, and proper API integration with backend start match endpoint.
+- **✓ Start Match Flow Completion**: Verified end-to-end match start functionality from toss dialog through to scorer page navigation, ensuring proper toss data capture and match state transitions work as designed.
+
 ### January 24, 2025
 - **✓ Player-Franchise Association System**: Completed migration from old franchise_id field to new player_franchise_links table system. Players can now belong to multiple franchises simultaneously through active association records
 - **✓ Enhanced Franchise Filtering**: Updated both Player Management and Match Setup pages to filter players based on player_franchise_links table instead of deprecated franchise_id field, ensuring accurate franchise-based player selection
