@@ -830,6 +830,7 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL || 'postgresql://cricket_user:simple123@localhost:5432/cricket_scorer?sslmode=disable'
   }
+});
 EOF
     fi
 
@@ -1041,6 +1042,7 @@ module.exports = {
     max_restarts: 5,
     restart_delay: 2000
   }]
+};
 EOF
     fi
 
@@ -1270,6 +1272,7 @@ http {
             proxy_set_header Host $host;
         }
     }
+}
 EOF
 
     # Test nginx configuration
