@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Play, Eye, Trophy, Target, Clock, Users } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { Link } from 'wouter';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
 export default function MatchesClean() {
@@ -37,15 +37,10 @@ export default function MatchesClean() {
   // Start match mutation
   const startMatchMutation = useMutation({
     mutationFn: async (data: { matchId: number; tossWinnerId: string; tossDecision: string }) => {
-      const response = await fetch(`/api/matches/${data.matchId}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tossWinnerId: parseInt(data.tossWinnerId),
-          tossDecision: data.tossDecision
-        }),
+      const response = await apiRequest('POST', `/api/matches/${data.matchId}/start`, {
+        tossWinnerId: parseInt(data.tossWinnerId),
+        tossDecision: data.tossDecision
       });
-      if (!response.ok) throw new Error('Failed to start match');
       return response.json();
     },
     onSuccess: (data) => {
