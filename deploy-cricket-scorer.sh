@@ -1,6 +1,24 @@
 #!/bin/bash
 
-# Cricket Scorer Production Deployment Script for Linux VPS
+# Cricket Scorer Production Deployment Script
+# 
+# SCHEMA MANAGEMENT STRATEGY:
+# This script implements a comprehensive production-safe schema deployment
+# strategy that ensures zero data loss and handles all future schema changes.
+# 
+# BEFORE DEPLOYMENT:
+# 1. Update shared/schema.ts with any new tables/columns
+# 2. Run ./validate-schema.sh to verify script matches schema
+# 3. Test locally with npm run db:push
+# 4. Only deploy after validation passes
+# 
+# SCHEMA SAFETY FEATURES:
+# - CREATE TABLE IF NOT EXISTS (safe table creation)
+# - ALTER TABLE ADD COLUMN IF NOT EXISTS (safe column addition)  
+# - INSERT...WHERE NOT EXISTS (safe sample data)
+# - Comprehensive column checks for ALL 12 tables
+# - Zero DROP statements (data preservation guaranteed)
+# for Linux VPS
 # Version: 2.0
 # Compatible with: Ubuntu 20.04+, CentOS 8+, RHEL 8+, AlmaLinux 9+
 
