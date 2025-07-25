@@ -146,9 +146,15 @@ export default function Matches() {
 
   const handleStartMatch = (match: any) => {
     console.log('Starting match:', match);
+    console.log('Current isTossDialogOpen state:', isTossDialogOpen);
     setSelectedMatchForToss(match);
     setTossData({ tossWinnerId: match.team1Id.toString(), tossDecision: 'bat' });
-    setIsTossDialogOpen(true);
+    
+    // Force state update
+    setTimeout(() => {
+      setIsTossDialogOpen(true);
+      console.log('Set toss dialog to open');
+    }, 100);
   };
 
   const handleTossSubmit = () => {
@@ -357,6 +363,15 @@ export default function Matches() {
           </div>
         </div>
       </header>
+
+      {/* Debug Info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed top-4 right-4 bg-black text-white p-2 text-xs z-50">
+          Toss Dialog Open: {isTossDialogOpen ? 'true' : 'false'}
+          <br />
+          Selected Match: {selectedMatchForToss?.id || 'none'}
+        </div>
+      )}
 
       {/* Toss Dialog */}
       <Dialog open={isTossDialogOpen} onOpenChange={setIsTossDialogOpen}>
