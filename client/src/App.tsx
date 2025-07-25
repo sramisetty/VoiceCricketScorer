@@ -8,6 +8,7 @@ import MatchSetup from "@/pages/match-setup";
 import MatchSettings from "@/pages/match-settings";
 import Scorer from "@/pages/scorer";
 import ScorerTest from "@/pages/scorer-test";
+import ScorerSimple from "@/pages/scorer-simple";
 import Scoreboard from "@/pages/scoreboard";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -86,7 +87,7 @@ function ScorerWithNav({ params }: { params: { matchId: string } }) {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
       <div className="flex-1">
-        <ScorerTest />
+        <ScorerSimple />
       </div>
       <Footer />
     </div>
