@@ -6,9 +6,37 @@
  */
 
 const { Pool } = require('pg');
+const fs = require('fs');
+const path = require('path');
+
+// Load environment variables from .env file
+function loadEnvFile() {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    
+    envContent.split('\n').forEach(line => {
+      const trimmedLine = line.trim();
+      if (trimmedLine && !trimmedLine.startsWith('#')) {
+        const [key, ...valueParts] = trimmedLine.split('=');
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join('=');
+          process.env[key] = value;
+        }
+      }
+    });
+    
+    console.log('✓ Loaded environment variables from .env file');
+  } catch (error) {
+    console.log('⚠ No .env file found or could not read it');
+  }
+}
 
 async function quickDatabaseTest() {
   console.log('=== Quick Database Test ===');
+  
+  // Load environment variables first
+  loadEnvFile();
   
   // Check if DATABASE_URL is set
   if (!process.env.DATABASE_URL) {

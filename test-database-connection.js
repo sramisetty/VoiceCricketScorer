@@ -6,9 +6,41 @@
  */
 
 import { Pool } from 'pg';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load environment variables from .env file
+function loadEnvFile() {
+  try {
+    const envPath = join(__dirname, '.env');
+    const envContent = readFileSync(envPath, 'utf8');
+    
+    envContent.split('\n').forEach(line => {
+      const trimmedLine = line.trim();
+      if (trimmedLine && !trimmedLine.startsWith('#')) {
+        const [key, ...valueParts] = trimmedLine.split('=');
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join('=');
+          process.env[key] = value;
+        }
+      }
+    });
+    
+    console.log('✓ Loaded environment variables from .env file');
+  } catch (error) {
+    console.log('⚠ No .env file found or could not read it');
+  }
+}
 
 async function testDatabaseConnection() {
   console.log('=== Database Connection Test ===');
+  
+  // Load environment variables first
+  loadEnvFile();
   
   // Check if DATABASE_URL is set
   if (!process.env.DATABASE_URL) {
