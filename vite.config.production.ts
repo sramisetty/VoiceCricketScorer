@@ -12,6 +12,10 @@ export default defineConfig({
       },
     }),
   ],
+  esbuild: {
+    // Ensure React is properly handled in production
+    jsxInject: `import React from 'react'`,
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -29,23 +33,12 @@ export default defineConfig({
     target: ["es2022", "chrome90", "firefox80", "safari14", "edge90"],
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          // More granular chunking to reduce memory usage
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react-vendor';
-            }
-            if (id.includes('@radix-ui')) {
-              return 'radix-ui';
-            }
-            if (id.includes('recharts') || id.includes('d3-')) {
-              return 'charts';
-            }
-            if (id.includes('date-fns') || id.includes('clsx') || id.includes('tailwind')) {
-              return 'utils';
-            }
-            return 'vendor';
-          }
+        manualChunks: {
+          // Simple chunking to avoid React bundling issues
+          'react-vendor': ['react', 'react-dom'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-toast'],
+          'chart-vendor': ['recharts'],
+          'util-vendor': ['date-fns', 'clsx', 'tailwind-merge'],
         },
       },
       maxParallelFileOps: 1, // Reduce parallel operations to save memory

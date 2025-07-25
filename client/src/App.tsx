@@ -1,3 +1,4 @@
+import React from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -100,12 +101,12 @@ function ScorerWithNav({ params }: { params: { matchId: string } }) {
   );
 }
 
-function ScoreboardWithNav(props: any) {
+function ScoreboardWithNav() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
       <div className="flex-1">
-        <Scoreboard params={props.params} />
+        <Scoreboard />
       </div>
       <Footer />
     </div>
@@ -208,12 +209,12 @@ function SettingsWithNav() {
   );
 }
 
-function MatchSettingsWithNav(props: any) {
+function MatchSettingsWithNav() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
       <div className="flex-1">
-        <MatchSettings params={props.params} />
+        <MatchSettings />
       </div>
       <Footer />
     </div>
