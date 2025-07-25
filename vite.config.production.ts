@@ -13,8 +13,8 @@ export default defineConfig({
     }),
   ],
   esbuild: {
-    // Ensure React is properly handled in production
-    jsxInject: `import React from 'react'`,
+    // Production optimizations - React is handled by individual imports
+    target: "es2022",
   },
   resolve: {
     alias: {
