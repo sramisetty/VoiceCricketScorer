@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Archive, Search, Calendar, Trophy, Users, Clock, Download, Eye, Filter, BarChart3, FileText } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { format } from 'date-fns';
+import { MatchSummary } from '@/components/match-summary';
 
 // Component to fetch and display match summary with proper innings data
 function MatchSummaryDisplay({ match }: { match: any }) {
@@ -285,7 +286,7 @@ export default function Archives() {
                           </DialogDescription>
                         </DialogHeader>
                         {selectedMatch && selectedMatch.id === match.id && (
-                          <MatchSummaryContent matchId={match.id} />
+                          <MatchSummary matchId={match.id} />
                         )}
                       </DialogContent>
                     </Dialog>
@@ -363,93 +364,7 @@ export default function Archives() {
   );
 }
 
-// Component to display complete match summary in popup
-function MatchSummaryContent({ matchId }: { matchId: number }) {
-  const { data: completeData, isLoading } = useQuery({
-    queryKey: ['/api/matches', matchId, 'complete'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', `/api/matches/${matchId}/complete`);
-      return response.json();
-    },
-  });
 
-  if (isLoading) {
-    return <div className="p-4 text-center">Loading complete match data...</div>;
-  }
-
-  if (!completeData) {
-    return <div className="p-4 text-center text-red-600">Failed to load match data</div>;
-  }
-
-  const { match, innings } = completeData;
-  const firstInnings = innings?.[0];
-  const secondInnings = innings?.[1];
-
-  return (
-    <div className="space-y-6">
-      {/* Match Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Match Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-600">{match.team1?.name}</p>
-              <p className="text-sm text-gray-600">vs</p>
-              <p className="text-2xl font-bold text-red-600">{match.team2?.name}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-semibold">Total Runs</p>
-              <p className="text-2xl font-bold">{(firstInnings?.totalRuns || 0) + (secondInnings?.totalRuns || 0)}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-semibold">Total Wickets</p>
-              <p className="text-2xl font-bold">{(firstInnings?.totalWickets || 0) + (secondInnings?.totalWickets || 0)}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-semibold">Status</p>
-              <Badge className="text-lg">{match.status}</Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Innings Details */}
-      {innings && innings.length > 0 && (
-        <div className="grid gap-4">
-          {innings.map((inning: any, index: number) => (
-            <Card key={inning.id}>
-              <CardHeader>
-                <CardTitle>Innings {inning.inningsNumber} - {inning.battingTeam.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-4 gap-4 text-center">
-                  <div>
-                    <p className="text-lg font-bold">{inning.totalRuns || 0}</p>
-                    <p className="text-sm text-gray-600">Runs</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold">{inning.totalWickets || 0}</p>
-                    <p className="text-sm text-gray-600">Wickets</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold">{Math.floor((inning.totalBalls || 0) / 6)}.{(inning.totalBalls || 0) % 6}</p>
-                    <p className="text-sm text-gray-600">Overs</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold">{inning.isCompleted ? 'Complete' : 'In Progress'}</p>
-                    <p className="text-sm text-gray-600">Status</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Component to display match statistics in popup
 function MatchStatsContent({ matchId }: { matchId: number }) {
