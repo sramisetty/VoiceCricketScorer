@@ -363,46 +363,40 @@ normalize_database_schema() {
     
     sudo -u postgres psql -d cricket_scorer <<'NORMALIZE_SCHEMA_EOF'
 
--- Function to check if column exists
-CREATE OR REPLACE FUNCTION column_exists(table_name text, column_name text) 
-RETURNS boolean AS $$
-BEGIN
-    RETURN EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = $1 AND column_name = $2
-    );
-END;
-$$ LANGUAGE plpgsql;
-
 -- Normalize teams table columns
 DO $$ 
 BEGIN
     -- Handle shortName -> short_name
-    IF column_exists('teams', 'shortName') AND NOT column_exists('teams', 'short_name') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'teams' AND column_name = 'shortName') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'teams' AND column_name = 'short_name') THEN
         ALTER TABLE teams RENAME COLUMN "shortName" TO short_name;
         RAISE NOTICE 'Renamed teams.shortName to short_name';
     END IF;
     
     -- Handle franchiseId -> franchise_id
-    IF column_exists('teams', 'franchiseId') AND NOT column_exists('teams', 'franchise_id') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'teams' AND column_name = 'franchiseId') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'teams' AND column_name = 'franchise_id') THEN
         ALTER TABLE teams RENAME COLUMN "franchiseId" TO franchise_id;
         RAISE NOTICE 'Renamed teams.franchiseId to franchise_id';
     END IF;
     
     -- Handle isActive -> is_active
-    IF column_exists('teams', 'isActive') AND NOT column_exists('teams', 'is_active') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'teams' AND column_name = 'isActive') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'teams' AND column_name = 'is_active') THEN
         ALTER TABLE teams RENAME COLUMN "isActive" TO is_active;
         RAISE NOTICE 'Renamed teams.isActive to is_active';
     END IF;
     
     -- Handle createdAt -> created_at
-    IF column_exists('teams', 'createdAt') AND NOT column_exists('teams', 'created_at') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'teams' AND column_name = 'createdAt') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'teams' AND column_name = 'created_at') THEN
         ALTER TABLE teams RENAME COLUMN "createdAt" TO created_at;
         RAISE NOTICE 'Renamed teams.createdAt to created_at';
     END IF;
     
     -- Handle updatedAt -> updated_at
-    IF column_exists('teams', 'updatedAt') AND NOT column_exists('teams', 'updated_at') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'teams' AND column_name = 'updatedAt') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'teams' AND column_name = 'updated_at') THEN
         ALTER TABLE teams RENAME COLUMN "updatedAt" TO updated_at;
         RAISE NOTICE 'Renamed teams.updatedAt to updated_at';
     END IF;
@@ -412,37 +406,43 @@ END $$;
 DO $$ 
 BEGIN
     -- Handle shortName -> short_name
-    IF column_exists('franchises', 'shortName') AND NOT column_exists('franchises', 'short_name') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'shortName') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'short_name') THEN
         ALTER TABLE franchises RENAME COLUMN "shortName" TO short_name;
         RAISE NOTICE 'Renamed franchises.shortName to short_name';
     END IF;
     
     -- Handle contactEmail -> contact_email
-    IF column_exists('franchises', 'contactEmail') AND NOT column_exists('franchises', 'contact_email') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'contactEmail') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'contact_email') THEN
         ALTER TABLE franchises RENAME COLUMN "contactEmail" TO contact_email;
         RAISE NOTICE 'Renamed franchises.contactEmail to contact_email';
     END IF;
     
     -- Handle contactPhone -> contact_phone
-    IF column_exists('franchises', 'contactPhone') AND NOT column_exists('franchises', 'contact_phone') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'contactPhone') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'contact_phone') THEN
         ALTER TABLE franchises RENAME COLUMN "contactPhone" TO contact_phone;
         RAISE NOTICE 'Renamed franchises.contactPhone to contact_phone';
     END IF;
     
     -- Handle isActive -> is_active
-    IF column_exists('franchises', 'isActive') AND NOT column_exists('franchises', 'is_active') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'isActive') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'is_active') THEN
         ALTER TABLE franchises RENAME COLUMN "isActive" TO is_active;
         RAISE NOTICE 'Renamed franchises.isActive to is_active';
     END IF;
     
     -- Handle createdAt -> created_at
-    IF column_exists('franchises', 'createdAt') AND NOT column_exists('franchises', 'created_at') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'createdAt') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'created_at') THEN
         ALTER TABLE franchises RENAME COLUMN "createdAt" TO created_at;
         RAISE NOTICE 'Renamed franchises.createdAt to created_at';
     END IF;
     
     -- Handle updatedAt -> updated_at
-    IF column_exists('franchises', 'updatedAt') AND NOT column_exists('franchises', 'updated_at') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'updatedAt') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'franchises' AND column_name = 'updated_at') THEN
         ALTER TABLE franchises RENAME COLUMN "updatedAt" TO updated_at;
         RAISE NOTICE 'Renamed franchises.updatedAt to updated_at';
     END IF;
@@ -452,55 +452,64 @@ END $$;
 DO $$ 
 BEGIN
     -- Handle franchiseId -> franchise_id
-    IF column_exists('players', 'franchiseId') AND NOT column_exists('players', 'franchise_id') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'franchiseId') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'franchise_id') THEN
         ALTER TABLE players RENAME COLUMN "franchiseId" TO franchise_id;
         RAISE NOTICE 'Renamed players.franchiseId to franchise_id';
     END IF;
     
     -- Handle teamId -> team_id
-    IF column_exists('players', 'teamId') AND NOT column_exists('players', 'team_id') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'teamId') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'team_id') THEN
         ALTER TABLE players RENAME COLUMN "teamId" TO team_id;
         RAISE NOTICE 'Renamed players.teamId to team_id';
     END IF;
     
     -- Handle battingOrder -> batting_order
-    IF column_exists('players', 'battingOrder') AND NOT column_exists('players', 'batting_order') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'battingOrder') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'batting_order') THEN
         ALTER TABLE players RENAME COLUMN "battingOrder" TO batting_order;
         RAISE NOTICE 'Renamed players.battingOrder to batting_order';
     END IF;
     
     -- Handle userId -> user_id
-    IF column_exists('players', 'userId') AND NOT column_exists('players', 'user_id') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'userId') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'user_id') THEN
         ALTER TABLE players RENAME COLUMN "userId" TO user_id;
         RAISE NOTICE 'Renamed players.userId to user_id';
     END IF;
     
     -- Handle contactInfo -> contact_info
-    IF column_exists('players', 'contactInfo') AND NOT column_exists('players', 'contact_info') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'contactInfo') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'contact_info') THEN
         ALTER TABLE players RENAME COLUMN "contactInfo" TO contact_info;
         RAISE NOTICE 'Renamed players.contactInfo to contact_info';
     END IF;
     
     -- Handle preferredPosition -> preferred_position
-    IF column_exists('players', 'preferredPosition') AND NOT column_exists('players', 'preferred_position') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'preferredPosition') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'preferred_position') THEN
         ALTER TABLE players RENAME COLUMN "preferredPosition" TO preferred_position;
         RAISE NOTICE 'Renamed players.preferredPosition to preferred_position';
     END IF;
     
     -- Handle isActive -> is_active
-    IF column_exists('players', 'isActive') AND NOT column_exists('players', 'is_active') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'isActive') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'is_active') THEN
         ALTER TABLE players RENAME COLUMN "isActive" TO is_active;
         RAISE NOTICE 'Renamed players.isActive to is_active';
     END IF;
     
     -- Handle createdAt -> created_at
-    IF column_exists('players', 'createdAt') AND NOT column_exists('players', 'created_at') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'createdAt') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'created_at') THEN
         ALTER TABLE players RENAME COLUMN "createdAt" TO created_at;
         RAISE NOTICE 'Renamed players.createdAt to created_at';
     END IF;
     
     -- Handle updatedAt -> updated_at
-    IF column_exists('players', 'updatedAt') AND NOT column_exists('players', 'updated_at') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'updatedAt') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'updated_at') THEN
         ALTER TABLE players RENAME COLUMN "updatedAt" TO updated_at;
         RAISE NOTICE 'Renamed players.updatedAt to updated_at';
     END IF;
@@ -510,49 +519,57 @@ END $$;
 DO $$ 
 BEGIN
     -- Handle passwordHash -> password_hash
-    IF column_exists('users', 'passwordHash') AND NOT column_exists('users', 'password_hash') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'passwordHash') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'password_hash') THEN
         ALTER TABLE users RENAME COLUMN "passwordHash" TO password_hash;
         RAISE NOTICE 'Renamed users.passwordHash to password_hash';
     END IF;
     
     -- Handle firstName -> first_name
-    IF column_exists('users', 'firstName') AND NOT column_exists('users', 'first_name') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'firstName') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'first_name') THEN
         ALTER TABLE users RENAME COLUMN "firstName" TO first_name;
         RAISE NOTICE 'Renamed users.firstName to first_name';
     END IF;
     
     -- Handle lastName -> last_name
-    IF column_exists('users', 'lastName') AND NOT column_exists('users', 'last_name') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'lastName') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'last_name') THEN
         ALTER TABLE users RENAME COLUMN "lastName" TO last_name;
         RAISE NOTICE 'Renamed users.lastName to last_name';
     END IF;
     
     -- Handle franchiseId -> franchise_id
-    IF column_exists('users', 'franchiseId') AND NOT column_exists('users', 'franchise_id') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'franchiseId') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'franchise_id') THEN
         ALTER TABLE users RENAME COLUMN "franchiseId" TO franchise_id;
         RAISE NOTICE 'Renamed users.franchiseId to franchise_id';
     END IF;
     
     -- Handle isActive -> is_active
-    IF column_exists('users', 'isActive') AND NOT column_exists('users', 'is_active') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'isActive') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'is_active') THEN
         ALTER TABLE users RENAME COLUMN "isActive" TO is_active;
         RAISE NOTICE 'Renamed users.isActive to is_active';
     END IF;
     
     -- Handle emailVerified -> email_verified
-    IF column_exists('users', 'emailVerified') AND NOT column_exists('users', 'email_verified') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'emailVerified') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'email_verified') THEN
         ALTER TABLE users RENAME COLUMN "emailVerified" TO email_verified;
         RAISE NOTICE 'Renamed users.emailVerified to email_verified';
     END IF;
     
     -- Handle createdAt -> created_at
-    IF column_exists('users', 'createdAt') AND NOT column_exists('users', 'created_at') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'createdAt') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'created_at') THEN
         ALTER TABLE users RENAME COLUMN "createdAt" TO created_at;
         RAISE NOTICE 'Renamed users.createdAt to created_at';
     END IF;
     
     -- Handle updatedAt -> updated_at
-    IF column_exists('users', 'updatedAt') AND NOT column_exists('users', 'updated_at') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'updatedAt') 
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'updated_at') THEN
         ALTER TABLE users RENAME COLUMN "updatedAt" TO updated_at;
         RAISE NOTICE 'Renamed users.updatedAt to updated_at';
     END IF;
@@ -593,8 +610,7 @@ WHERE p.franchise_id IS NOT NULL
     WHERE pfl.player_id = p.id AND pfl.franchise_id = p.franchise_id
   );
 
--- Clean up helper function
-DROP FUNCTION IF EXISTS column_exists(text, text);
+-- Schema normalization completed without helper functions
 
 -- Display summary
 SELECT 'Database schema normalization completed successfully' as status;
