@@ -871,62 +871,252 @@ EOF
     # Normalize database schema BEFORE running migrations
     normalize_database_schema
     
-    # Now run Drizzle migrations with force flag to skip prompts
-    log "Running Drizzle schema push with automatic acceptance..."
-    export DATABASE_URL="$DATABASE_URL"
-    npx drizzle-kit push --force || {
-        warning "Drizzle migration failed, creating basic schema manually..."
-        log "Note: Schema normalization may have already handled column conflicts"
-        
-        # Create basic schema manually if drizzle fails
-        sudo -u postgres psql -d cricket_scorer <<'SCHEMA_EOF'
--- Drop tables if they exist (for clean slate)
+    # Skip Drizzle entirely and create schema directly with SQL
+    log "Creating database schema directly with SQL (bypassing Drizzle prompts)..."
+    
+    # Create complete schema with SQL - no interactive prompts
+    PGPASSWORD=simple123 psql -h localhost -U cricket_user -d cricket_scorer <<'COMPLETE_SCHEMA_EOF' || {
+        warning "Direct SQL schema creation failed, attempting fallback..."
+-- Complete Cricket Scorer Database Schema
+-- This creates the entire schema without any interactive prompts
+
+-- Drop existing tables in correct dependency order
 DROP TABLE IF EXISTS balls CASCADE;
 DROP TABLE IF EXISTS player_stats CASCADE;
+DROP TABLE IF EXISTS match_player_selections CASCADE;
+DROP TABLE IF EXISTS player_franchise_links CASCADE;
+DROP TABLE IF EXISTS user_player_links CASCADE;
+DROP TABLE IF EXISTS user_sessions CASCADE;
 DROP TABLE IF EXISTS innings CASCADE;
 DROP TABLE IF EXISTS matches CASCADE;
 DROP TABLE IF EXISTS players CASCADE;
 DROP TABLE IF EXISTS teams CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS franchises CASCADE;
+
+-- Create franchises table
+CREATE TABLE franchises (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    short_name VARCHAR(10) NOT NULL,
+    logo VARCHAR(500),
+    description TEXT,
+    location VARCHAR(255),
+    established DATE,
+    contact_email VARCHAR(255),
+    contact_phone VARCHAR(50),
+    website VARCHAR(500),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create users table
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'viewer',
+    franchise_id INTEGER REFERENCES franchises(id),
+    is_active BOOLEAN DEFAULT true,
+    email_verified BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 
 -- Create teams table
 CREATE TABLE teams (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    "shortName" VARCHAR(10) NOT NULL,
-    logo TEXT
+    name TEXT NOT NULL,
+    short_name TEXT NOT NULL,
+    logo TEXT,
+    franchise_id INTEGER REFERENCES franchises(id),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Create players table
 CREATE TABLE players (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    "teamId" INTEGER REFERENCES teams(id) ON DELETE CASCADE,
-    role VARCHAR(50) NOT NULL DEFAULT 'batsman',
-    "battingOrder" INTEGER
+    name TEXT NOT NULL,
+    franchise_id INTEGER REFERENCES franchises(id),
+    team_id INTEGER REFERENCES teams(id),
+    role TEXT NOT NULL,
+    batting_order INTEGER,
+    user_id INTEGER REFERENCES users(id),
+    contact_info JSONB,
+    stats JSONB DEFAULT '{"totalMatches": 0, "totalRuns": 0, "totalWickets": 0, "highestScore": 0, "bestBowling": "0/0"}',
+    availability BOOLEAN DEFAULT true,
+    preferred_position TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create user-player links table
+CREATE TABLE user_player_links (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) NOT NULL,
+    player_id INTEGER REFERENCES players(id) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create player-franchise links table
+CREATE TABLE player_franchise_links (
+    id SERIAL PRIMARY KEY,
+    player_id INTEGER REFERENCES players(id) NOT NULL,
+    franchise_id INTEGER REFERENCES franchises(id) NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    joined_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(player_id, franchise_id)
 );
 
 -- Create matches table
 CREATE TABLE matches (
     id SERIAL PRIMARY KEY,
-    "team1Id" INTEGER REFERENCES teams(id) ON DELETE CASCADE,
-    "team2Id" INTEGER REFERENCES teams(id) ON DELETE CASCADE,
-    "tossWinnerId" INTEGER REFERENCES teams(id) ON DELETE CASCADE,
-    "tossDecision" VARCHAR(10) NOT NULL DEFAULT 'bat',
-    "matchType" VARCHAR(20) NOT NULL DEFAULT 'T20',
-    overs INTEGER NOT NULL DEFAULT 20,
-    status VARCHAR(20) NOT NULL DEFAULT 'setup',
-    "currentInnings" INTEGER DEFAULT 1,
-    "currentOver" INTEGER DEFAULT 0,
-    "currentBall" INTEGER DEFAULT 0
+    title TEXT NOT NULL,
+    team1_id INTEGER REFERENCES teams(id) NOT NULL,
+    team2_id INTEGER REFERENCES teams(id) NOT NULL,
+    toss_winner_id INTEGER REFERENCES teams(id),
+    toss_decision TEXT,
+    match_type TEXT NOT NULL,
+    overs INTEGER NOT NULL,
+    venue TEXT,
+    match_date TIMESTAMP,
+    status TEXT NOT NULL DEFAULT 'setup',
+    current_innings INTEGER DEFAULT 1,
+    created_by INTEGER REFERENCES users(id) NOT NULL,
+    organizing_franchise_id INTEGER REFERENCES franchises(id),
+    is_inter_franchise BOOLEAN DEFAULT false,
+    is_public BOOLEAN DEFAULT true,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Grant permissions to cricket_user
+-- Create innings table
+CREATE TABLE innings (
+    id SERIAL PRIMARY KEY,
+    match_id INTEGER REFERENCES matches(id) NOT NULL,
+    batting_team_id INTEGER REFERENCES teams(id) NOT NULL,
+    bowling_team_id INTEGER REFERENCES teams(id) NOT NULL,
+    innings_number INTEGER NOT NULL,
+    total_runs INTEGER DEFAULT 0,
+    total_wickets INTEGER DEFAULT 0,
+    total_overs INTEGER DEFAULT 0,
+    total_balls INTEGER DEFAULT 0,
+    extras JSONB DEFAULT '{}',
+    is_completed BOOLEAN DEFAULT false,
+    current_bowler_id INTEGER REFERENCES players(id)
+);
+
+-- Create balls table
+CREATE TABLE balls (
+    id SERIAL PRIMARY KEY,
+    innings_id INTEGER REFERENCES innings(id) NOT NULL,
+    over_number INTEGER NOT NULL,
+    ball_number INTEGER NOT NULL,
+    batsman_id INTEGER REFERENCES players(id) NOT NULL,
+    bowler_id INTEGER REFERENCES players(id) NOT NULL,
+    runs INTEGER DEFAULT 0,
+    is_wicket BOOLEAN DEFAULT false,
+    wicket_type TEXT,
+    fielder_id INTEGER REFERENCES players(id),
+    extra_type TEXT,
+    extra_runs INTEGER DEFAULT 0,
+    is_short_run BOOLEAN DEFAULT false,
+    is_dead_ball BOOLEAN DEFAULT false,
+    penalty_runs INTEGER DEFAULT 0,
+    batsman_crossed BOOLEAN DEFAULT false,
+    commentary TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create player_stats table
+CREATE TABLE player_stats (
+    id SERIAL PRIMARY KEY,
+    innings_id INTEGER REFERENCES innings(id) NOT NULL,
+    player_id INTEGER REFERENCES players(id) NOT NULL,
+    runs INTEGER DEFAULT 0,
+    balls_faced INTEGER DEFAULT 0,
+    fours INTEGER DEFAULT 0,
+    sixes INTEGER DEFAULT 0,
+    is_out BOOLEAN DEFAULT false,
+    is_on_strike BOOLEAN DEFAULT false,
+    dismissal_type TEXT,
+    dismissal_ball INTEGER,
+    fielder_id INTEGER REFERENCES players(id),
+    overs_bowled INTEGER DEFAULT 0,
+    balls_bowled INTEGER DEFAULT 0,
+    runs_conceded INTEGER DEFAULT 0,
+    wickets_taken INTEGER DEFAULT 0,
+    maiden_overs INTEGER DEFAULT 0,
+    wide_balls INTEGER DEFAULT 0,
+    no_balls INTEGER DEFAULT 0
+);
+
+-- Create match_player_selections table
+CREATE TABLE match_player_selections (
+    id SERIAL PRIMARY KEY,
+    match_id INTEGER REFERENCES matches(id) NOT NULL,
+    player_id INTEGER REFERENCES players(id) NOT NULL,
+    team_id INTEGER REFERENCES teams(id) NOT NULL,
+    is_captain BOOLEAN DEFAULT false,
+    is_wicketkeeper BOOLEAN DEFAULT false,
+    batting_order INTEGER,
+    is_selected BOOLEAN DEFAULT true
+);
+
+-- Create user_sessions table
+CREATE TABLE user_sessions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) NOT NULL,
+    session_token VARCHAR(255) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Grant all permissions to cricket_user
+GRANT ALL PRIVILEGES ON DATABASE cricket_scorer TO cricket_user;
+GRANT ALL PRIVILEGES ON SCHEMA public TO cricket_user;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO cricket_user;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO cricket_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO cricket_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO cricket_user;
 
--- Insert some test data to verify
-INSERT INTO teams (name, "shortName") VALUES ('Test Team 1', 'T1'), ('Test Team 2', 'T2');
-SCHEMA_EOF
+-- Insert sample data for testing
+INSERT INTO franchises (name, short_name) VALUES 
+('Mumbai Indians', 'MI'),
+('Chennai Super Kings', 'CSK');
+
+INSERT INTO teams (name, short_name, franchise_id) VALUES 
+('Mumbai Indians A', 'MIA', 1),
+('Chennai Super Kings A', 'CSKA', 2);
+
+-- Success confirmation
+SELECT 'Database schema created successfully!' as status;
+
+COMPLETE_SCHEMA_EOF
+    
+    if [ $? -eq 0 ]; then
+        success "✓ Complete database schema created successfully with SQL"
+    else
+        warning "Direct SQL failed, attempting PostgreSQL superuser approach..."
+        
+        sudo -u postgres psql -d cricket_scorer <<'FALLBACK_SCHEMA_EOF'
+-- Simple fallback schema creation
+CREATE TABLE IF NOT EXISTS franchises (id SERIAL PRIMARY KEY, name VARCHAR(255), short_name VARCHAR(10));
+CREATE TABLE IF NOT EXISTS teams (id SERIAL PRIMARY KEY, name TEXT, short_name TEXT);
+CREATE TABLE IF NOT EXISTS players (id SERIAL PRIMARY KEY, name TEXT, role TEXT);
+CREATE TABLE IF NOT EXISTS matches (id SERIAL PRIMARY KEY, title TEXT, status TEXT DEFAULT 'setup');
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO cricket_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO cricket_user;
+FALLBACK_SCHEMA_EOF
         
         success "Basic database schema created manually"
     }
