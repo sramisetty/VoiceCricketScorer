@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Play, Eye, Trophy, Target, Clock, Users, BarChart3, FileText } from 'lucide-react';
+import { Plus, Play, Eye, Trophy, Target, Clock, Users, BarChart3, FileText, TrendingUp } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { Link } from 'wouter';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { MatchSummary } from '@/components/match-summary';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 export default function MatchesClean() {
   const [, setLocation] = useLocation();
@@ -25,6 +26,9 @@ export default function MatchesClean() {
 
   // State for match summary dialog
   const [selectedMatchForSummary, setSelectedMatchForSummary] = useState<any>(null);
+  
+  // State for match stats dialog
+  const [selectedMatchForStats, setSelectedMatchForStats] = useState<any>(null);
 
   // Fetch matches data
   const { data: matches = [], isLoading } = useQuery({
@@ -440,7 +444,7 @@ export default function MatchesClean() {
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button 
-                              className="w-full bg-blue-600 hover:bg-blue-700"
+                              className="flex-1 bg-blue-600 hover:bg-blue-700"
                               onClick={() => setSelectedMatchForSummary(match)}
                             >
                               <FileText className="w-4 h-4 mr-2" />
@@ -459,6 +463,30 @@ export default function MatchesClean() {
                             )}
                           </DialogContent>
                         </Dialog>
+                        
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => setSelectedMatchForStats(match)}
+                            >
+                              <BarChart3 className="w-4 h-4 mr-2" />
+                              Match Stats
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>{match.title} - Comprehensive Statistics</DialogTitle>
+                              <DialogDescription>
+                                Detailed match analytics, charts, and performance insights
+                              </DialogDescription>
+                            </DialogHeader>
+                            {selectedMatchForStats && selectedMatchForStats.id === match.id && (
+                              <MatchStatsContent matchId={match.id} />
+                            )}
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </div>
                   </CardContent>
@@ -467,6 +495,336 @@ export default function MatchesClean() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Component to display comprehensive match statistics in popup
+function MatchStatsContent({ matchId }: { matchId: number }) {
+  const { data: statsData, isLoading } = useQuery({
+    queryKey: ['/api/matches/stats', matchId],
+    queryFn: async () => {
+      const response = await fetch(`/api/matches/stats?matchId=${matchId}`);
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      return response.json();
+    },
+  });
+
+  // Fetch match info for context
+  const { data: matchData } = useQuery({
+    queryKey: ['/api/matches', matchId, 'complete'],
+    queryFn: async () => {
+      const response = await fetch(`/api/matches/${matchId}/complete`);
+      if (!response.ok) throw new Error('Failed to fetch match data');
+      return response.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading comprehensive match statistics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!statsData) {
+    return <div className="p-4 text-center text-red-600">Failed to load comprehensive statistics</div>;
+  }
+
+  // Chart colors
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+  const runsScoredData = statsData?.runsPerOver || [];
+  const wicketsData = statsData?.wicketsPerOver || [];
+  const boundaryData = statsData?.boundaryStats || [];
+  const bowlerPerformance = statsData?.bowlerStats || [];
+  const batsmanPerformance = statsData?.batsmanStats || [];
+
+  return (
+    <div className="space-y-6">
+      {/* Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Runs</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statsData?.totalRuns || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Run Rate: {statsData?.overallRunRate || '0.00'}
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Wickets</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statsData?.totalWickets || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Bowling Average: {statsData?.bowlingAverage || '0.00'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Boundaries</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statsData?.totalBoundaries || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              {statsData?.fours || 0} fours, {statsData?.sixes || 0} sixes
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Match Status</CardTitle>
+            <Trophy className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              <Badge className="text-sm">{matchData?.match?.status || 'Unknown'}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {matchData?.match?.team1?.name} vs {matchData?.match?.team2?.name}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Runs Per Over Chart */}
+        {runsScoredData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Runs Per Over</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={runsScoredData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="over" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="runs" stroke="#8884d8" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Boundary Analysis */}
+        {boundaryData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Boundary Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={boundaryData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="type" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Wickets Distribution */}
+        {wicketsData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Wickets Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={wicketsData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {wicketsData.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Player Performance */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Player Performance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold mb-2">Top Batsmen</h4>
+                {batsmanPerformance.slice(0, 5).map((batsman: any, index: number) => (
+                  <div key={batsman.id || index} className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm">{batsman.name}</span>
+                    <div className="flex gap-4 text-sm">
+                      <span>{batsman.runs || 0} runs</span>
+                      <span>SR: {batsman.strikeRate || '0.00'}</span>
+                    </div>
+                  </div>
+                ))}
+                {batsmanPerformance.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No batting data available</p>
+                )}
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-2">Top Bowlers</h4>
+                {bowlerPerformance.slice(0, 5).map((bowler: any, index: number) => (
+                  <div key={bowler.id || index} className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm">{bowler.name}</span>
+                    <div className="flex gap-4 text-sm">
+                      <span>{bowler.wickets || 0} wickets</span>
+                      <span>Econ: {bowler.economyRate || '0.00'}</span>
+                    </div>
+                  </div>
+                ))}
+                {bowlerPerformance.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No bowling data available</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Detailed Statistics Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Detailed Match Statistics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Metric</th>
+                  <th className="text-right p-2">Team 1</th>
+                  <th className="text-right p-2">Team 2</th>
+                  <th className="text-right p-2">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="p-2">Total Runs</td>
+                  <td className="text-right p-2">{statsData?.team1Runs || 0}</td>
+                  <td className="text-right p-2">{statsData?.team2Runs || 0}</td>
+                  <td className="text-right p-2 font-semibold">{(statsData?.team1Runs || 0) + (statsData?.team2Runs || 0)}</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="p-2">Wickets Lost</td>
+                  <td className="text-right p-2">{statsData?.team1Wickets || 0}</td>
+                  <td className="text-right p-2">{statsData?.team2Wickets || 0}</td>
+                  <td className="text-right p-2 font-semibold">{(statsData?.team1Wickets || 0) + (statsData?.team2Wickets || 0)}</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="p-2">Boundaries (4s+6s)</td>
+                  <td className="text-right p-2">{statsData?.team1Boundaries || 0}</td>
+                  <td className="text-right p-2">{statsData?.team2Boundaries || 0}</td>
+                  <td className="text-right p-2 font-semibold">{(statsData?.team1Boundaries || 0) + (statsData?.team2Boundaries || 0)}</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="p-2">Run Rate</td>
+                  <td className="text-right p-2">{statsData?.team1RunRate || '0.00'}</td>
+                  <td className="text-right p-2">{statsData?.team2RunRate || '0.00'}</td>
+                  <td className="text-right p-2 font-semibold">{statsData?.overallRunRate || '0.00'}</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="p-2">Extras</td>
+                  <td className="text-right p-2">{statsData?.team1Extras || 0}</td>
+                  <td className="text-right p-2">{statsData?.team2Extras || 0}</td>
+                  <td className="text-right p-2 font-semibold">{(statsData?.team1Extras || 0) + (statsData?.team2Extras || 0)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Additional Performance Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Batting Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span>Fours Hit:</span>
+                <span className="font-medium">{statsData?.fours || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Sixes Hit:</span>
+                <span className="font-medium">{statsData?.sixes || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Strike Rate:</span>
+                <span className="font-medium">{statsData?.strikeRate || '0.00'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Boundary %:</span>
+                <span className="font-medium">{statsData?.boundaryPercentage || '0.00'}%</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Bowling Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span>Economy Rate:</span>
+                <span className="font-medium">{statsData?.economyRate || '0.00'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Maiden Overs:</span>
+                <span className="font-medium">{statsData?.maidenOvers || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Wides Bowled:</span>
+                <span className="font-medium">{statsData?.wides || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>No Balls:</span>
+                <span className="font-medium">{statsData?.noBalls || 0}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
