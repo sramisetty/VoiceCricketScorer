@@ -796,39 +796,16 @@ SAFE_SCHEMA_EOF
     fi
 }
 
-# Create admin user if none exists
-create_admin_user_if_needed() {
-    log "Checking for existing admin user..."
-
-    # Check if any admin user exists
-    local admin_count
-    admin_count=$(PGPASSWORD=simple123 psql -h localhost -U cricket_user -d cricket_scorer -t -c "
-        SELECT COUNT(*) FROM users WHERE role IN ('admin', 'global_admin');
-    " 2>/dev/null | xargs)
-
-    if [ "$admin_count" -gt 0 ]; then
-        success "Admin user already exists (count: $admin_count)"
-        return
-    fi
-
-    log "Creating default admin user (admin@cricket.com)..."
-    PGPASSWORD=simple123 psql -h localhost -U cricket_user -d cricket_scorer -c "
-        INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, email_verified)
-        VALUES ('admin@cricket.com', '\$2b\$10\$zV4P8TiFKT.0oP5ZW3d4o.Xw9qO1P.7qTHjI3Z2gG7K8lKjHf9rP2', 'Admin', 'User', 'global_admin', true, true)
-        ON CONFLICT (email) DO NOTHING;
-    " 2>/dev/null
-
-    if [ $? -eq 0 ]; then
-        success "✓ Admin user created: admin@cricket.com/admin123"
-    else
-        warning "Failed to create admin user - may already exist"
-    fi
+# Legacy function - admin user creation now handled by migration system
+legacy_create_admin_user_if_needed() {
+    log "Admin user creation now handled by migrations/production-schema.sql"
+    warning "This function is deprecated in favor of the dedicated migration system"
 }
 
 
-# Setup database
+# Setup database using dedicated migration system
 setup_database() {
-    log "Setting up database schema..."
+    log "Setting up database using migration system..."
 
     cd "$APP_DIR"
 
@@ -850,14 +827,10 @@ setup_database() {
         sleep 1
     done
 
-    # Ensure database users and database exist
-    log "Setting up database users and schema..."
-
-    # Check if cricket_user exists
+    # Ensure database user exists
+    log "Setting up database user..."
     if ! sudo -u postgres psql -c "\du cricket_user" 2>/dev/null | grep -q cricket_user; then
-        log "Cricket user missing, creating database setup..."
-
-        # Create cricket_user
+        log "Creating cricket_user..."
         sudo -u postgres psql -c "
         DO \$\$
         BEGIN
@@ -868,32 +841,35 @@ setup_database() {
             END IF;
         END
         \$\$;" || warning "User creation may have failed"
-
-        # Create cricket_scorer database
-        sudo -u postgres psql -c "
-        SELECT 'CREATE DATABASE cricket_scorer OWNER cricket_user'
-        WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'cricket_scorer')\\gexec" || {
-            sudo -u postgres createdb -O cricket_user cricket_scorer 2>/dev/null || true
-        }
-
-        # Set permissions
-        sudo -u postgres psql -d cricket_scorer -c "
-        GRANT ALL PRIVILEGES ON DATABASE cricket_scorer TO cricket_user;
-        GRANT ALL PRIVILEGES ON SCHEMA public TO cricket_user;" || true
-
-        success "Database users and database created"
+        success "Database user created"
+    else
+        success "Database user already exists"
     fi
 
-    # Run database migrations - comprehensive schema deployment
-    log "Running comprehensive database schema deployment..."
+    # Run comprehensive migration using dedicated migration system
+    log "Executing database migration..."
+    
+    # Set migration environment variables
+    export DB_HOST="localhost"
+    export DB_USER="cricket_user"  
+    export DB_PASSWORD="simple123"
+    export DB_NAME="cricket_scorer"
+    
+    # Execute migration script
+    if [ -f "migrations/run-migration.sh" ]; then
+        bash migrations/run-migration.sh
+        if [ $? -eq 0 ]; then
+            success "Database migration completed successfully"
+        else
+            error "Database migration failed"
+            exit 1
+        fi
+    else
+        error "Migration script not found: migrations/run-migration.sh"
+        exit 1
+    fi
 
-    # Normalize database schema BEFORE running migrations
-    normalize_database_schema
-
-    # Create admin user after schema is ready
-    create_admin_user_if_needed
-
-    success "Database setup completed with comprehensive schema"
+    success "Database setup completed with comprehensive schema migration"
 }
 
 # Build application for production
