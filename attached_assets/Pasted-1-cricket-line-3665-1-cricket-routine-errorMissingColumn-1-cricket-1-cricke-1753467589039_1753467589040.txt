@@ -1,0 +1,63 @@
+1|cricket- |   line: '3665',
+1|cricket- |   routine: 'errorMissingColumn'
+1|cricket- | }
+1|cricket- | 2025-07-25T14:18:27: Error details: column "short_name" does not exist
+1|cricket- | 2025-07-25T14:18:27: Stack trace: error: column "short_name" does not exist
+1|cricket- |     at /opt/cricket-scorer/node_modules/pg-pool/index.js:45:11
+1|cricket- |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1|cricket- |     at async file:///opt/cricket-scorer/node_modules/drizzle-orm/node-postgres/session.js:83:22
+1|cricket- |     at async DatabaseStorage.getAllTeams (file:///opt/cricket-scorer/dist/index.js:648:12)
+1|cricket- |     at async file:///opt/cricket-scorer/dist/index.js:2911:22
+
+1|cricket-scorer  | 2025-07-25T14:19:16: Get available players error: error: column "franchise_id" does not exist
+1|cricket-scorer  |     at /opt/cricket-scorer/node_modules/pg-pool/index.js:45:11
+1|cricket-scorer  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1|cricket-scorer  |     at async file:///opt/cricket-scorer/node_modules/drizzle-orm/node-postgres/session.js:83:22
+1|cricket-scorer  |     at async DatabaseStorage.getAvailablePlayers (file:///opt/cricket-scorer/dist/index.js:686:30)
+1|cricket-scorer  |     at async file:///opt/cricket-scorer/dist/index.js:2168:22 {
+1|cricket-scorer  |   length: 112,
+1|cricket-scorer  |   severity: 'ERROR',
+1|cricket-scorer  |   code: '42703',
+1|cricket-scorer  |   detail: undefined,
+1|cricket-scorer  |   hint: undefined,
+1|cricket-scorer  |   position: '22',
+1|cricket-scorer  |   internalPosition: undefined,
+1|cricket-scorer  |   internalQuery: undefined,
+1|cricket-scorer  |   where: undefined,
+1|cricket-scorer  |   schema: undefined,
+1|cricket-scorer  |   table: undefined,
+1|cricket-scorer  |   column: undefined,
+1|cricket-scorer  |   dataType: undefined,
+1|cricket-scorer  |   constraint: undefined,
+1|cricket-scorer  |   file: 'parse_relation.c',
+1|cricket-scorer  |   line: '3665',
+1|cricket-scorer  |   routine: 'errorMissingColumn'
+1|cricket-scorer  | }
+1|cricket-scorer  | 2025-07-25T14:19:16: 2:19:16 PM [express] GET /api/players/available 500 in 48ms :: {"error":"Failed to fetch available p…
+1|cricket-scorer  | 2025-07-25T14:19:16: Get players error: error: column "franchise_id" does not exist
+1|cricket-scorer  |     at /opt/cricket-scorer/node_modules/pg-pool/index.js:45:11
+1|cricket-scorer  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+1|cricket-scorer  |     at async file:///opt/cricket-scorer/node_modules/drizzle-orm/node-postgres/session.js:83:22
+1|cricket-scorer  |     at async DatabaseStorage.getAllPlayers (file:///opt/cricket-scorer/dist/index.js:667:24)
+1|cricket-scorer  |     at async file:///opt/cricket-scorer/dist/index.js:2159:22 {
+1|cricket-scorer  |   length: 112,
+1|cricket-scorer  |   severity: 'ERROR',
+1|cricket-scorer  |   code: '42703',
+1|cricket-scorer  |   detail: undefined,
+1|cricket-scorer  |   hint: undefined,
+1|cricket-scorer  |   position: '22',
+1|cricket-scorer  |   internalPosition: undefined,
+1|cricket-scorer  |   internalQuery: undefined,
+1|cricket-scorer  |   where: undefined,
+1|cricket-scorer  |   schema: undefined,
+1|cricket-scorer  |   table: undefined,
+1|cricket-scorer  |   column: undefined,
+1|cricket-scorer  |   dataType: undefined,
+1|cricket-scorer  |   constraint: undefined,
+1|cricket-scorer  |   file: 'parse_relation.c',
+1|cricket-scorer  |   line: '3665',
+1|cricket-scorer  |   routine: 'errorMissingColumn'
+1|cricket-scorer  | }
+1|cricket-scorer  | 2025-07-25T14:19:16: 2:19:16 PM [express] GET /api/players 500 in 60ms :: {"error":"Failed to fetch players"}
+1|cricket-scorer  | 2025-07-25T14:19:16: 2:19:16 PM [express] GET /api/franchises 304 in 53ms :: [{"id":1,"name":"Whaterstone Khiladis","shor…
+1|cricket-scorer  | 2025-07-25T14:19:16: 2:19:16 PM [express] GET /api/all-player-franchise-links 304 in 50ms :: [{"id":1,"playerId":22,"fran…
