@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequestJson } from '@/lib/queryClient';
 import { PlayerWithStats, InsertPlayer, Franchise, PlayerFranchiseLink, InsertPlayerFranchiseLink } from '@shared/schema';
-import { Plus, Search, Edit, Trash2, User, Trophy, Target, Building2, Link, X } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Trophy, Target, Building2, Link, X } from 'lucide-react';
 
 export default function PlayerManagement() {
   const { toast } = useToast();
@@ -48,33 +48,56 @@ export default function PlayerManagement() {
     queryFn: () => apiRequestJson('/api/all-player-franchise-links'),
   });
 
-  // Search players
-  const { data: searchResults = [], refetch: searchPlayers } = useQuery({
-    queryKey: ['/api/players/search', searchQuery],
-    queryFn: () => apiRequestJson(`/api/players/search?q=${encodeURIComponent(searchQuery)}`),
-    enabled: false,
-  });
-
-  // Filter players by franchise
+  // Filter players by franchise and search
   const filteredPlayers = useMemo(() => {
-    if (selectedFranchiseId === 'all') return players;
-    const franchiseId = parseInt(selectedFranchiseId);
-    return players.filter((player: PlayerWithStats) => 
-      allPlayerFranchiseLinks.some((link: any) => 
-        link.playerId === player.id && link.franchiseId === franchiseId && link.isActive
-      )
-    );
-  }, [players, selectedFranchiseId, allPlayerFranchiseLinks]);
+    let result = players;
+    
+    // Filter by franchise
+    if (selectedFranchiseId !== 'all') {
+      const franchiseId = parseInt(selectedFranchiseId);
+      result = result.filter((player: PlayerWithStats) => 
+        allPlayerFranchiseLinks.some((link: any) => 
+          link.playerId === player.id && link.franchiseId === franchiseId && link.isActive
+        )
+      );
+    }
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((player: PlayerWithStats) => 
+        player.name.toLowerCase().includes(query) || 
+        player.role.toLowerCase().includes(query)
+      );
+    }
+    
+    return result;
+  }, [players, selectedFranchiseId, allPlayerFranchiseLinks, searchQuery]);
 
   const filteredAvailablePlayers = useMemo(() => {
-    if (selectedFranchiseId === 'all') return availablePlayers;
-    const franchiseId = parseInt(selectedFranchiseId);
-    return availablePlayers.filter((player: PlayerWithStats) => 
-      allPlayerFranchiseLinks.some((link: any) => 
-        link.playerId === player.id && link.franchiseId === franchiseId && link.isActive
-      )
-    );
-  }, [availablePlayers, selectedFranchiseId, allPlayerFranchiseLinks]);
+    let result = availablePlayers;
+    
+    // Filter by franchise
+    if (selectedFranchiseId !== 'all') {
+      const franchiseId = parseInt(selectedFranchiseId);
+      result = result.filter((player: PlayerWithStats) => 
+        allPlayerFranchiseLinks.some((link: any) => 
+          link.playerId === player.id && link.franchiseId === franchiseId && link.isActive
+        )
+      );
+    }
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((player: PlayerWithStats) => 
+        player.name.toLowerCase().includes(query) || 
+        player.role.toLowerCase().includes(query)
+      );
+    }
+    
+    return result;
+  }, [availablePlayers, selectedFranchiseId, allPlayerFranchiseLinks, searchQuery]);
 
   // Create player mutation
   const createPlayerMutation = useMutation({
@@ -172,11 +195,7 @@ export default function PlayerManagement() {
 
 
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      searchPlayers();
-    }
-  };
+
 
   const handleCreatePlayer = (formData: FormData) => {
     const data = Object.fromEntries(formData.entries()) as any;
@@ -285,7 +304,7 @@ export default function PlayerManagement() {
         </Dialog>
       </div>
 
-      {/* Franchise Filter */}
+      {/* Filter and Search Controls */}
       <div>
         <div className="flex items-center gap-4">
           <Label htmlFor="franchise-filter" className="text-sm font-medium">
@@ -313,14 +332,35 @@ export default function PlayerManagement() {
               Clear Filter
             </Button>
           )}
+          
+          <div className="flex items-center gap-2 ml-8">
+            <Label htmlFor="search-input" className="text-sm font-medium">
+              Search:
+            </Label>
+            <Input
+              id="search-input"
+              placeholder="Search by name or role..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-64"
+            />
+            {searchQuery && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setSearchQuery('')}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
       <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="all">All Players ({filteredPlayers.length})</TabsTrigger>
           <TabsTrigger value="available">Available ({filteredAvailablePlayers.length})</TabsTrigger>
-          <TabsTrigger value="search">Search</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all">
@@ -338,9 +378,11 @@ export default function PlayerManagement() {
           </div>
           {filteredPlayers.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              {selectedFranchiseId === 'all' 
-                ? 'No players found.' 
-                : 'No players found for selected franchise.'}
+              {searchQuery 
+                ? `No players found matching "${searchQuery}".`
+                : selectedFranchiseId === 'all' 
+                  ? 'No players found.' 
+                  : 'No players found for selected franchise.'}
             </div>
           )}
         </TabsContent>
@@ -360,53 +402,16 @@ export default function PlayerManagement() {
           </div>
           {filteredAvailablePlayers.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              {selectedFranchiseId === 'all' 
-                ? 'No available players found.' 
-                : 'No available players found for selected franchise.'}
+              {searchQuery 
+                ? `No available players found matching "${searchQuery}".`
+                : selectedFranchiseId === 'all' 
+                  ? 'No available players found.' 
+                  : 'No available players found for selected franchise.'}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="search">
-          <div className="mb-6">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Search players by name or role..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-              <Button onClick={handleSearch}>
-                <Search className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {searchResults
-              .filter((player: PlayerWithStats) => 
-                selectedFranchiseId === 'all' || player.franchiseId === parseInt(selectedFranchiseId)
-              )
-              .map((player: PlayerWithStats) => (
-              <PlayerCard 
-                key={player.id} 
-                player={player} 
-                onEdit={() => setEditingPlayer(player)}
-                onDelete={() => deletePlayerMutation.mutate(player.id)}
-                onManageFranchises={() => setManagingFranchisesFor(player)}
-                franchises={franchises}
-              />
-            ))}
-          </div>
-          {searchResults.filter((player: PlayerWithStats) => 
-            selectedFranchiseId === 'all' || player.franchiseId === parseInt(selectedFranchiseId)
-          ).length === 0 && searchQuery && (
-            <div className="text-center py-8 text-gray-500">
-              {selectedFranchiseId === 'all' 
-                ? `No players found matching "${searchQuery}".` 
-                : `No players found matching "${searchQuery}" for selected franchise.`}
-            </div>
-          )}
-        </TabsContent>
+
       </Tabs>
 
       {/* Edit Player Dialog */}
@@ -534,7 +539,7 @@ export default function PlayerManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       {franchises
-                        .filter(franchise => !playerFranchises.some((link: any) => link.franchiseId === franchise.id))
+                        .filter((franchise: Franchise) => !playerFranchises.some((link: any) => link.franchiseId === franchise.id))
                         .map((franchise: Franchise) => (
                           <SelectItem key={franchise.id} value={franchise.id.toString()}>
                             {franchise.name} ({franchise.shortName})
@@ -543,7 +548,7 @@ export default function PlayerManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                {franchises.filter(franchise => !playerFranchises.some((link: any) => link.franchiseId === franchise.id)).length === 0 && (
+                {franchises.filter((franchise: Franchise) => !playerFranchises.some((link: any) => link.franchiseId === franchise.id)).length === 0 && (
                   <div className="text-sm text-gray-500 mt-2">
                     Player is already associated with all available franchises.
                   </div>
