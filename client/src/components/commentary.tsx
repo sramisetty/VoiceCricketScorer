@@ -5,12 +5,9 @@ import { cn } from '@/lib/utils';
 
 interface CommentaryProps {
   balls: (Ball & { batsman: Player; bowler: Player })[];
-  currentInningsId?: number;
 }
 
-export function Commentary({ balls, currentInningsId }: CommentaryProps) {
-  // Filter balls for current innings only
-  const filteredBalls = currentInningsId ? balls.filter(ball => ball.inningsId === currentInningsId) : balls;
+export function Commentary({ balls }: CommentaryProps) {
   const getBallStyle = (ball: Ball) => {
     if (ball.isWicket) return 'bg-red-50 border-red-200';
     if ((ball.runs || 0) === 4) return 'bg-cricket-light border-cricket-primary/30';
@@ -58,12 +55,12 @@ export function Commentary({ balls, currentInningsId }: CommentaryProps) {
       <CardContent>
         <ScrollArea className="h-96">
           <div className="space-y-3">
-            {filteredBalls.length === 0 ? (
+            {balls.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 No balls bowled yet
               </div>
             ) : (
-              filteredBalls.map((ball) => (
+              balls.map((ball) => (
                 <div
                   key={ball.id}
                   className={cn(

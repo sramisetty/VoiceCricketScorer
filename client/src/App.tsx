@@ -87,7 +87,7 @@ function ScorerWithNav({ params }: { params: { matchId: string } }) {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
       <div className="flex-1">
-        <ScorerSimple />
+        <Scorer />
       </div>
       <Footer />
     </div>

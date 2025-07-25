@@ -824,21 +824,9 @@ export default function Scorer() {
     );
   }
 
-  // Basic safe calculations
-  const currentBatsmen = currentData?.currentBatsmen || [];
-  const striker = currentBatsmen.find(b => b?.isOnStrike);
-  const nonStriker = currentBatsmen.find(b => !b?.isOnStrike);
-
-  // Safe over calculations
-  const recentBalls = currentData?.recentBalls || [];
-  const currentOverNumber = recentBalls.length > 0 && recentBalls[0]?.overNumber ? recentBalls[0].overNumber : 1;
-  const ballsInCurrentOver = recentBalls.filter(ball => 
-    ball?.overNumber === currentOverNumber && 
-    (!ball?.extraType || (ball.extraType === 'bye' || ball.extraType === 'legbye'))
-  ).length || 0;
-  const completedOvers = Math.max(0, currentOverNumber - 1);
-  const currentOverDisplay = `${currentOverNumber}.${ballsInCurrentOver}`;
-  const totalOversDisplay = `${completedOvers}.${ballsInCurrentOver} Overs`;
+  const currentBatsmen = currentData.currentBatsmen;
+  const striker = currentBatsmen.find(b => b.isOnStrike);
+  const nonStriker = currentBatsmen.find(b => !b.isOnStrike);
 
   return (
     <div className="mobile-full-height bg-gray-50">
@@ -889,27 +877,27 @@ export default function Scorer() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
               <div className="mb-4 md:mb-0">
                 <h2 className="text-2xl font-bold text-gray-800">
-                  {currentData?.match?.team1?.name || 'Team 1'} vs {currentData?.match?.team2?.name || 'Team 2'}
+                  {currentData.match.team1.name} vs {currentData.match.team2.name}
                 </h2>
                 <div className="space-y-1">
                   <p className="text-gray-600">
-                    {currentData?.match?.matchType || 'T20'} Match • Over {currentOverDisplay} of {currentData?.match?.overs || 20}
+                    {currentData.match.matchType} Match • Over {currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1}.{currentData.recentBalls.length > 0 ? currentData.recentBalls[0].ballNumber : 0} of {currentData.match.overs}
                   </p>
                   <div className="flex items-center space-x-4 text-sm">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <span className="font-semibold text-green-700">
-                        {currentData?.currentInnings?.battingTeam?.name || 'Team 1'} Batting
+                        {currentData.currentInnings.battingTeam.name} Batting
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                       <span className="font-semibold text-red-700">
-                        {currentData?.currentInnings?.bowlingTeam?.name || 'Team 2'} Bowling
+                        {currentData.currentInnings.bowlingTeam.name} Bowling
                       </span>
                     </div>
                     <div className="bg-blue-100 px-2 py-1 rounded text-blue-800 font-medium">
-                      {currentData?.currentInnings?.inningsNumber === 1 ? "1st" : "2nd"} Innings
+                      {currentData.currentInnings.inningsNumber === 1 ? "1st" : "2nd"} Innings
                     </div>
                   </div>
                 </div>
@@ -917,10 +905,10 @@ export default function Scorer() {
               <div className="flex items-center space-x-4">
                 <div className="text-right">
                   <div className="text-3xl font-bold text-cricket-primary">
-                    {currentData?.currentInnings?.totalRuns || 0}/{currentData?.currentInnings?.totalWickets || 0}
+                    {currentData.currentInnings.totalRuns}/{currentData.currentInnings.totalWickets}
                   </div>
                   <div className="text-sm text-gray-600">
-                    {totalOversDisplay}
+                    {currentData.recentBalls.length > 0 ? currentData.recentBalls[0].overNumber : 1}.{currentData.recentBalls.length > 0 ? currentData.recentBalls[0].ballNumber : 0} Overs
                   </div>
                 </div>
                 {!isMatchStarted && (
@@ -1259,10 +1247,7 @@ export default function Scorer() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="max-h-[350px] overflow-y-auto">
-                <Commentary 
-                  balls={currentData.recentBalls} 
-                  currentInningsId={currentData.currentInnings.id}
-                />
+                <Commentary balls={currentData.recentBalls} />
               </CardContent>
             </Card>
 
