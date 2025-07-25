@@ -17,35 +17,35 @@ export default function Logo({
   const [imageError, setImageError] = useState(false);
 
   const sizeClasses = {
-    small: 'h-8 w-8',
-    medium: 'h-10 w-10',
-    large: 'h-16 w-16'
+    small: 'h-6 w-6 sm:h-8 sm:w-8',
+    medium: 'h-8 w-8 sm:h-10 sm:w-10',
+    large: 'h-12 w-12 sm:h-16 sm:w-16'
   };
 
   const textSizeClasses = {
-    small: 'text-lg',
-    medium: 'text-xl',
-    large: 'text-3xl'
+    small: 'text-base sm:text-lg',
+    medium: 'text-lg sm:text-xl',
+    large: 'text-2xl sm:text-3xl'
   };
 
   const logoIconSize = {
-    small: 'w-5 h-5',
-    medium: 'w-6 h-6',
-    large: 'w-10 h-10'
+    small: 'w-4 h-4 sm:w-5 sm:h-5',
+    medium: 'w-5 h-5 sm:w-6 sm:h-6',
+    large: 'w-8 h-8 sm:w-10 sm:h-10'
   };
 
   if (imageError) {
     // Fallback logo using Lucide icon
     return (
-      <div className={`flex items-center space-x-3 ${className}`}>
-        <div className={`${sizeClasses[size]} bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center`}>
+      <div className={`flex items-center space-x-2 sm:space-x-3 ${className}`}>
+        <div className={`${sizeClasses[size]} bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-md`}>
           <Trophy className={`${logoIconSize[size]} text-white`} />
         </div>
         {showText && (
           <div className="flex flex-col">
             <h1 className={`${textSizeClasses[size]} font-bold ${textColor}`}>Score Pro</h1>
             {size !== 'small' && (
-              <p className="text-xs text-gray-500">Professional Cricket Scoring</p>
+              <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Professional Cricket Scoring</p>
             )}
           </div>
         )}
@@ -54,7 +54,7 @@ export default function Logo({
   }
 
   return (
-    <div className={`flex items-center space-x-3 ${className}`}>
+    <div className={`flex items-center space-x-2 sm:space-x-3 ${className}`}>
       <img 
         src="/logo.svg" 
         alt="Score Pro" 
@@ -71,7 +71,7 @@ export default function Logo({
         <div className="flex flex-col">
           <h1 className={`${textSizeClasses[size]} font-bold ${textColor}`}>Score Pro</h1>
           {size !== 'small' && (
-            <p className="text-xs text-gray-500">Professional Cricket Scoring</p>
+            <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Professional Cricket Scoring</p>
           )}
         </div>
       )}

@@ -56,35 +56,37 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-green-100 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-green-100 px-4 py-8">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
             <Logo size="large" showText={true} textColor="text-green-800" />
           </div>
-          <CardDescription>Sign in to your account</CardDescription>
+          <CardDescription className="text-base text-gray-600">Sign in to your account</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
+        <CardContent className="px-6 pb-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={handleChange('email')}
                 placeholder="Enter your email"
+                className="h-11 text-base"
                 required
               />
             </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
               <Input
                 id="password"
                 type="password"
                 value={formData.password}
                 onChange={handleChange('password')}
                 placeholder="Enter your password"
+                className="h-11 text-base"
                 required
               />
             </div>
@@ -99,7 +101,7 @@ export default function Login() {
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full h-11 bg-green-600 hover:bg-green-700 text-base font-medium"
               disabled={loginMutation.isPending}
             >
               {loginMutation.isPending ? 'Signing in...' : 'Sign In'}

@@ -64,68 +64,72 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-green-100 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-green-100 px-4 py-8">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
             <Logo size="large" showText={true} textColor="text-green-800" />
           </div>
-          <CardDescription>Create your account</CardDescription>
+          <CardDescription className="text-base text-gray-600">Create your account</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName">First Name</Label>
+        <CardContent className="px-6 pb-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">First Name</Label>
                 <Input
                   id="firstName"
                   value={formData.firstName}
                   onChange={handleChange('firstName')}
                   placeholder="First name"
+                  className="h-11 text-base"
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="lastName">Last Name</Label>
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">Last Name</Label>
                 <Input
                   id="lastName"
                   value={formData.lastName}
                   onChange={handleChange('lastName')}
                   placeholder="Last name"
+                  className="h-11 text-base"
                   required
                 />
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={handleChange('email')}
                 placeholder="Enter your email"
+                className="h-11 text-base"
                 required
               />
             </div>
 
-            <div>
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
               <Input
                 id="password"
                 type="password"
                 value={formData.password}
                 onChange={handleChange('password')}
                 placeholder="Create a password (min 6 characters)"
+                className="h-11 text-base"
                 required
                 minLength={6}
               />
             </div>
 
-            <div>
-              <Label htmlFor="role">Role</Label>
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-sm font-medium text-gray-700">Role</Label>
               <Select value={formData.role} onValueChange={handleRoleChange}>
-                <SelectTrigger>
+                <SelectTrigger className="h-11 text-base">
                   <SelectValue placeholder="Select your role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -147,19 +151,19 @@ export default function Register() {
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full h-11 bg-green-600 hover:bg-green-700 text-base font-medium"
               disabled={registerMutation.isPending}
             >
               {registerMutation.isPending ? 'Creating Account...' : 'Create Account'}
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-8 text-center">
             <p className="text-sm text-gray-600">
               Already have an account?{' '}
               <Button
                 variant="link"
-                className="p-0 h-auto"
+                className="p-0 h-auto text-green-600 hover:text-green-700 font-medium"
                 onClick={() => setLocation('/login')}
               >
                 Sign in
@@ -171,7 +175,7 @@ export default function Register() {
             <Button
               variant="outline"
               onClick={() => setLocation('/')}
-              className="text-sm"
+              className="text-sm border-green-200 text-green-700 hover:bg-green-50"
             >
               Continue as Guest
             </Button>
