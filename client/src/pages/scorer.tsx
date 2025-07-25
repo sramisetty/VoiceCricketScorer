@@ -44,6 +44,7 @@ export default function Scorer() {
   const [overCompletedDialogOpen, setOverCompletedDialogOpen] = useState(false);
   const [nextBowlerId, setNextBowlerId] = useState('');
   const [openersDialogOpen, setOpenersDialogOpen] = useState(false);
+  const [openersSetComplete, setOpenersSetComplete] = useState(false);
   const [lastBowlerChangeOverNumber, setLastBowlerChangeOverNumber] = useState(0);
   const [selectedOpener1, setSelectedOpener1] = useState('');
   const [selectedOpener2, setSelectedOpener2] = useState('');
@@ -117,7 +118,12 @@ export default function Scorer() {
     if (currentData?.match.status === 'live') {
       setIsMatchStarted(true);
     }
-  }, [currentData]);
+    
+    // Reset openers complete flag when innings changes
+    if (currentData?.currentInnings) {
+      setOpenersSetComplete(false);
+    }
+  }, [currentData?.match.status, currentData?.currentInnings.id]);
 
   // Check if over is completed and prompt for next bowler
   useEffect(() => {
@@ -429,8 +435,9 @@ export default function Scorer() {
       return response.json();
     },
     onSuccess: () => {
-      // Close dialog immediately
+      // Close dialog immediately and mark openers as set
       setOpenersDialogOpen(false);
+      setOpenersSetComplete(true);
       setSelectedOpener1('');
       setSelectedOpener2('');
       setSelectedStriker('');
@@ -513,12 +520,12 @@ export default function Scorer() {
     if (currentData?.currentInnings && currentData.currentInnings.totalBalls === 0 && isMatchStarted) {
       // Only show dialog if no batsmen are currently set (openers not set)
       const hasBatsmen = currentData.currentBatsmen && currentData.currentBatsmen.length > 0;
-      // Don't reopen dialog if mutation is pending to avoid conflicts
-      if (!hasBatsmen && !openersDialogOpen && !setOpenersMutation.isPending) {
+      // Don't reopen dialog if mutation is pending or openers have already been set successfully
+      if (!hasBatsmen && !openersDialogOpen && !setOpenersMutation.isPending && !openersSetComplete) {
         setOpenersDialogOpen(true);
       }
     }
-  }, [currentData?.currentInnings.totalBalls, currentData?.currentBatsmen, isMatchStarted, openersDialogOpen, setOpenersMutation.isPending]);
+  }, [currentData?.currentInnings.totalBalls, currentData?.currentBatsmen, isMatchStarted, openersDialogOpen, setOpenersMutation.isPending, openersSetComplete]);
 
   const handleCommand = (command: ParsedCommand) => {
     if (!isMatchStarted && command.type !== 'timeout' && command.type !== 'review') {
