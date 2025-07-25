@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequestJson } from '@/lib/queryClient';
 import { RegisterForm } from '@shared/schema';
+import Logo from '@/components/Logo';
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -66,7 +67,9 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-green-100 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-green-800">Score Pro</CardTitle>
+          <div className="flex justify-center mb-4">
+            <Logo size="large" showText={true} textColor="text-green-800" />
+          </div>
           <CardDescription>Create your account</CardDescription>
         </CardHeader>
         <CardContent>

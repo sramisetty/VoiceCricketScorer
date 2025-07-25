@@ -5,36 +5,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Home, Users, Trophy, LogOut, User, Settings, Shield } from 'lucide-react';
+import { Home, Users, LogOut, User, Settings, Shield, Trophy } from 'lucide-react';
+import Logo from '@/components/Logo';
 
-// Logo Component with fallback
-function LogoComponent() {
-  const [imageError, setImageError] = useState(false);
 
-  if (imageError) {
-    // Fallback logo using Lucide icon
-    return (
-      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-        <Trophy className="w-6 h-6 text-white" />
-      </div>
-    );
-  }
-
-  return (
-    <img 
-      src="/logo.svg" 
-      alt="Score Pro" 
-      className="h-10 w-auto" 
-      onError={() => {
-        console.error('Logo failed to load from /logo.svg, showing fallback');
-        setImageError(true);
-      }}
-      onLoad={() => {
-        console.log('Logo loaded successfully from /logo.svg');
-      }}
-    />
-  );
-}
 
 interface UserData {
   id: number;
@@ -96,12 +70,8 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <div className="flex-shrink-0 flex items-center space-x-3">
-              <LogoComponent />
-              <div className="flex flex-col">
-                <h1 className="text-xl font-bold text-gray-900">Score Pro</h1>
-                <p className="text-xs text-gray-500">Professional Cricket Scoring</p>
-              </div>
+            <div className="flex-shrink-0">
+              <Logo size="medium" showText={true} />
             </div>
           </div>
 
