@@ -222,12 +222,6 @@ export default function Archives() {
                         </Button>
                       </Link>
                     )}
-                    <Link href={`/scoreboard/${match.id}`}>
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-2" />
-                        Live View
-                      </Button>
-                    </Link>
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button

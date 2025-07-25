@@ -432,12 +432,6 @@ export default function MatchesClean() {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Link href={`/scoreboard/${match.id}`} className="flex-1">
-                          <Button variant="outline" className="w-full">
-                            <Eye className="w-4 h-4 mr-2" />
-                            Live View
-                          </Button>
-                        </Link>
                         <Link href={`/match-details/${match.id}`} className="flex-1">
                           <Button className="w-full bg-blue-600 hover:bg-blue-700">
                             <BarChart3 className="w-4 h-4 mr-2" />
