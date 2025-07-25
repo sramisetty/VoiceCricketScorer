@@ -621,6 +621,98 @@ ALTER TABLE franchises ADD COLUMN IF NOT EXISTS website VARCHAR(500);
 GRANT ALL PRIVILEGES ON player_franchise_links TO cricket_user;
 GRANT USAGE, SELECT ON SEQUENCE player_franchise_links_id_seq TO cricket_user;
 
+-- Ensure all required columns have proper defaults and constraints
+DO \$\$ 
+BEGIN
+    -- Players table enhancements
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'players') THEN
+        -- Ensure required columns have NOT NULL constraints where needed
+        ALTER TABLE players ALTER COLUMN name SET NOT NULL;
+        ALTER TABLE players ALTER COLUMN role SET NOT NULL;
+        
+        -- Set proper defaults
+        ALTER TABLE players ALTER COLUMN is_active SET DEFAULT true;
+        ALTER TABLE players ALTER COLUMN availability SET DEFAULT true;
+        ALTER TABLE players ALTER COLUMN created_at SET DEFAULT NOW();
+        ALTER TABLE players ALTER COLUMN updated_at SET DEFAULT NOW();
+        
+        -- Add missing stats column with proper default
+        ALTER TABLE players ADD COLUMN IF NOT EXISTS stats JSONB DEFAULT '{"totalMatches": 0, "totalRuns": 0, "totalWickets": 0, "highestScore": 0, "bestBowling": "0/0"}';
+        
+        -- Update NULL values to proper defaults
+        UPDATE players SET availability = true WHERE availability IS NULL;
+        UPDATE players SET is_active = true WHERE is_active IS NULL;
+        UPDATE players SET stats = '{"totalMatches": 0, "totalRuns": 0, "totalWickets": 0, "highestScore": 0, "bestBowling": "0/0"}' WHERE stats IS NULL;
+        UPDATE players SET created_at = NOW() WHERE created_at IS NULL;
+        UPDATE players SET updated_at = NOW() WHERE updated_at IS NULL;
+        
+        -- Relax foreign key constraints to allow NULL values (optional relationships)
+        ALTER TABLE players ALTER COLUMN franchise_id DROP NOT NULL;
+        ALTER TABLE players ALTER COLUMN team_id DROP NOT NULL;
+        ALTER TABLE players ALTER COLUMN user_id DROP NOT NULL;
+        
+        RAISE NOTICE 'Enhanced players table with proper constraints and defaults';
+    END IF;
+    
+    -- Users table enhancements
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
+        -- Ensure required columns
+        ALTER TABLE users ALTER COLUMN email SET NOT NULL;
+        ALTER TABLE users ALTER COLUMN password_hash SET NOT NULL;
+        ALTER TABLE users ALTER COLUMN first_name SET NOT NULL;
+        ALTER TABLE users ALTER COLUMN last_name SET NOT NULL;
+        
+        -- Add username column if missing (email serves as username)
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255);
+        
+        -- Update username to match email where missing
+        UPDATE users SET username = email WHERE username IS NULL OR username = '';
+        
+        -- Make username NOT NULL after populating
+        ALTER TABLE users ALTER COLUMN username SET NOT NULL;
+        
+        -- Set proper defaults
+        ALTER TABLE users ALTER COLUMN role SET DEFAULT 'viewer';
+        ALTER TABLE users ALTER COLUMN is_active SET DEFAULT true;
+        ALTER TABLE users ALTER COLUMN email_verified SET DEFAULT false;
+        ALTER TABLE users ALTER COLUMN created_at SET DEFAULT NOW();
+        ALTER TABLE users ALTER COLUMN updated_at SET DEFAULT NOW();
+        
+        RAISE NOTICE 'Enhanced users table with username field and proper constraints';
+    END IF;
+    
+    -- Teams table enhancements
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'teams') THEN
+        ALTER TABLE teams ALTER COLUMN name SET NOT NULL;
+        ALTER TABLE teams ALTER COLUMN short_name SET NOT NULL;
+        ALTER TABLE teams ALTER COLUMN is_active SET DEFAULT true;
+        ALTER TABLE teams ALTER COLUMN created_at SET DEFAULT NOW();
+        ALTER TABLE teams ALTER COLUMN updated_at SET DEFAULT NOW();
+        
+        UPDATE teams SET is_active = true WHERE is_active IS NULL;
+        UPDATE teams SET created_at = NOW() WHERE created_at IS NULL;
+        UPDATE teams SET updated_at = NOW() WHERE updated_at IS NULL;
+        
+        RAISE NOTICE 'Enhanced teams table with proper constraints';
+    END IF;
+    
+    -- Franchises table enhancements
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'franchises') THEN
+        ALTER TABLE franchises ALTER COLUMN name SET NOT NULL;
+        ALTER TABLE franchises ALTER COLUMN short_name SET NOT NULL;
+        ALTER TABLE franchises ALTER COLUMN is_active SET DEFAULT true;
+        ALTER TABLE franchises ALTER COLUMN created_at SET DEFAULT NOW();
+        ALTER TABLE franchises ALTER COLUMN updated_at SET DEFAULT NOW();
+        
+        UPDATE franchises SET is_active = true WHERE is_active IS NULL;
+        UPDATE franchises SET created_at = NOW() WHERE created_at IS NULL;
+        UPDATE franchises SET updated_at = NOW() WHERE updated_at IS NULL;
+        
+        RAISE NOTICE 'Enhanced franchises table with proper constraints';
+    END IF;
+    
+END \$\$;
+
 -- Migrate existing franchise associations to player_franchise_links
 INSERT INTO player_franchise_links (player_id, franchise_id, is_active)
 SELECT p.id, p.franchise_id, true
@@ -1248,6 +1340,94 @@ main() {
     # Final verification
     log "Final deployment verification:"
     pm2 status
+    
+    # Comprehensive API testing
+    test_api_endpoints
+}
+
+# Test API endpoints thoroughly
+test_api_endpoints() {
+    log "Testing API endpoints..."
+    
+    cd "$APP_DIR"
+    
+    # Wait for application to fully start
+    sleep 10
+    
+    local api_base="http://localhost:3000/api"
+    local test_results=()
+    
+    # Test essential endpoints
+    local endpoints=(
+        "matches:GET"
+        "franchises:GET"
+        "teams:GET"
+        "health:GET"
+    )
+    
+    for endpoint_info in "${endpoints[@]}"; do
+        local endpoint=$(echo "$endpoint_info" | cut -d: -f1)
+        local method=$(echo "$endpoint_info" | cut -d: -f2)
+        local url="$api_base/$endpoint"
+        
+        log "Testing $method $url..."
+        
+        if curl -f -s -X "$method" "$url" >/dev/null 2>&1; then
+            success "✓ $endpoint API working"
+            test_results+=("$endpoint:PASS")
+        else
+            warning "✗ $endpoint API failed"
+            test_results+=("$endpoint:FAIL")
+            
+            # Try to diagnose the issue
+            local response=$(curl -s -w "%{http_code}" "$url" 2>/dev/null)
+            log "Response: $response"
+        fi
+        
+        sleep 1
+    done
+    
+    # Summary of API tests
+    log ""
+    log "=== API TEST RESULTS ==="
+    local passed=0
+    local failed=0
+    
+    for result in "${test_results[@]}"; do
+        local endpoint=$(echo "$result" | cut -d: -f1)
+        local status=$(echo "$result" | cut -d: -f2)
+        
+        if [ "$status" = "PASS" ]; then
+            echo "✓ $endpoint"
+            ((passed++))
+        else
+            echo "✗ $endpoint"
+            ((failed++))
+        fi
+    done
+    
+    log ""
+    log "API Tests: $passed passed, $failed failed"
+    
+    if [ $failed -eq 0 ]; then
+        success "All API endpoints are working correctly!"
+    else
+        warning "Some API endpoints failed - check application logs:"
+        log "PM2 logs: pm2 logs cricket-scorer --lines 20"
+        log "Nginx logs: tail -20 /var/log/nginx/error.log"
+        
+        # Attempt automatic restart if APIs are failing
+        log "Attempting automatic restart to fix API issues..."
+        pm2 restart cricket-scorer
+        sleep 10
+        
+        # Re-test one critical endpoint
+        if curl -f -s "$api_base/matches" >/dev/null 2>&1; then
+            success "✓ Restart fixed API issues"
+        else
+            warning "✗ API issues persist after restart"
+        fi
+    fi
 }
 
 # Run main function
