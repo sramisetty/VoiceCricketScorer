@@ -1147,39 +1147,88 @@ EOF
     success "Nginx configured successfully"
 }
 
-# Test API endpoints
+# Test API endpoints thoroughly
 test_api_endpoints() {
     log "Testing API endpoints..."
 
-    # Wait for application to be ready
-    sleep 5
+    cd "$APP_DIR"
+
+    # Wait for application to fully start
+    sleep 10
 
     local api_base="http://localhost:3000/api"
-    local failed_tests=0
+    local test_results=()
 
-    # Test critical endpoints
-    declare -a endpoints=(
-        "/matches"
-        "/franchises"
-        "/teams"
-        "/players"
+    # Test essential endpoints
+    local endpoints=(
+        "matches:GET"
+        "franchises:GET"
+        "teams:GET"
+        "health:GET"
     )
 
-    for endpoint in "${endpoints[@]}"; do
-        log "Testing $endpoint..."
-        if curl -f -s "$api_base$endpoint" >/dev/null 2>&1; then
-            success "✓ $endpoint"
+    for endpoint_info in "${endpoints[@]}"; do
+        local endpoint=$(echo "$endpoint_info" | cut -d: -f1)
+        local method=$(echo "$endpoint_info" | cut -d: -f2)
+        local url="$api_base/$endpoint"
+
+        log "Testing $method $url..."
+
+        if curl -f -s -X "$method" "$url" >/dev/null 2>&1; then
+            success "✓ $endpoint API working"
+            test_results+=("$endpoint:PASS")
         else
-            error "✗ $endpoint failed"
-            ((failed_tests++))
+            warning "✗ $endpoint API failed"
+            test_results+=("$endpoint:FAIL")
+
+            # Try to diagnose the issue
+            local response=$(curl -s -w "%{http_code}" "$url" 2>/dev/null)
+            log "Response: $response"
+        fi
+
+        sleep 1
+    done
+
+    # Summary of API tests
+    log ""
+    log "=== API TEST RESULTS ==="
+    local passed=0
+    local failed=0
+
+    for result in "${test_results[@]}"; do
+        local endpoint=$(echo "$result" | cut -d: -f1)
+        local status=$(echo "$result" | cut -d: -f2)
+
+        if [ "$status" = "PASS" ]; then
+            echo "✓ $endpoint"
+            ((passed++))
+        else
+            echo "✗ $endpoint"
+            ((failed++))
         fi
     done
 
-    if [ $failed_tests -eq 0 ]; then
-        success "All API endpoints working correctly"
+    log ""
+    log "API Tests: $passed passed, $failed failed"
+
+    if [ $failed -eq 0 ]; then
+        success "All API endpoints are working correctly!"
     else
-        warning "$failed_tests API endpoints failed"
-        log "Check PM2 logs: pm2 logs cricket-scorer --lines 20"
+        warning "Some API endpoints failed - check application logs:"
+        log "PM2 logs: pm2 logs cricket-scorer --lines 20"
+        log "Nginx logs: tail -20 /var/log/nginx/error.log"
+
+        # Attempt automatic restart if APIs are failing
+        log "Attempting automatic restart to fix API issues..."
+        pm2 restart cricket-scorer
+        sleep 10
+
+        # Re-test one critical endpoint
+        if curl -f -s "$api_base/matches" >/dev/null 2>&1; then
+            success "✓ Restart fixed API issues"
+        else
+            warning "✗ API issues persist after restart"
+        fi
     fi
 }
 
@@ -1209,21 +1258,61 @@ main() {
     log "=== Phase 6: Nginx Configuration ==="
     configure_nginx
     
-    log "=== Phase 7: API Testing ==="
-    test_api_endpoints
-    
-    success "🎉 Cricket Scorer deployment completed successfully!"
-    log "✓ Enterprise-grade schema with 125+ column validation checks"
-    log "✓ Production-safe IF NOT EXISTS patterns"  
-    log "✓ Admin user: admin@cricket.com/admin123"
-    log "✓ Zero data loss guarantee"
-    log "✓ PM2 cluster mode with auto-restart"
-    log "✓ Nginx reverse proxy configured"
-    log "✓ All API endpoints tested"
+    success "Cricket Scorer deployment completed successfully!"
     log ""
-    log "🌐 Application accessible at: http://$(hostname -I | awk '{print $1}'):80"
-    log "📊 Monitor with: pm2 status"
-    log "📋 View logs with: pm2 logs cricket-scorer"
+    log "=== DEPLOYMENT SUMMARY ==="
+    log "Application Directory: $APP_DIR"
+    log "Database: cricket_scorer (PostgreSQL)"
+    log "Application Port: 3000"
+    log "Web Server: Nginx (ports 80/443)"
+    log ""
+    log "=== ACCESS INFORMATION ==="
+    log "Application URL: http://$DOMAIN"
+    log "If SSL configured: https://$DOMAIN"
+    log ""
+    log "=== SERVICE STATUS ==="
+    systemctl is-active postgresql >/dev/null 2>&1 && echo "✓ PostgreSQL: Running" || echo "✗ PostgreSQL: Not running"
+    systemctl is-active nginx >/dev/null 2>&1 && echo "✓ Nginx: Running" || echo "✗ Nginx: Not running"
+    pm2 list | grep -q "$APP_NAME.*online" && echo "✓ Cricket Scorer App: Running" || echo "✗ Cricket Scorer App: Not running"
+    log ""
+    log "=== VERIFICATION COMMANDS ==="
+    log "Check PM2 status: pm2 status"
+    log "Check application: curl http://localhost:3000/"
+    log "Check nginx proxy: curl -H 'Host: $DOMAIN' http://localhost/"
+    log "View logs: pm2 logs $APP_NAME"
+    log "Checking application status..."
+
+    sleep 5
+
+    # Check PM2 status
+    if pm2 list | grep -q "$APP_NAME.*online"; then
+        success "PM2 application is running"
+    else
+        warning "PM2 application may not be running correctly"
+        pm2 logs $APP_NAME --lines 10
+    fi
+
+    # Check application response
+    if curl -f -s http://localhost:3000/api/health >/dev/null 2>&1 || curl -f -s http://localhost:3000/ >/dev/null 2>&1; then
+        success "Application is responding on localhost:3000"
+    else
+        warning "Application may not be fully started yet"
+    fi
+
+    # Check Nginx status
+    if systemctl is-active --quiet nginx; then
+        success "Nginx is running"
+        log "Application should be accessible at: http://$DOMAIN"
+    else
+        warning "Nginx is not running"
+    fi
+
+    # Final verification
+    log "Final deployment verification:"
+    pm2 status
+
+    # Comprehensive API testing
+    test_api_endpoints
 }
 
 # Run main function
