@@ -146,15 +146,9 @@ export default function Matches() {
 
   const handleStartMatch = (match: any) => {
     console.log('Starting match:', match);
-    console.log('Current isTossDialogOpen state:', isTossDialogOpen);
     setSelectedMatchForToss(match);
     setTossData({ tossWinnerId: match.team1Id.toString(), tossDecision: 'bat' });
-    
-    // Force state update
-    setTimeout(() => {
-      setIsTossDialogOpen(true);
-      console.log('Set toss dialog to open');
-    }, 100);
+    setIsTossDialogOpen(true);
   };
 
   const handleTossSubmit = () => {
@@ -209,36 +203,7 @@ export default function Matches() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* EMERGENCY DEBUG */}
-      <div style={{
-        position: 'fixed',
-        top: '10px',
-        left: '10px',
-        backgroundColor: 'red',
-        color: 'white',
-        padding: '10px',
-        zIndex: 9999,
-        border: '3px solid yellow'
-      }}>
-        <h3>EMERGENCY DEBUG</h3>
-        <button 
-          onClick={() => {
-            console.log('EMERGENCY: Test button clicked');
-            setIsTossDialogOpen(true);
-            console.log('EMERGENCY: Dialog state set to true');
-          }}
-          style={{
-            backgroundColor: 'blue',
-            color: 'white',
-            padding: '5px 10px',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          Emergency Test
-        </button>
-        <div>Dialog Open: {isTossDialogOpen ? 'YES' : 'NO'}</div>
-      </div>
+
 
       {/* Header */}
       <header className="bg-cricket-primary text-white shadow-lg">
@@ -396,54 +361,119 @@ export default function Matches() {
         </div>
       </header>
 
-      {/* Debug Info */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed top-4 right-4 bg-black text-white p-2 text-xs z-50">
-          Toss Dialog Open: {isTossDialogOpen ? 'true' : 'false'}
-          <br />
-          Selected Match: {selectedMatchForToss?.id || 'none'}
-        </div>
-      )}
+
 
       {/* Toss Dialog */}
-      {isTossDialogOpen && (
-        <div style={{
-          position: 'fixed',
-          top: '0',
-          left: '0',
-          right: '0',
-          bottom: '0',
-          backgroundColor: 'rgba(0,0,0,0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '8px',
-            maxWidth: '500px',
-            width: '90%'
-          }}>
+      {isTossDialogOpen && selectedMatchForToss && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000
+          }}
+          onClick={() => setIsTossDialogOpen(false)}
+        >
+          <div 
+            style={{
+              backgroundColor: 'white',
+              padding: '30px',
+              borderRadius: '8px',
+              maxWidth: '500px',
+              width: '90%'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 style={{ marginBottom: '20px', fontSize: '24px', fontWeight: 'bold' }}>
               Start Match - Toss Details
             </h2>
-            <p>BASIC TOSS DIALOG IS WORKING!</p>
-            <button 
-              onClick={() => setIsTossDialogOpen(false)}
-              style={{
-                backgroundColor: 'red',
-                color: 'white',
-                padding: '10px 20px',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                marginTop: '20px'
-              }}
-            >
-              Close
-            </button>
+            
+            <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '4px', textAlign: 'center' }}>
+              <h3 style={{ fontWeight: 'bold', fontSize: '18px' }}>
+                {selectedMatchForToss.team1.name} vs {selectedMatchForToss.team2.name}
+              </h3>
+              <p style={{ color: '#666', fontSize: '14px' }}>
+                {selectedMatchForToss.matchType} • {selectedMatchForToss.overs} overs
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Toss Winner</label>
+              <select 
+                value={tossData.tossWinnerId}
+                onChange={(e) => setTossData({ ...tossData, tossWinnerId: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '16px'
+                }}
+              >
+                <option value="">Select toss winner</option>
+                <option value={selectedMatchForToss.team1Id.toString()}>{selectedMatchForToss.team1.name}</option>
+                <option value={selectedMatchForToss.team2Id.toString()}>{selectedMatchForToss.team2.name}</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Toss Decision</label>
+              <select 
+                value={tossData.tossDecision}
+                onChange={(e) => setTossData({ ...tossData, tossDecision: e.target.value as 'bat' | 'bowl' })}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '16px'
+                }}
+              >
+                <option value="bat">Bat First</option>
+                <option value="bowl">Bowl First</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={handleTossSubmit}
+                disabled={!tossData.tossWinnerId || startMatchMutation.isPending}
+                style={{
+                  flex: 1,
+                  backgroundColor: (tossData.tossWinnerId && !startMatchMutation.isPending) ? '#22c55e' : '#ccc',
+                  color: 'white',
+                  padding: '12px 20px',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: (tossData.tossWinnerId && !startMatchMutation.isPending) ? 'pointer' : 'not-allowed',
+                  fontSize: '16px',
+                  fontWeight: 'bold'
+                }}
+              >
+                {startMatchMutation.isPending ? 'Starting Match...' : 'Start Match'}
+              </button>
+              <button 
+                onClick={() => setIsTossDialogOpen(false)}
+                disabled={startMatchMutation.isPending}
+                style={{
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  padding: '12px 20px',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: startMatchMutation.isPending ? 'not-allowed' : 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -523,23 +553,7 @@ export default function Matches() {
       </Dialog>
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {/* Test Toss Dialog Button */}
-        <div className="bg-yellow-100 p-4 rounded-lg border-2 border-yellow-300">
-          <h3 className="font-bold mb-2">DEBUG: Toss Dialog Test</h3>
-          <button 
-            type="button"
-            onClick={() => {
-              console.log('Test button clicked');
-              setSelectedMatchForToss({ id: 5, team1: { name: 'Chiefs' }, team2: { name: 'Lions' }, team1Id: 1, team2Id: 2, matchType: 'T20', overs: 20 });
-              setTossData({ tossWinnerId: '1', tossDecision: 'bat' });
-              setIsTossDialogOpen(true);
-              console.log('Dialog should be open now');
-            }}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-bold"
-          >
-            Test Toss Dialog
-          </button>
-        </div>
+
         
         {/* Live Matches */}
         <div>
